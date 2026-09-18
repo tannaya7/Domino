@@ -18,6 +18,13 @@ const ENV_FILENAMES = new Set(['.env.example', '.env.sample', 'env.example'])
 // much smaller than MAX_FILES — these are a handful of well-known filenames, not the whole tree.
 const MAX_DISCOVERY_FILES_PER_KIND = 20
 
+// API Gateway's HTTP API integration has a hard 30s timeout — this leaves headroom for the
+// response to actually be sent. Any run that hits this budget reports truncated:true instead of
+// letting the platform kill the request with no useful response at all.
+const DEFAULT_SCAN_BUDGET_MS = 25_000
+const ENTRY_FILENAME = /^(index|main|app)\.(tsx?|jsx?)$/i
+const CONFIG_FILENAME = /config|setup/i
+
 export interface RepoSource {
   /** All file paths in the repo (blobs only, relative to repo root). */
   listFiles(): Promise<string[]>
@@ -54,17 +61,39 @@ function isTrackedFile(path: string): boolean {
   return !path.split('/').some((segment) => EXCLUDED_DIR_SEGMENTS.has(segment))
 }
 
-async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const results: R[] = new Array(items.length)
+/** `deadline` (epoch ms) stops dispatching new work past it; already-started calls still finish.
+ * Items never started or interrupted are left `undefined` in the result — never partially applied. */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+  deadline = Infinity,
+): Promise<Array<R | undefined>> {
+  const results: Array<R | undefined> = new Array(items.length)
   let cursor = 0
   async function worker() {
     while (cursor < items.length) {
+      if (Date.now() > deadline) return
       const index = cursor++
       results[index] = await fn(items[index])
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
   return results
+}
+
+/** Files most representative of a repo's shape when time runs out before everything can be fetched:
+ * entrypoints and config files first, then shallow (repo-root-ish) files, then everything else. */
+function priorityScore(path: string): number {
+  const base = basename(path)
+  if (ENTRY_FILENAME.test(base)) return 0
+  if (CONFIG_FILENAME.test(base)) return 1
+  if (path.split('/').length <= 2) return 2
+  return 3
+}
+
+function prioritizeFiles(paths: string[]): string[] {
+  return [...paths].sort((a, b) => priorityScore(a) - priorityScore(b))
 }
 
 /** Loads TS path aliases and Node subpath imports from the repo root, if present. Never throws. */
@@ -108,7 +137,11 @@ interface DiscoverySources {
  * separate from and much cheaper than the tracked-file walk above (a handful of well-known
  * filenames, not every file in the repo). Never throws; unreadable files are silently skipped.
  */
-async function loadVendorDiscoverySources(source: RepoSource, allPaths: string[]): Promise<DiscoverySources> {
+async function loadVendorDiscoverySources(
+  source: RepoSource,
+  allPaths: string[],
+  deadline: number,
+): Promise<DiscoverySources> {
   const manifestPaths = allPaths
     .filter((path) => KNOWN_MANIFEST_FILENAMES.includes(basename(path)))
     .slice(0, MAX_DISCOVERY_FILES_PER_KIND)
@@ -116,14 +149,19 @@ async function loadVendorDiscoverySources(source: RepoSource, allPaths: string[]
   const iacPaths = allPaths.filter(isIacFile).slice(0, MAX_DISCOVERY_FILES_PER_KIND)
 
   async function readAll(paths: string[]): Promise<DiscoveryFile[]> {
-    const results = await mapWithConcurrency(paths, CONCURRENCY, async (path): Promise<DiscoveryFile | null> => {
-      try {
-        return { path, content: await source.readFile(path) }
-      } catch {
-        return null
-      }
-    })
-    return results.filter((r): r is DiscoveryFile => r !== null)
+    const results = await mapWithConcurrency(
+      paths,
+      CONCURRENCY,
+      async (path): Promise<DiscoveryFile | null> => {
+        try {
+          return { path, content: await source.readFile(path) }
+        } catch {
+          return null
+        }
+      },
+      deadline,
+    )
+    return results.filter((r): r is DiscoveryFile => r != null)
   }
 
   const [manifestFiles, envFiles, iacFiles] = await Promise.all([
@@ -144,12 +182,23 @@ export interface BuildGraphResult {
   iacSubstrates: IacSubstrateSignal[]
 }
 
+export interface BuildGraphOptions {
+  /** Wall-clock budget in ms from the start of the scan. Defaults to 25s (API Gateway's HTTP API
+   * integration has a hard 30s ceiling) — running past it reports truncated:true instead of the
+   * platform killing the request with no response at all. */
+  scanBudgetMs?: number
+}
+
 /** Builds a {nodes, edges} import graph plus vendor/substrate signals from any RepoSource. */
-export async function buildGraphFromSource(source: RepoSource): Promise<BuildGraphResult> {
+export async function buildGraphFromSource(
+  source: RepoSource,
+  options: BuildGraphOptions = {},
+): Promise<BuildGraphResult> {
+  const deadline = Date.now() + (options.scanBudgetMs ?? DEFAULT_SCAN_BUDGET_MS)
+
   const allPaths = await source.listFiles()
   const trackedPaths = allPaths.filter(isTrackedFile)
-  const truncated = trackedPaths.length > MAX_FILES
-  const filesToFetch = trackedPaths.slice(0, MAX_FILES)
+  const countCapped = trackedPaths.length > MAX_FILES
 
   // Resolution uses the FULL tracked-file list, not just filesToFetch — otherwise a file
   // we don't fetch content for (because of the cap) can still never be a valid edge target,
@@ -157,20 +206,36 @@ export async function buildGraphFromSource(source: RepoSource): Promise<BuildGra
   const knownFilePaths = new Set(trackedPaths)
   const aliasEntries = await loadAliasEntries(source, allPaths)
 
-  const [contents, discoverySources] = await Promise.all([
-    mapWithConcurrency(filesToFetch, CONCURRENCY, (path) => source.readFile(path)),
-    loadVendorDiscoverySources(source, allPaths),
-  ])
+  // Vendor-discovery sources (manifests/env/IaC) run to completion FIRST, ahead of the file-import
+  // walk — they're small, bounded (<=60 files total), and carry the vendor-detection signal the
+  // whole product depends on. If the budget runs out, the file graph is what gets thinner.
+  const discoverySources = await loadVendorDiscoverySources(source, allPaths, deadline)
+
+  const filesToFetch = prioritizeFiles(trackedPaths).slice(0, MAX_FILES)
+  const remainingBudget = Math.max(0, deadline - Date.now())
+  const fetchDeadline = Date.now() + remainingBudget
+  const contents = await mapWithConcurrency(
+    filesToFetch,
+    CONCURRENCY,
+    (path) => source.readFile(path),
+    fetchDeadline,
+  )
 
   const edgeKeys = new Set<string>()
   const edges: GraphData['edges'] = []
-  const nodeIds = new Set(filesToFetch)
+  const nodeIds = new Set<string>()
   // Bare (non-relative) specifiers never become file-graph edges/nodes — the file graph stays
   // exactly what it was — but they're the primary vendor-discovery signal, so we keep them here.
   const fileSignals: FileVendorSignal[] = []
+  let fetchedCount = 0
 
   filesToFetch.forEach((path, i) => {
-    const specifiers = extractImportSpecifiers(contents[i])
+    const content = contents[i]
+    if (content === undefined) return // skipped — the scan budget ran out before reaching it
+    fetchedCount++
+    nodeIds.add(path)
+
+    const specifiers = extractImportSpecifiers(content)
     const bareSpecifiers: string[] = []
 
     for (const specifier of specifiers) {
@@ -193,7 +258,7 @@ export async function buildGraphFromSource(source: RepoSource): Promise<BuildGra
       if (!specifier.startsWith('.')) bareSpecifiers.push(specifier)
     }
 
-    const envVarNames = extractEnvVarNames(contents[i])
+    const envVarNames = extractEnvVarNames(content)
     if (bareSpecifiers.length > 0 || envVarNames.length > 0) {
       fileSignals.push({ file: path, importSpecifiers: bareSpecifiers, envVarNames })
     }
@@ -212,8 +277,15 @@ export async function buildGraphFromSource(source: RepoSource): Promise<BuildGra
   const iacSubstrates = discoverySources.iacFiles.flatMap(({ path, content }) => parseIacFile(path, content))
 
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
+  const budgetCapped = fetchedCount < filesToFetch.length
 
-  return { graph: { nodes, edges }, truncated, filesScanned: filesToFetch.length, vendors, iacSubstrates }
+  return {
+    graph: { nodes, edges },
+    truncated: countCapped || budgetCapped,
+    filesScanned: fetchedCount,
+    vendors,
+    iacSubstrates,
+  }
 }
 
 export interface AnalyzeRepoResult extends BuildGraphResult {
@@ -222,10 +294,14 @@ export interface AnalyzeRepoResult extends BuildGraphResult {
   branch: string
 }
 
-export async function analyzeRepo(repoUrl: string, branch?: string): Promise<AnalyzeRepoResult> {
+export async function analyzeRepo(
+  repoUrl: string,
+  branch?: string,
+  options: BuildGraphOptions = {},
+): Promise<AnalyzeRepoResult> {
   const { owner, repo } = parseRepoUrl(repoUrl)
   const ref = branch ?? (await getDefaultBranch(owner, repo))
   const source = new GithubRepoSource(owner, repo, ref)
-  const result = await buildGraphFromSource(source)
+  const result = await buildGraphFromSource(source, options)
   return { ...result, owner, repo, branch: ref }
 }

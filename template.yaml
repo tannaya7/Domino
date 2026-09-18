@@ -1,0 +1,336 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Blast Radius Mapper — dependency risk intelligence platform. One HTTP API + Lambda behind
+  apiRouter.ts (a $default proxy route, so new endpoints never need a template change), a
+  DynamoDB graph cache, an EventBridge-scheduled Lambda for vendor status polling + SNS alerts,
+  and an S3 + CloudFront static frontend.
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: ''
+    Description: >
+      Bedrock model id for the Converse API (e.g. amazon.nova-lite-v1:0). Leave blank to deploy
+      with Bedrock disabled — /risk-summary and /runbook use the deterministic fallback until set.
+      Run a Converse smoke test with the AWS CLI BEFORE setting this (see DEPLOYMENT.md).
+  # cfn-lint W1030 flags this parameter's '' default against an ARN pattern — a known false
+  # positive: the Statement using it is wrapped in Fn::If[HasBedrockModel, ...] and is never
+  # included in the policy when this is empty. Metadata isn't a valid Parameter property (tried
+  # suppressing it that way; cfn-lint itself rejected the template for it), so this stays a
+  # documented, harmless warning rather than a real default-value problem.
+  BedrockModelArn:
+    Type: String
+    Default: ''
+    Description: >
+      Exact ARN to scope bedrock:InvokeModel to (foundation-model or inference-profile ARN,
+      matching BedrockModelId). Required if BedrockModelId is set — least-privilege IAM has
+      nothing to scope to otherwise.
+  BedrockRegion:
+    Type: String
+    Default: us-east-1
+    Description: Region to call Bedrock in — can differ from the stack's region if your model isn't offered here.
+  AlertEmail:
+    Type: String
+    Default: ''
+    Description: Email address to subscribe to vendor-degradation SNS alerts. Leave blank to skip the subscription (topic is still created).
+  GithubTokenSsmParam:
+    Type: String
+    Default: /blast-radius-mapper/github-token
+    Description: >
+      Name of an SSM SecureString parameter holding a GitHub PAT. Create it yourself BEFORE
+      deploying (see DEPLOYMENT.md) — it is never set as a plain value in this template.
+  StatusPollRateMinutes:
+    Type: Number
+    Default: 5
+    MinValue: 1
+  EnableHealthApi:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: >
+      Only set true if this account has a Business/Enterprise Support plan — otherwise every
+      describeEvents call throws SubscriptionRequiredException and the app correctly falls back
+      to the public status feed regardless, so leaving this false changes nothing but the IAM grant.
+  EnableReservedConcurrency:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: New accounts often have a 10-concurrency total quota — leave false if `sam deploy` complains about it.
+
+Conditions:
+  HasBedrockModel: !Not [!Equals [!Ref BedrockModelId, '']]
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+  UseReservedConcurrency: !Equals [!Ref EnableReservedConcurrency, 'true']
+  HealthApiEnabled: !Equals [!Ref EnableHealthApi, 'true']
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    Timeout: 29 # HTTP API's integration timeout is a hard, non-configurable 30s — stay under it
+    MemorySize: 512
+    Environment:
+      Variables:
+        DYNAMODB_GRAPH_CACHE_TABLE: !Ref GraphCacheTable
+        SNS_ALERT_TOPIC_ARN: !Ref VendorAlertsTopic
+        GITHUB_TOKEN_SSM_PARAM: !Ref GithubTokenSsmParam
+        AWS_HEALTH_ENABLED: !Ref EnableHealthApi
+        BEDROCK_REGION: !Ref BedrockRegion
+        # AWS_REGION is a reserved Lambda env var — it's already set automatically per-function.
+
+Resources:
+  # ---------------------------------------------------------------------------------------------
+  # API: one Lambda, one $default proxy route. apiRouter.ts owns every endpoint's behavior — adding
+  # a new route to the app never requires touching this template.
+  # ---------------------------------------------------------------------------------------------
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Sub 'https://${CloudFrontDistribution.DomainName}'
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [Content-Type]
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 5
+        ThrottlingBurstLimit: 10
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: lambdaHandler.handler
+      CodeUri: server/src/
+      ReservedConcurrentExecutions: !If [UseReservedConcurrency, 5, !Ref AWS::NoValue]
+      Environment:
+        Variables:
+          ALLOWED_ORIGIN: !Sub 'https://${CloudFrontDistribution.DomainName}'
+          BEDROCK_MODEL_ID: !If [HasBedrockModel, !Ref BedrockModelId, !Ref AWS::NoValue]
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GraphCacheTable
+        - Statement:
+            - Sid: SsmGithubToken
+              Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubTokenSsmParam}'
+            - !If
+              - HasBedrockModel
+              - Sid: BedrockConverse
+                Effect: Allow
+                Action: bedrock:InvokeModel # Converse/ConverseStream are authorized under this same action
+                Resource: !Ref BedrockModelArn
+              - !Ref AWS::NoValue
+            - !If
+              - HealthApiEnabled
+              - Sid: AwsHealth
+                Effect: Allow
+                Action: health:Describe*
+                Resource: '*' # AWS Health's API does not support resource-level scoping
+              - !Ref AWS::NoValue
+      Events:
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: $default
+            Method: ANY
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Target: node22
+        Format: esm
+        EntryPoints: [lambdaHandler.ts]
+        OutExtension:
+          - .js=.mjs
+
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ApiFunction}
+      RetentionInDays: 14
+
+  # ---------------------------------------------------------------------------------------------
+  # Scheduler: EventBridge Scheduler -> a SEPARATE Lambda (no shared memory with ApiFunction) that
+  # reconstructs its vendor watchlist by scanning graph-cache, then polls status + publishes SNS
+  # alerts. Replaces server/src/scheduler.ts, the in-process stand-in used by local dev.
+  # ---------------------------------------------------------------------------------------------
+  SchedulerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: schedulerHandler.handler
+      CodeUri: server/src/
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref GraphCacheTable
+        - Statement:
+            - Sid: SnsPublish
+              Effect: Allow
+              Action: sns:Publish
+              Resource: !Ref VendorAlertsTopic
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Target: node22
+        Format: esm
+        EntryPoints: [schedulerHandler.ts]
+        OutExtension:
+          - .js=.mjs
+
+  SchedulerFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SchedulerFunction}
+      RetentionInDays: 14
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeSchedulerFunction
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt SchedulerFunction.Arn
+
+  StatusPollSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Polls every watched vendor's status feed and publishes SNS alerts on degradation.
+      ScheduleExpression: !Sub 'rate(${StatusPollRateMinutes} minutes)'
+      FlexibleTimeWindow: { Mode: 'OFF' }
+      Target:
+        Arn: !GetAtt SchedulerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+
+  # ---------------------------------------------------------------------------------------------
+  # DynamoDB — graph-cache
+  # ---------------------------------------------------------------------------------------------
+  GraphCacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-graph-cache'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repo_url
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repo_url
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ---------------------------------------------------------------------------------------------
+  # SNS — vendor degradation alerts
+  # ---------------------------------------------------------------------------------------------
+  VendorAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-vendor-alerts'
+
+  VendorAlertsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref VendorAlertsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # ---------------------------------------------------------------------------------------------
+  # Frontend — S3 (private) + CloudFront (Origin Access Control, SPA fallback)
+  # ---------------------------------------------------------------------------------------------
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  FrontendOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-frontend-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        DefaultCacheBehavior:
+          TargetOriginId: frontend-s3-origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS managed "CachingOptimized"
+        Origins:
+          - Id: frontend-s3-origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref FrontendOAC
+            S3OriginConfig: { OriginAccessIdentity: '' }
+        # SPA fallback: a client-side route with no matching S3 key still resolves to index.html.
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+Outputs:
+  ApiUrl:
+    Description: Base URL of the deployed HTTP API (VITE_API_BASE_URL)
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  FrontendUrl:
+    Description: Public CloudFront URL for the frontend
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+  FrontendBucketName:
+    Description: S3 bucket to sync the built frontend into
+    Value: !Ref FrontendBucket
+  CloudFrontDistributionId:
+    Description: Needed to invalidate the CloudFront cache after a deploy
+    Value: !Ref CloudFrontDistribution
+  GraphCacheTableName:
+    Value: !Ref GraphCacheTable
+  VendorAlertsTopicArn:
+    Value: !Ref VendorAlertsTopic
+  ApiFunctionName:
+    Value: !Ref ApiFunction
+  SchedulerFunctionName:
+    Value: !Ref SchedulerFunction

@@ -3,10 +3,44 @@ import { execSync } from 'node:child_process'
 const GITHUB_API = 'https://api.github.com'
 
 let cachedToken: string | null | undefined
+let ssmFetchPromise: Promise<string | null> | undefined
 
-/** Reads a token from GITHUB_TOKEN, falling back to the local `gh` CLI's token if present. */
-function getGithubToken(): string | undefined {
+function getRegion(): string {
+  return process.env.AWS_REGION ?? 'us-east-1'
+}
+
+/** Fetches a SecureString from SSM Parameter Store. Returns null (never throws) on any failure —
+ * missing param, no IAM permission, network — so callers can fall through to another source. */
+async function fetchFromSsm(paramName: string): Promise<string | null> {
+  try {
+    const { SSMClient, GetParameterCommand } = await import('@aws-sdk/client-ssm')
+    const client = new SSMClient({ region: getRegion() })
+    const result = await client.send(new GetParameterCommand({ Name: paramName, WithDecryption: true }))
+    return result.Parameter?.Value ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Resolves the GitHub token once per cold start and caches it for the process's lifetime: an SSM
+ * SecureString (GITHUB_TOKEN_SSM_PARAM) first when configured — the deployed path, never a plain
+ * env var — then GITHUB_TOKEN, then the local `gh` CLI's token. Returns undefined if none of these
+ * resolve, which falls back to unauthenticated (lower-rate-limit) GitHub API calls.
+ */
+async function getGithubToken(): Promise<string | undefined> {
   if (cachedToken !== undefined) return cachedToken ?? undefined
+
+  const ssmParam = process.env.GITHUB_TOKEN_SSM_PARAM
+  if (ssmParam) {
+    if (!ssmFetchPromise) ssmFetchPromise = fetchFromSsm(ssmParam)
+    const fromSsm = await ssmFetchPromise
+    if (fromSsm) {
+      cachedToken = fromSsm
+      return cachedToken
+    }
+  }
+
   if (process.env.GITHUB_TOKEN) {
     cachedToken = process.env.GITHUB_TOKEN
     return cachedToken
@@ -30,7 +64,7 @@ export class GithubApiError extends Error {
 }
 
 async function githubFetch(path: string): Promise<Response> {
-  const token = getGithubToken()
+  const token = await getGithubToken()
   const res = await fetch(`${GITHUB_API}${path}`, {
     headers: {
       Accept: 'application/vnd.github+json',

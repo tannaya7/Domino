@@ -20,15 +20,21 @@ export interface ApiGatewayV2Result {
   body: string
 }
 
-const CORS_HEADERS: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type': 'application/json',
+/** Locked to the deployed CloudFront origin via ALLOWED_ORIGIN; '*' is a local/dev-only default —
+ * the SAM template always sets this to the real distribution domain. Read live (not cached at
+ * module load) so it can't go stale across a warm Lambda container if ever changed without a
+ * redeploy, and so tests can vary it per-case. */
+function corsHeaders(): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json',
+  }
 }
 
 function json(statusCode: number, body: unknown): ApiGatewayV2Result {
-  return { statusCode, headers: CORS_HEADERS, body: JSON.stringify(body) }
+  return { statusCode, headers: corsHeaders(), body: JSON.stringify(body) }
 }
 
 function decodeBody(event: ApiGatewayV2Event): string {
@@ -38,7 +44,7 @@ function decodeBody(event: ApiGatewayV2Event): string {
 
 export async function handler(event: ApiGatewayV2Event): Promise<ApiGatewayV2Result> {
   const method = event.requestContext?.http?.method ?? 'GET'
-  if (method === 'OPTIONS') return { statusCode: 204, headers: CORS_HEADERS, body: '' }
+  if (method === 'OPTIONS') return { statusCode: 204, headers: corsHeaders(), body: '' }
   if (method !== 'POST') return json(404, { error: 'Not found' })
 
   let body: Record<string, unknown> = {}

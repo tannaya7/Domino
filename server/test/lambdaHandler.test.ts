@@ -72,4 +72,15 @@ describe('lambda handler', () => {
     const result = await handler(event({ body: JSON.stringify({ repoUrl: 'not a url' }) }))
     expect(result.statusCode).toBe(400)
   })
+
+  it('locks CORS to ALLOWED_ORIGIN when configured, instead of "*"', async () => {
+    process.env.ALLOWED_ORIGIN = 'https://d111111abcdef8.cloudfront.net'
+    try {
+      const { handler } = await import('../src/lambdaHandler')
+      const result = await handler(event({ requestContext: { http: { method: 'OPTIONS' } } }))
+      expect(result.headers['Access-Control-Allow-Origin']).toBe('https://d111111abcdef8.cloudfront.net')
+    } finally {
+      delete process.env.ALLOWED_ORIGIN
+    }
+  })
 })

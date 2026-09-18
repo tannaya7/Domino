@@ -97,7 +97,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
       mostConcentrated: { substrate: 'aws', vendorKeys: ['stripe'], vendorNames: ['Stripe'], share: 1 },
     },
     criticality: { entrypoints: ['src/index.ts'], articulationPoints: [], byNode: [] },
-    meta: { owner: 'octocat', repo: 'hello', branch: 'main' },
+    meta: { owner: 'octocat', repo: 'hello', branch: 'main', truncated: false, filesScanned: 2 },
     repoUrl: 'https://github.com/octocat/hello',
     ...overrides,
   }
@@ -248,6 +248,28 @@ describe('Workspace — runbook', () => {
     await waitFor(() => expect(fetchRunbookMock).toHaveBeenCalledWith('https://github.com/octocat/hello', 'stripe', undefined))
     expect(await within(runbookPanel).findByText('Stripe failing affects 1 file.')).toBeInTheDocument()
     expect(within(runbookPanel).getByText('Deterministic')).toBeInTheDocument()
+  })
+})
+
+describe('Workspace — truncated scan banner', () => {
+  it('shows a visible banner when the scan was truncated', () => {
+    render(
+      <Workspace
+        analyzed={fixtureAnalyzed({
+          meta: { owner: 'octocat', repo: 'hello', branch: 'main', truncated: true, filesScanned: 8 },
+        })}
+        prResult={null}
+        onReset={vi.fn()}
+        onClearPr={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/scan stopped early/i)).toBeInTheDocument()
+    expect(screen.getByText(/8 file\(s\)/)).toBeInTheDocument()
+  })
+
+  it('shows no banner when the scan completed fully', () => {
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    expect(screen.queryByText(/scan stopped early/i)).not.toBeInTheDocument()
   })
 })
 

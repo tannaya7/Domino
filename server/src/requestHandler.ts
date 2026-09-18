@@ -4,7 +4,8 @@ import { errorMessage, HttpError, routeApi } from './apiRouter'
 const MAX_BODY_BYTES = 2 * 1024 * 1024 // 2MB — generous for this API's JSON bodies, bounds memory use
 
 function setCors(res: ServerResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // '*' is the local-dev default; set ALLOWED_ORIGIN to lock this down (the deployed Lambda always does).
+  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 }

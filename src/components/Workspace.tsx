@@ -24,7 +24,7 @@ export interface AnalyzedRepo {
   vendorGraph: VendorGraph
   concentration: ConcentrationResult
   criticality: CriticalityResult
-  meta: { owner: string; repo: string; branch: string } | null
+  meta: { owner: string; repo: string; branch: string; truncated: boolean; filesScanned: number } | null
   /** Only set for a real repo scan — required to call /simulate, /status, /runbook. */
   repoUrl: string | null
 }
@@ -208,6 +208,18 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <main className="flex flex-1 flex-col gap-3 overflow-hidden p-4">
+          {analyzed.meta?.truncated && (
+            <div
+              role="status"
+              className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200"
+            >
+              <span aria-hidden="true">⚠</span>
+              <span>
+                Scan stopped early (file-count or time budget) — only {analyzed.meta.filesScanned} file(s) were
+                fetched. Results below reflect a partial scan, not the whole repo.
+              </span>
+            </div>
+          )}
           {hasVendorData && (
             <div className="flex flex-wrap gap-3">
               <StatTile label="Vendors" value={analyzed.vendors.length} />

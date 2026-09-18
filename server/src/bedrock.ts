@@ -1,10 +1,12 @@
 import { withTimeout } from './withTimeout'
 
-// Real Amazon Bedrock integration (InvokeModel via @aws-sdk/client-bedrock-runtime, Anthropic
-// Claude's Messages API body shape). Only activates when BEDROCK_MODEL_ID is set — without it we
-// skip straight to each caller's deterministic fallback rather than making a network call that's
-// certain to fail from an unconfigured account. Credentials resolve via the standard AWS SDK
-// credential chain (env vars, shared config, IMDS, ...) — never hardcoded here.
+// Real Amazon Bedrock integration via the Converse API (@aws-sdk/client-bedrock-runtime) — a
+// single request/response shape that works across model families (Amazon Nova, Anthropic Claude,
+// Meta Llama, ...) on Bedrock, so BEDROCK_MODEL_ID can point at whichever cheap/fast model is
+// actually available and granted in your account/region without a code change. Only activates
+// when BEDROCK_MODEL_ID is set — without it we skip straight to each caller's deterministic
+// fallback rather than making a network call that's certain to fail from an unconfigured account.
+// Credentials resolve via the standard AWS SDK credential chain — never hardcoded here.
 
 const DEFAULT_TIMEOUT_MS = 8000
 const MAX_ATTEMPTS = 2
@@ -17,8 +19,10 @@ function getModelId(): string | undefined {
   return process.env.BEDROCK_MODEL_ID
 }
 
+/** BEDROCK_REGION lets Bedrock live in a different region than the rest of the stack (e.g. if your
+ * chosen model isn't offered where DynamoDB/SNS run) — falls back to AWS_REGION, then us-east-1. */
 function getRegion(): string {
-  return process.env.AWS_REGION ?? 'us-east-1'
+  return process.env.BEDROCK_REGION ?? process.env.AWS_REGION ?? 'us-east-1'
 }
 
 export function isBedrockConfigured(): boolean {
@@ -41,34 +45,35 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function invokeOnce(modelId: string, prompt: string, timeoutMs: number): Promise<string | null> {
-  const { InvokeModelCommand } = await import('@aws-sdk/client-bedrock-runtime')
-  const client = await getClient()
-  const body = JSON.stringify({
-    anthropic_version: 'bedrock-2023-05-31',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  })
+interface ConverseResponseShape {
+  output?: { message?: { content?: Array<{ text?: string }> } }
+}
 
-  const response = await withTimeout(
+async function invokeOnce(modelId: string, prompt: string, timeoutMs: number): Promise<string | null> {
+  const { ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime')
+  const client = await getClient()
+
+  const response = (await withTimeout(
     client.send(
-      new InvokeModelCommand({ modelId, contentType: 'application/json', accept: 'application/json', body }),
+      new ConverseCommand({
+        modelId,
+        messages: [{ role: 'user', content: [{ text: prompt }] }],
+        inferenceConfig: { maxTokens: 1024, temperature: 0.3 },
+      }),
     ),
     timeoutMs,
-    'Bedrock InvokeModel',
-  )
+    'Bedrock Converse',
+  )) as ConverseResponseShape
 
-  const raw = new TextDecoder().decode(response.body)
-  const parsed = JSON.parse(raw) as { content?: Array<{ text?: string }> }
-  const text = parsed?.content?.[0]?.text
+  const text = response.output?.message?.content?.find((block) => typeof block.text === 'string')?.text
   return typeof text === 'string' && text.length > 0 ? text : null
 }
 
 /**
- * Sends a prompt to the configured Bedrock model and returns its raw text output, retrying once
- * on failure. Returns null — never throws — if Bedrock isn't configured, credentials/access are
- * unavailable, every attempt times out, or the response is malformed. Callers MUST treat null as
- * "use the deterministic fallback," not as an error to propagate.
+ * Sends a prompt to the configured Bedrock model (via Converse) and returns its raw text output,
+ * retrying once on failure. Returns null — never throws — if Bedrock isn't configured,
+ * credentials/access are unavailable, every attempt times out, or the response is malformed.
+ * Callers MUST treat null as "use the deterministic fallback," not as an error to propagate.
  */
 export async function invokeBedrock(prompt: string, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string | null> {
   const modelId = getModelId()

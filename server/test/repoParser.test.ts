@@ -203,3 +203,56 @@ describe('buildGraphFromSource — vendor discovery', () => {
     ])
   })
 })
+
+describe('buildGraphFromSource — scan budget', () => {
+  function slowSource(files: Record<string, string>, delayMs: number): RepoSource {
+    return {
+      async listFiles() {
+        return Object.keys(files)
+      },
+      async readFile(path: string) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+        return files[path]
+      },
+    }
+  }
+
+  // Concurrency is 8, so the deadline check (evaluated once per worker, before it starts its next
+  // item — not mid-flight) only bites at the boundary BETWEEN rounds of 8. These numbers are
+  // chosen so round 1 always completes, and round 2's start time reliably lands on either side of
+  // the deadline, with a comfortable margin either way.
+  it('reports truncated:true and a lower filesScanned when the budget runs out', async () => {
+    const files: Record<string, string> = {}
+    for (let i = 0; i < 30; i++) files[`src/file${i}.ts`] = `export const x = ${i}`
+    const source = slowSource(files, 30)
+
+    // Round 1 (8 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
+    const result = await buildGraphFromSource(source, { scanBudgetMs: 20 })
+
+    expect(result.truncated).toBe(true)
+    expect(result.filesScanned).toBe(8)
+  })
+
+  it('does not truncate when everything finishes inside the budget', async () => {
+    const source = slowSource({ 'src/a.ts': 'export const a = 1' }, 1)
+    const result = await buildGraphFromSource(source, { scanBudgetMs: 5000 })
+    expect(result.truncated).toBe(false)
+    expect(result.filesScanned).toBe(1)
+  })
+
+  it('prioritizes entrypoint files over deeply nested ones when time runs out', async () => {
+    const files: Record<string, string> = { 'index.ts': 'export const root = 1' }
+    for (let i = 0; i < 10; i++) files[`a/b/c/deep${i}.ts`] = `export const d${i} = ${i}`
+    const source = slowSource(files, 30)
+
+    // Without prioritization, index.ts (inserted last) would land in round 2 and get cut here.
+    // Round 1 (8 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
+    const result = await buildGraphFromSource(source, { scanBudgetMs: 20 })
+
+    expect(result.truncated).toBe(true)
+    expect(result.filesScanned).toBe(8)
+    const scannedIds = result.graph.nodes.map((n) => n.id)
+    expect(scannedIds).toContain('index.ts')
+    expect(scannedIds).not.toContain('a/b/c/deep9.ts')
+  })
+})
