@@ -1,0 +1,157 @@
+import { execSync } from 'node:child_process'
+
+const GITHUB_API = 'https://api.github.com'
+
+let cachedToken: string | null | undefined
+
+/** Reads a token from GITHUB_TOKEN, falling back to the local `gh` CLI's token if present. */
+function getGithubToken(): string | undefined {
+  if (cachedToken !== undefined) return cachedToken ?? undefined
+  if (process.env.GITHUB_TOKEN) {
+    cachedToken = process.env.GITHUB_TOKEN
+    return cachedToken
+  }
+  try {
+    cachedToken = execSync('gh auth token', { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  } catch {
+    cachedToken = null
+  }
+  return cachedToken ?? undefined
+}
+
+export class GithubApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'GithubApiError'
+    this.status = status
+  }
+}
+
+async function githubFetch(path: string): Promise<Response> {
+  const token = getGithubToken()
+  const res = await fetch(`${GITHUB_API}${path}`, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'blast-radius-mapper',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new GithubApiError('Repository or resource not found (it may be private or the URL is wrong).', 404)
+    }
+    if (res.status === 403) {
+      const remaining = res.headers.get('x-ratelimit-remaining')
+      if (remaining === '0') {
+        throw new GithubApiError('GitHub API rate limit exceeded. Try again later or set GITHUB_TOKEN.', 403)
+      }
+      throw new GithubApiError('Access to this GitHub resource was forbidden.', 403)
+    }
+    throw new GithubApiError(`GitHub API request failed with status ${res.status}.`, res.status)
+  }
+
+  return res
+}
+
+export interface ParsedRepoUrl {
+  owner: string
+  repo: string
+}
+
+export function parseRepoUrl(url: string): ParsedRepoUrl {
+  const match = url
+    .trim()
+    .match(/github\.com[/:]([^/]+)\/([^/#?]+?)(?:\.git)?\/?(?:[?#].*)?$/)
+  if (!match) {
+    throw new Error('That does not look like a GitHub repo URL (expected github.com/owner/repo).')
+  }
+  return { owner: match[1], repo: match[2] }
+}
+
+export interface ParsedPrUrl extends ParsedRepoUrl {
+  prNumber: number
+}
+
+export function parsePrUrl(url: string): ParsedPrUrl {
+  const match = url.trim().match(/github\.com[/:]([^/]+)\/([^/]+)\/pull\/(\d+)/)
+  if (!match) {
+    throw new Error('That does not look like a GitHub PR URL (expected github.com/owner/repo/pull/123).')
+  }
+  return { owner: match[1], repo: match[2], prNumber: Number(match[3]) }
+}
+
+export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
+  const res = await githubFetch(`/repos/${owner}/${repo}`)
+  const data = (await res.json()) as { default_branch: string }
+  return data.default_branch
+}
+
+export interface RepoTreeEntry {
+  path: string
+  type: 'blob' | 'tree'
+}
+
+export async function getRepoTree(owner: string, repo: string, branch: string): Promise<RepoTreeEntry[]> {
+  const res = await githubFetch(`/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`)
+  const data = (await res.json()) as { tree: RepoTreeEntry[]; truncated: boolean }
+  return data.tree
+}
+
+/** Raw file content is fetched from raw.githubusercontent.com — not subject to the core API rate limit. */
+export async function getRawFileContent(
+  owner: string,
+  repo: string,
+  ref: string,
+  path: string,
+): Promise<string> {
+  const res = await fetch(
+    `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path.split('/').map(encodeURIComponent).join('/')}`,
+  )
+  if (!res.ok) {
+    throw new GithubApiError(`Could not fetch raw content for ${path}.`, res.status)
+  }
+  return res.text()
+}
+
+export interface PullRequestMeta {
+  base: { ref: string; owner: string; repo: string }
+}
+
+export async function getPullRequest(owner: string, repo: string, prNumber: number): Promise<PullRequestMeta> {
+  const res = await githubFetch(`/repos/${owner}/${repo}/pulls/${prNumber}`)
+  const data = (await res.json()) as {
+    base: { ref: string; repo: { owner: { login: string }; name: string } }
+  }
+  return {
+    base: {
+      ref: data.base.ref,
+      owner: data.base.repo.owner.login,
+      repo: data.base.repo.name,
+    },
+  }
+}
+
+export interface PullRequestFile {
+  filename: string
+  status: string
+}
+
+export async function getPullRequestFiles(
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<PullRequestFile[]> {
+  const files: PullRequestFile[] = []
+  let page = 1
+  while (true) {
+    const res = await githubFetch(`/repos/${owner}/${repo}/pulls/${prNumber}/files?per_page=100&page=${page}`)
+    const batch = (await res.json()) as PullRequestFile[]
+    files.push(...batch)
+    if (batch.length < 100) break
+    page += 1
+  }
+  return files
+}

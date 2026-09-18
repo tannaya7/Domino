@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    { "id": "web-app", "label": "Web App", "type": "service" },
+    { "id": "api-gateway", "label": "API Gateway", "type": "service" },
+    { "id": "order-service", "label": "Order Service", "type": "service" },
+    { "id": "payment-service", "label": "Payment Service", "type": "service" },
+    { "id": "inventory-service", "label": "Inventory Service", "type": "service" },
+    { "id": "user-db", "label": "User DB", "type": "database" },
+    { "id": "orders-db", "label": "Orders DB", "type": "database" },
+    { "id": "notification-service", "label": "Notification Service", "type": "service" }
+  ],
+  "edges": [
+    { "from": "web-app", "to": "api-gateway" },
+    { "from": "api-gateway", "to": "order-service" },
+    { "from": "api-gateway", "to": "user-db" },
+    { "from": "order-service", "to": "payment-service" },
+    { "from": "order-service", "to": "inventory-service" },
+    { "from": "order-service", "to": "orders-db" },
+    { "from": "payment-service", "to": "notification-service" },
+    { "from": "inventory-service", "to": "orders-db" }
+  ]
+}
