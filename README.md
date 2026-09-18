@@ -1,32 +1,24 @@
-# React + TypeScript + Vite
+# Blast Radius — Dependency Impact Mapper
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+See what breaks before it breaks — map your system's dependencies and understand the blast radius of any change.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Upload/paste a dependency JSON file, load sample data, paste a GitHub repo URL, or paste a GitHub PR URL.
+- Renders an interactive dependency graph. Click any node to see everything upstream (what it depends on) and downstream (what breaks if it fails) highlighted, with a risk level and a plain-English risk summary.
+- A system overview page ranks every component by blast radius. PR analysis highlights every file a PR changes at once and shows the combined blast radius before you merge.
 
-## React Compiler
+## Project layout
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `src/` — React + TypeScript + Vite frontend
+- `server/` — local Node/TypeScript backend: parses a repo's JS/TS import graph (relative imports, `require()`, re-exports, tsconfig path aliases, `package.json` subpath imports), analyzes a PR's combined blast radius, and generates risk summaries. DynamoDB/Bedrock calls are stubbed (see `// TODO` comments) pending real AWS credentials.
 
-## Expanding the Oxlint configuration
+## Running locally
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev          # frontend — http://localhost:5173
+npm run server:dev   # backend  — http://localhost:8787 (separate terminal)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Other scripts: `npm run test` (vitest, frontend + backend), `npm run build` (production build), `npm run lint`.
