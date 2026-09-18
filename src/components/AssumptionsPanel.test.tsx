@@ -47,11 +47,20 @@ describe('AssumptionsPanel', () => {
     expect(lastCall.vendorSlaOverrides.stripe).toBeCloseTo(0.995)
   })
 
-  it('leaves a substrate rate with no default blank, not zero', () => {
+  it('prefills the illustrative default substrate outage probability, not a derived-from-SLA value', () => {
+    // The exact engine's q_s is independent of vendor SLA — even a single vendor on a substrate
+    // gets the illustrative default now, unlike the old Monte Carlo model's "no default for a lone
+    // vendor" rule (which existed only to stop q_s being DERIVED from that same vendor's SLA).
     render(<AssumptionsPanel vendors={[fixtureVendor()]} assumptions={defaultAssumptions()} onChange={vi.fn()} />)
-    const input = screen.getByRole('spinbutton', { name: /aws substrate failure rate percent/i })
-    expect(input).toHaveValue(null)
-    expect(input).toHaveAttribute('placeholder', 'no default')
+    const input = screen.getByRole('spinbutton', { name: /aws substrate outage probability percent/i })
+    expect(input).toHaveValue(0.1)
+  })
+
+  it('excludes self-hosted/unknown substrate tags from the substrate list', () => {
+    render(
+      <AssumptionsPanel vendors={[fixtureVendor({ substrate: ['self'] })]} assumptions={defaultAssumptions()} onChange={vi.fn()} />,
+    )
+    expect(screen.queryByRole('spinbutton', { name: /substrate outage probability/i })).not.toBeInTheDocument()
   })
 
   it('converts the cost per hour when the currency toggle is clicked', async () => {

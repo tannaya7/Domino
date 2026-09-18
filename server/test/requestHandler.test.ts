@@ -118,14 +118,15 @@ describe('POST /simulate', () => {
     expect(json.error).toMatch(/analyze this repo/i)
   })
 
-  it('returns naive vs correlated availability for an analyzed repo', async () => {
+  it('returns exact naive vs correlated availability for an analyzed repo', async () => {
     await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
-    const { status, json } = await post('/simulate', { repoUrl: 'https://github.com/octocat/hello', trials: 100 })
+    const { status, json } = await post('/simulate', { repoUrl: 'https://github.com/octocat/hello' })
 
     expect(status).toBe(200)
     expect(json.simulation.naiveAvailability).toBeCloseTo(0.9999)
-    expect(json.simulation.trials).toBe(100)
+    expect(json.simulation.trials).toBeUndefined() // exact engine — no Monte Carlo trial count
     expect(json.scenario).toBeNull()
+    expect(json.headline.vendors).toBeGreaterThanOrEqual(0)
   })
 
   it('rejects an unknown scenarioId', async () => {
@@ -145,10 +146,16 @@ describe('POST /simulate', () => {
     expect(json.scenario.affectedCount).toBe(1)
   })
 
-  it('caps an absurdly large trials request instead of accepting it verbatim', async () => {
+  it('clamps an out-of-range substrate outage probability override into [0, 1] instead of accepting it verbatim', async () => {
     await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
-    const { json } = await post('/simulate', { repoUrl: 'https://github.com/octocat/hello', trials: 999_999_999 })
-    expect(json.simulation.trials).toBeLessThanOrEqual(100_000)
+    const { json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrateFailureProbabilities: { aws: 999 },
+    })
+    for (const p of Object.values(json.simulation.assumptions.substrateOutageProbabilities)) {
+      expect(p as number).toBeGreaterThanOrEqual(0)
+      expect(p as number).toBeLessThanOrEqual(1)
+    }
   })
 })
 

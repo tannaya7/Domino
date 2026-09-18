@@ -1,7 +1,7 @@
 import { analyzeConcentration } from '../../src/lib/concentration'
-import { PRESET_SCENARIOS, buildAvailabilityHeadline, runMonteCarloAvailability, simulateFailureScenario } from '../../src/lib/availability'
+import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS, simulateFailureScenario } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
-import { buildAdjacencyMap, buildVendorGraph } from '../../src/lib/graph'
+import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { FailureScenario } from '../../src/lib/types'
 import { getAwsHealthStatus } from './awsHealth'
 import { getCachedGraph, setCachedGraph } from './cache'
@@ -17,8 +17,6 @@ import { fetchAllVendorStatuses } from './statusPoll'
 // response body. Both the local Node http server (requestHandler.ts) and a real Lambda deployment
 // (lambdaHandler.ts, behind API Gateway) call this same logic — the only difference between them
 // is how a request arrives and a response is sent, not what the API does.
-
-const MAX_TRIALS = 100_000
 
 export class HttpError extends Error {
   status: number
@@ -42,11 +40,6 @@ function asTrimmedString(value: unknown, fallback = ''): string {
 function asStringArray(value: unknown, maxItems: number): string[] {
   if (!Array.isArray(value)) return []
   return value.filter((v): v is string => typeof v === 'string').slice(0, maxItems)
-}
-
-function sanitizeTrials(value: unknown): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
-  return Math.max(1, Math.min(Math.floor(value), MAX_TRIALS))
 }
 
 function sanitizeCost(value: unknown): number | undefined {
@@ -165,13 +158,32 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     }
 
     const scenarioResult = scenario ? simulateFailureScenario(vendors, scenario) : null
-    const simulation = runMonteCarloAvailability(vendors, {
-      trials: sanitizeTrials(body.trials),
+    const simulation = computeExactAvailability(vendors, {
       costPerHourOfDowntime: sanitizeCost(body.costPerHourOfDowntime),
       vendorSlaOverrides: sanitizeProbabilityMap(body.vendorSlaOverrides),
-      substrateFailureProbabilities: sanitizeProbabilityMap(body.substrateFailureProbabilities),
+      substrateOutageProbabilities: sanitizeProbabilityMap(body.substrateFailureProbabilities),
     })
     const headline = buildAvailabilityHeadline(vendors, simulation)
+
+    // Enrich worstSingleEvent with real entrypoints-affected, using the cached repo's file graph —
+    // the pure engine has no graph access, so this is the one place that can honestly fill it in.
+    if (headline.worstSingleEvent) {
+      const adjacency = buildAdjacencyMap(cached.graph.nodes, cached.graph.edges)
+      const entrypointSet = new Set(cached.entrypoints)
+      const affectedVendorKeys = new Set(headline.worstSingleEvent.vendorKeys)
+      const affectedEntrypoints = new Set<string>()
+      for (const vendor of vendors) {
+        if (!affectedVendorKeys.has(vendor.key)) continue
+        for (const file of vendor.detectedInFiles) {
+          if (!adjacency.reverse.has(file)) continue
+          if (entrypointSet.has(file)) affectedEntrypoints.add(file)
+          for (const downstream of getDownstream(file, adjacency)) {
+            if (entrypointSet.has(downstream)) affectedEntrypoints.add(downstream)
+          }
+        }
+      }
+      headline.worstSingleEvent = { ...headline.worstSingleEvent, entrypointsAffected: [...affectedEntrypoints] }
+    }
 
     return { status: 200, body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS, headline } }
   }

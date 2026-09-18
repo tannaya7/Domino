@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildAvailabilityHeadline,
   calculateNaiveAvailability,
+  computeExactAvailability,
   PRESET_SCENARIOS,
   runMonteCarloAvailability,
   simulateFailureScenario,
@@ -23,6 +24,19 @@ function vendor(overrides: Partial<Vendor>): Vendor {
 
 const alwaysUp = () => 1 // never < any probability in [0,1) -> nothing ever "fails"
 const alwaysDown = () => 0 // < any positive probability -> everything "fails"
+
+/** Deterministic seeded PRNG (mulberry32) — statistical assertions need reproducible trials, not
+ * Math.random(), which made this suite's regression test flaky (see the test using it below). */
+function mulberry32(seed: number): () => number {
+  let state = seed
+  return function next() {
+    state |= 0
+    state = (state + 0x6d2b79f5) | 0
+    let t = Math.imul(state ^ (state >>> 15), 1 | state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 
 describe('calculateNaiveAvailability', () => {
   it('multiplies vendor SLAs assuming independence', () => {
@@ -115,7 +129,11 @@ describe('runMonteCarloAvailability', () => {
     const sla = 0.999
     const p = 1 - sla
     const vendors = [vendor({ key: 'solo', sla, substrate: ['gcp'] })]
-    const result = runMonteCarloAvailability(vendors, { trials: 100_000 })
+    // Seeded, not Math.random(): the ratio in correlatedShareOfDowntime divides two nearly-equal
+    // small numbers, which amplifies ordinary sampling noise enough to occasionally fail an
+    // unseeded run even when the underlying fix is correct — reproducibility matters more here
+    // than "real" randomness.
+    const result = runMonteCarloAvailability(vendors, { trials: 100_000 }, mulberry32(12345))
 
     expect(result.assumptions.substrateFailureProbabilities.gcp).toBeUndefined()
     expect(result.naiveAvailability).toBeCloseTo(sla, 5)
@@ -172,43 +190,113 @@ describe('runMonteCarloAvailability', () => {
   })
 })
 
-describe('buildAvailabilityHeadline', () => {
-  it('reports zero vendors and substrates for an empty vendor list', () => {
-    const result = runMonteCarloAvailability([], { trials: 10 })
-    const headline = buildAvailabilityHeadline([], result)
-    expect(headline).toEqual({ vendors: 0, substrates: 0, invisibleShare: 0, expectedLossPerYear: 0, breakdown: [] })
+describe('computeExactAvailability', () => {
+  it('reports 100% availability for an empty vendor list', () => {
+    const result = computeExactAvailability([])
+    expect(result.naiveAvailability).toBe(1)
+    expect(result.correlatedAvailability).toBe(1)
+    expect(result.independentSameMarginalsAvailability).toBe(1)
   })
 
-  it('marks a solo-vendor substrate as not contributing correlation, transparently', () => {
+  it('matches the naive product-of-SLAs for vendors with no shareable substrate', () => {
+    const vendors = [vendor({ key: 'a', sla: 0.99, substrate: ['self'] }), vendor({ key: 'b', sla: 0.98, substrate: ['self'] })]
+    const result = computeExactAvailability(vendors)
+    expect(result.naiveAvailability).toBeCloseTo(0.99 * 0.98)
+    expect(result.correlatedAvailability).toBeCloseTo(0.99 * 0.98)
+  })
+
+  it('gives a lone vendor on a substrate MORE downtime than naive (a real, separate substrate risk, not a double count)', () => {
+    // Unlike the old Monte Carlo model's bug, this is intentional: q_s here is an independent,
+    // illustrative default (0.1%/yr) — not derived from the vendor's own SLA — so it's honestly
+    // additional risk, not a duplicate of the vendor's own number.
     const vendors = [vendor({ key: 'solo', sla: 0.999, substrate: ['gcp'] })]
-    const result = runMonteCarloAvailability(vendors, { trials: 5000 })
-    const headline = buildAvailabilityHeadline(vendors, result)
-
-    expect(headline.vendors).toBe(1)
-    expect(headline.substrates).toBe(1)
-    expect(headline.breakdown).toEqual([
-      { substrate: 'gcp', vendorCount: 1, failureProbability: 0, contributesCorrelation: false },
-    ])
+    const result = computeExactAvailability(vendors)
+    expect(result.correlatedAvailability).toBeLessThan(result.naiveAvailability)
   })
 
-  it('marks a shared substrate as contributing correlation once 2+ vendors are on it', () => {
+  it('applies vendor SLA and substrate outage probability overrides', () => {
+    const vendors = [vendor({ key: 'a', sla: 0.5, substrate: ['gcp'] })]
+    const result = computeExactAvailability(vendors, {
+      vendorSlaOverrides: { a: 0.999999 },
+      substrateOutageProbabilities: { gcp: 0 },
+    })
+    expect(result.naiveAvailability).toBeCloseTo(0.999999)
+    expect(result.correlatedAvailability).toBeCloseTo(0.999999)
+  })
+
+  it('computes financial exposure from the correlated downtime hours', () => {
+    const vendors = [vendor({ sla: 0.9, substrate: ['self'] })]
+    const result = computeExactAvailability(vendors, { costPerHourOfDowntime: 1000 })
+    expect(result.expectedAnnualExposure.correlated).toBeCloseTo(result.expectedDowntimeHoursPerYear.correlated * 1000)
+  })
+})
+
+describe('buildAvailabilityHeadline (exact)', () => {
+  it('reports zero vendors/substrates and no worst event for an empty vendor list', () => {
+    const result = computeExactAvailability([])
+    const headline = buildAvailabilityHeadline([], result)
+    expect(headline.vendors).toBe(0)
+    expect(headline.substrates).toBe(0)
+    expect(headline.worstSingleEvent).toBeNull()
+    expect(headline.redundancyGroups).toEqual([])
+  })
+
+  it('counts unknown-hosting vendors separately and gives them no worst-event exposure', () => {
+    const vendors = [vendor({ key: 'solo', substrate: ['self'] })]
+    const headline = buildAvailabilityHeadline(vendors, computeExactAvailability(vendors))
+    expect(headline.unknownHostingVendorCount).toBe(1)
+    expect(headline.substrates).toBe(0)
+    expect(headline.worstSingleEvent).toBeNull()
+  })
+
+  it('identifies the worst single event as the substrate with the most vendors on it', () => {
+    const vendors = [
+      vendor({ key: 'a', vendor: 'A', substrate: ['aws'] }),
+      vendor({ key: 'b', vendor: 'B', substrate: ['aws'] }),
+      vendor({ key: 'c', vendor: 'C', substrate: ['gcp'] }),
+    ]
+    const headline = buildAvailabilityHeadline(vendors, computeExactAvailability(vendors))
+    expect(headline.worstSingleEvent).toMatchObject({ substrate: 'aws', vendorKeys: ['a', 'b'], vendorNames: ['A', 'B'] })
+    expect(headline.worstSingleEvent!.entrypointsAffected).toEqual([]) // no file graph in this pure-model test
+  })
+
+  it('reports a curated redundancy pair only when both vendors are detected', () => {
+    const vendors = [
+      vendor({ key: 'stripe', vendor: 'Stripe', fallbacks: ['Razorpay'], substrate: ['aws'] }),
+      vendor({ key: 'razorpay', vendor: 'Razorpay', substrate: ['gcp'] }),
+    ]
+    const headline = buildAvailabilityHeadline(vendors, computeExactAvailability(vendors))
+    expect(headline.redundancyGroups).toHaveLength(1)
+    expect(headline.redundancyGroups[0].memberNames.sort()).toEqual(['Razorpay', 'Stripe'])
+  })
+
+  it('hiddenUpstreamHoursPerYear is non-negative and concentrationEffectHoursPerYear is non-positive', () => {
     const vendors = [
       vendor({ key: 'a', sla: 0.99, substrate: ['aws'] }),
       vendor({ key: 'b', sla: 0.97, substrate: ['aws'] }),
     ]
-    const result = runMonteCarloAvailability(vendors, { trials: 5000 })
-    const headline = buildAvailabilityHeadline(vendors, result)
-
-    expect(headline.breakdown).toHaveLength(1)
-    expect(headline.breakdown[0]).toMatchObject({ substrate: 'aws', vendorCount: 2, contributesCorrelation: true })
-    expect(headline.breakdown[0].failureProbability).toBeCloseTo((0.01 + 0.03) / 2)
+    const headline = buildAvailabilityHeadline(vendors, computeExactAvailability(vendors))
+    expect(headline.hiddenUpstreamHoursPerYear).toBeGreaterThanOrEqual(-1e-9)
+    expect(headline.concentrationEffectHoursPerYear).toBeLessThanOrEqual(1e-9)
   })
 
-  it('surfaces expectedLossPerYear and invisibleShare straight from the simulation result', () => {
-    const vendors = [vendor({ sla: 0.9 })]
-    const result = runMonteCarloAvailability(vendors, { trials: 10, costPerHourOfDowntime: 1000 }, alwaysDown)
+  it('surfaces expectedLossPerYear straight from the exact result', () => {
+    const vendors = [vendor({ sla: 0.9, substrate: ['self'] })]
+    const result = computeExactAvailability(vendors, { costPerHourOfDowntime: 1000 })
     const headline = buildAvailabilityHeadline(vendors, result)
     expect(headline.expectedLossPerYear).toBe(result.expectedAnnualExposure.correlated)
-    expect(headline.invisibleShare).toBe(result.correlatedShareOfDowntime)
+  })
+
+  it('tail risk multiplier is capped for display and never Infinity/NaN', () => {
+    const vendors = [
+      vendor({ key: 'a', sla: 0.999999, substrate: ['aws'] }),
+      vendor({ key: 'b', sla: 0.999999, substrate: ['aws'] }),
+      vendor({ key: 'c', sla: 0.999999, substrate: ['aws'] }),
+    ]
+    const headline = buildAvailabilityHeadline(vendors, computeExactAvailability(vendors))
+    for (const point of headline.tailRisk) {
+      expect(Number.isFinite(point.multiplier)).toBe(true)
+      expect(point.multiplier).toBeLessThanOrEqual(1000)
+    }
   })
 })

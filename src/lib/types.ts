@@ -123,7 +123,13 @@ export interface FailureScenarioResult {
   affectedShare: number
 }
 
-/** Every number here is an editable input, not a measured fact — surface them, don't hide them. */
+/**
+ * Every number here is an editable input, not a measured fact — surface them, don't hide them.
+ * NOTE: this (and SimulationResult below) power `runMonteCarloAvailability`, which is no longer on
+ * the production /simulate path — it's kept ONLY as a seeded test oracle to cross-validate the
+ * exact engine in src/engine/correlated.ts (see correlated.test.ts). Production numbers come from
+ * ExactAvailabilityResult / AvailabilityHeadline below.
+ */
 export interface AvailabilityAssumptions {
   /** Monte Carlo trial count — higher tightens the correlated-availability estimate at the cost of compute. */
   trials: number
@@ -135,6 +141,7 @@ export interface AvailabilityAssumptions {
   vendorSlaOverrides: Record<string, number>
 }
 
+/** Test-oracle-only result shape for runMonteCarloAvailability. See the note on AvailabilityAssumptions. */
 export interface SimulationResult {
   /** Vendors treated as fully independent — the product of their SLAs. Systematically overstates availability. */
   naiveAvailability: number
@@ -148,23 +155,85 @@ export interface SimulationResult {
   assumptions: AvailabilityAssumptions
 }
 
-/** One compact summary object for the UI headline — everything a reader needs without pulling apart SimulationResult. */
+/**
+ * Production assumptions for the EXACT engine (src/engine/correlated.ts) — no trial count, because
+ * there's no sampling. `substrateOutageProbabilities` is the fully-resolved map actually used
+ * (illustrative defaults merged with any user overrides), not just what was overridden.
+ */
+export interface ExactAvailabilityAssumptions {
+  costPerHourOfDowntime: number
+  vendorSlaOverrides: Record<string, number>
+  substrateOutageProbabilities: Record<string, number>
+}
+
+/** The three comparators, computed exactly (closed form / enumeration, never sampled). */
+export interface ExactAvailabilityResult {
+  /** (a) NAIVE: fully independent, p_v = u_v — what SLA-product math sees. Most optimistic. */
+  naiveAvailability: number
+  /** (b) INDEPENDENT-SAME-MARGINALS: fully independent, p_v = 1-(1-u_v)(1-q_s(v)) — same per-vendor
+   * marginal as correlated, but substrate outages sampled separately per vendor instead of shared. */
+  independentSameMarginalsAvailability: number
+  /** Vendor down if its own outage OR its shared substrate's outage — substrate outage shared by every vendor on it. */
+  correlatedAvailability: number
+  expectedDowntimeHoursPerYear: { naive: number; independentSameMarginals: number; correlated: number }
+  expectedAnnualExposure: { naive: number; independentSameMarginals: number; correlated: number }
+  assumptions: ExactAvailabilityAssumptions
+}
+
+/** P(N >= k) under each of the three models, at one checkpoint k (number of vendors down at once). */
+export interface TailRiskPoint {
+  k: number
+  naive: number
+  independentSameMarginals: number
+  correlated: number
+  /** correlated / independentSameMarginals — isolates the effect of SHARING a substrate from the
+   * effect of substrate risk existing at all. Capped for display (never Infinity/NaN). */
+  multiplier: number
+}
+
+/** The single substrate outage that would take down the most vendors at once. */
+export interface WorstSingleEventSummary {
+  substrate: string
+  vendorKeys: string[]
+  vendorNames: string[]
+  /** Entrypoints downstream of the affected vendors' detected files. [] when the file graph isn't
+   * available for this analysis (manual/PR-mode) — never fabricated. */
+  entrypointsAffected: string[]
+  /** The modeled q_s for this substrate — an annual probability, illustrative unless overridden. */
+  probabilityPerYear: number
+}
+
+/** A pair (or small set) of vendors curated as substitutes for each other (server/src/vendorMap.ts
+ * `fallbacks`) where BOTH are actually detected in this repo — real data, not an inferred guess. */
+export interface RedundancyGroupSummary {
+  memberKeys: string[]
+  memberNames: string[]
+  /** Exact P(every member down at once) — the capability is only lost if all substitutes fail together. */
+  groupDownProbabilityPerYear: number
+}
+
+/** One compact summary object for the UI headline — computed by the exact engine, never sampled. */
 export interface AvailabilityHeadline {
-  /** Vendor count included in the simulation. */
+  /** Vendor count included in the analysis. */
   vendors: number
-  /** Distinct substrates those vendors run on. */
+  /** Distinct real (shareable) substrates those vendors run on. */
   substrates: number
-  /** Same value as SimulationResult.correlatedShareOfDowntime, under the name a headline reads better with: the share of downtime that's invisible to a naive independence assumption. 0 when there's nothing to correlate (e.g. a single vendor, or vendors on disjoint substrates). */
-  invisibleShare: number
-  /** Expected annual financial exposure under the correlated model, in whatever unit costPerHourOfDowntime was supplied in (currency-agnostic; the UI is responsible for labeling the unit). */
+  /** Vendors whose only substrate tags are self-hosted/other/unknown — never counted as correlated. */
+  unknownHostingVendorCount: number
+  tailRisk: TailRiskPoint[]
+  /** Extra expected downtime (hours/yr) from naive -> independent-same-marginals: substrate risk a
+   * vendor's own SLA doesn't capture, before any sharing effect is even considered. */
+  hiddenUpstreamHoursPerYear: number
+  /** Expected-downtime change (hours/yr) from independent-same-marginals -> correlated. For a
+   * series (need-everyone-up) system this is typically <= 0: sharing a substrate doesn't add
+   * expected downtime, it turns many small independent outages into fewer, bigger, simultaneous
+   * ones — which is what tailRisk above is for. Never read this as "sharing is safe." */
+  concentrationEffectHoursPerYear: number
+  worstSingleEvent: WorstSingleEventSummary | null
+  /** [] when no curated fallback pair is present in this repo — reported, not hidden. */
+  redundancyGroups: RedundancyGroupSummary[]
+  /** Expected annual financial exposure under the correlated model, in whatever unit costPerHourOfDowntime was supplied in. */
   expectedLossPerYear: number
-  /** Per-substrate transparency: only a substrate with >=2 vendors on it actually contributes correlated risk (see availability.ts) — the rest are listed with contributesCorrelation:false so the UI can show *why* invisibleShare is what it is, not just assert it. */
-  breakdown: Array<{
-    substrate: string
-    vendorCount: number
-    failureProbability: number
-    contributesCorrelation: boolean
-  }>
 }
 
 /** A structured remediation runbook for one vendor's failure. */

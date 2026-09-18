@@ -1,4 +1,5 @@
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
+import { DEFAULT_SUBSTRATE_OUTAGE_PROBABILITY, UNSHAREABLE_SUBSTRATE_TAGS } from '../engine/correlated'
 import type { Currency } from '../lib/currency'
 import { convertCurrency, CURRENCY_SYMBOL } from '../lib/currency'
 import type { Vendor } from '../lib/types'
@@ -14,7 +15,12 @@ const inputClass =
   'w-20 rounded-md border border-[var(--border-subtle)] bg-transparent px-2 py-0.5 text-right text-sm tabular-nums text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]'
 
 function AssumptionsPanel({ vendors, assumptions, onChange }: AssumptionsPanelProps) {
-  const substrates = [...new Set(vendors.flatMap((v) => v.substrate))].sort()
+  const substrates = [
+    ...new Set(vendors.flatMap((v) => v.substrate.filter((s) => !UNSHAREABLE_SUBSTRATE_TAGS.has(s.toLowerCase())))),
+  ].sort()
+  const unknownHostingCount = vendors.filter((v) =>
+    v.substrate.every((s) => UNSHAREABLE_SUBSTRATE_TAGS.has(s.toLowerCase())),
+  ).length
 
   function updateVendorSla(key: string, pctText: string) {
     const pct = Number(pctText)
@@ -74,7 +80,7 @@ function AssumptionsPanel({ vendors, assumptions, onChange }: AssumptionsPanelPr
 
         <div>
           <p className="mb-1 text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
-            Per-substrate failure rate (per year)
+            Per-substrate outage probability (per year)
           </p>
           <ul className="space-y-1">
             {substrates.map((s) => (
@@ -86,12 +92,9 @@ function AssumptionsPanel({ vendors, assumptions, onChange }: AssumptionsPanelPr
                     step="0.01"
                     min="0"
                     max="100"
-                    aria-label={`${s} substrate failure rate percent`}
-                    placeholder="no default"
+                    aria-label={`${s} substrate outage probability percent`}
                     defaultValue={
-                      assumptions.substrateRateOverrides[s] !== undefined
-                        ? (assumptions.substrateRateOverrides[s] * 100).toFixed(2)
-                        : ''
+                      ((assumptions.substrateRateOverrides[s] ?? DEFAULT_SUBSTRATE_OUTAGE_PROBABILITY) * 100).toFixed(2)
                     }
                     onChange={(e) => updateSubstrateRate(s, e.target.value)}
                     className={inputClass}
@@ -102,8 +105,11 @@ function AssumptionsPanel({ vendors, assumptions, onChange }: AssumptionsPanelPr
             ))}
           </ul>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Only a substrate shared by 2+ vendors gets a derived default — a lone vendor has nothing to correlate
-            with, so it defaults to 0. Edit a field if you have real substrate-outage data.
+            Illustrative default ({(DEFAULT_SUBSTRATE_OUTAGE_PROBABILITY * 100).toFixed(2)}%/yr) until you edit
+            it — there's no independently measured per-substrate outage rate to draw from. This is a real,
+            separate risk from a vendor's own SLA, not derived from it.
+            {unknownHostingCount > 0 &&
+              ` ${unknownHostingCount} vendor(s) with unknown hosting, not counted as correlated.`}
           </p>
         </div>
 

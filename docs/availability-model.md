@@ -1,159 +1,150 @@
-# Availability model — audit
+# Availability model — exact correlated-failure engine
 
-This document describes exactly what the availability numbers in the UI mean, where every input
-comes from, and a bug that was found and fixed while auditing it: a single-vendor deployment could
-show a large, entirely artifactual "correlated share of downtime" with nothing behind it.
+This replaces the Monte Carlo model described in the previous version of this document. The
+structure of the problem (a handful of substrates, each either up or down; vendors down if their
+own incident happens or their substrate does) is small and simple enough to compute **exactly** —
+so we do, instead of sampling it. Demos are now deterministic: run it twice, get the same number.
 
-Code: [`src/lib/availability.ts`](../src/lib/availability.ts). Tests:
-[`src/lib/availability.test.ts`](../src/lib/availability.test.ts).
+Code: [`src/engine/correlated.ts`](../src/engine/correlated.ts) (pure math, no I/O, no randomness).
+Orchestration: [`src/lib/availability.ts`](../src/lib/availability.ts). Monte Carlo
+(`runMonteCarloAvailability`) still exists, but only as a seeded test oracle that cross-validates
+this engine — see [`src/engine/correlated.test.ts`](../src/engine/correlated.test.ts).
 
-## What "system is up" means
+## The model
 
-The model is a **series system with no redundancy**: the system is considered up in a trial only
-if *every* detected vendor is up simultaneously (`anyVendorDown` in `runMonteCarloAvailability` —
-if any vendor is down, the trial counts as down). There is no "redundancy by category" — a vendor's
-`fallbacks` field (e.g. Stripe → Razorpay/Adyen) is used elsewhere in the app for remediation
-suggestions, but it is **not** modeled here. This means the model treats every vendor as strictly
-required and will *overstate* fragility for any vendor that has a real, working fallback in your
-architecture. That's a known, deliberate limitation — modeling actual failover topology per vendor
-isn't something we can infer from a static repo scan, so we don't fake it.
+- Each substrate `s` has an independent outage probability `q_s` — editable, illustrative
+  (default 0.10%/yr; there's no independently measured per-substrate rate to draw from). This is a
+  **real, separate risk source from a vendor's own SLA**, not derived from it.
+- Each vendor `v` has its own outage probability `u_v = 1 - sla_v`, editable.
+- Vendor `v` is down if its own outage happens **or** its substrate is down. Vendors on the same
+  substrate share that one event — that's the correlation.
+- A vendor whose only hosting tags are `self` / `other` / `unknown` gets **no** shared substrate —
+  only its own outage. The UI reports "N vendors with unknown hosting, not counted as correlated."
+  Nothing is fabricated for a vendor we have no real substrate signal for.
+- "System up" is a series/AND system: every vendor must be up. There is no redundancy modeling
+  beyond the curated fallback pairs below — a vendor's real failover architecture isn't derivable
+  from a static repo scan.
 
-## Where the numbers come from
+## Three comparators
 
-- **Vendor SLA** — a hand-curated value in [`server/src/vendorMap.ts`](../server/src/vendorMap.ts),
-  one entry per known vendor (e.g. Stripe: 0.9999). These are best-effort published/typical SLA
-  figures, not independently verified per-customer contracts, and the file says so at its top:
-  "SLA and substrate are both editable per-node once surfaced in the UI, not treated as ground
-  truth." The Assumptions panel is that surface — every vendor's SLA is directly editable there,
-  and an edit never mutates the underlying knowledge base, only the simulation's inputs.
-- **Substrate** — a coarse hosting-provider tag per vendor (`aws`, `gcp`, `azure`, `cloudflare`,
-  ...), also hand-curated in the same file. It's coarse by design: exact regions aren't reliably
-  publishable for most vendors.
-- **Substrate failure rate** — there is no independently measured source for this. By default it's
-  *derived* from vendor SLA (see below), and it's directly editable in the Assumptions panel for
-  anyone who has real substrate-outage data.
+1. **NAIVE** — fully independent, `p_v = u_v`. What SLA-product math sees. Always the most
+   optimistic: it doesn't know substrates exist.
+2. **INDEPENDENT-SAME-MARGINALS (b)** — fully independent, `p_v = 1 - (1-u_v)(1-q_s(v))`. Same
+   per-vendor marginal probability as the correlated model, but each vendor's substrate outage is
+   sampled *separately* instead of shared. This isolates "substrate risk exists" from "substrates
+   are shared" — the two effects `hiddenUpstream` and `concentrationEffect` decompose below.
+3. **CORRELATED** — the real model: a substrate's outage is one event, shared by every vendor on
+   it.
 
-## Naive vs. correlated — what each one actually computes
+## Exact computation
 
-**Naive** (`calculateNaiveAvailability`): the product of every vendor's SLA, i.e. `sla1 * sla2 *
-... * slaN`. This is the number most people compute in their head and it assumes every vendor fails
-completely independently of every other one — no shared cause, ever.
+- **`pmfNumberDown(model)`** — the distribution of `N`, the number of vendors down at once.
+  Enumerates all `2^|S|` substrate up/down states (`|S| ≤ 12`, enforced). In each state, vendors
+  touching a down substrate are down for certain; the rest are independent `Bernoulli(u_v)`,
+  combined via a Poisson-binomial DP (`O(V²)`) and shifted by the certain count, weighted by the
+  state's probability and Kahan-summed for precision.
+- Tails (`P(N ≥ k)`) are summed **directly from the upper end** of the PMF, never `1 - CDF` — that
+  subtraction loses precision to cancellation exactly when the tail is the interesting (small)
+  number.
+- **Series availability**, closed form: `∏_s(1-q_s) · ∏_v(1-u_v)` for correlated (only substrates
+  with ≥1 vendor enter the product — an unattached substrate can't affect anything); `∏_v(1-p_v)`
+  for the comparators. This equals `pmfNumberDown(model)[0]` exactly — tested as an invariant.
+- **Redundancy groups** — a vendor's curated `fallbacks` (`server/src/vendorMap.ts`) naming
+  another vendor that's *also* detected in this repo (e.g. Stripe ↔ Razorpay). This is real
+  curated data, not an inferred guess from matching tiers. `P(group down)` = every member down at
+  once, computed exactly over the same substrate-state enumeration. No such pair in a repo →
+  reported as zero groups, not hidden.
+- **Simulate a forced substrate outage** — the same `pmfNumberDown` function, with that substrate
+  excluded from the enumeration and its vendors marked certainly-down instead. One function serves
+  both the unconditional model and "what if X goes down."
 
-**Correlated** (`runMonteCarloAvailability`): a Monte Carlo simulation. For each of `trials` runs
-(default 20,000):
+## Metrics
 
-1. For every substrate that has a *derived or overridden* failure probability, flip a coin once —
-   shared by every vendor on that substrate in this trial. This is the mechanism that represents
-   concentration risk: if two vendors both sit on AWS and AWS has a bad day, they go down together,
-   not independently.
-2. For every vendor, roll its own incident independently (probability `1 - sla`).
-3. A vendor is down in the trial if either (1) or (2) says so. The system is down in the trial if
-   *any* vendor is down.
+- **`tailRisk`**: `P(N≥k)` for `k = 2, 3, ceil(25% of vendors)` (floored at 2), under all three
+  models, plus `multiplier = correlated / same-marginals` (capped at `1,000x` for display, never
+  `Infinity`).
+- **`hiddenUpstreamHoursPerYear`** = downtime(same-marginals) − downtime(naive). Always ≥ 0: it's
+  the substrate risk a vendor's own SLA doesn't capture, before sharing even enters the picture.
+- **`concentrationEffectHoursPerYear`** = downtime(correlated) − downtime(same-marginals). For a
+  series system this is **typically ≤ 0** — expanding the same-marginals product counts a shared
+  substrate's up-probability once *per vendor* on it, while the correlated closed form counts the
+  shared event once, total. **Sharing a substrate doesn't add expected downtime here — it turns
+  many small, independent outages into fewer, bigger, simultaneous ones.** That's what `tailRisk`
+  is for; a reader who only looks at expected downtime would conclude sharing is safe, which is the
+  wrong conclusion for anyone planning failover capacity or an incident response process.
+- **`worstSingleEvent`**: the single substrate whose outage takes down the most vendors, with the
+  affected vendors, entrypoints downstream of them in the file graph (when available — `[]` for a
+  manual/PR-mode graph, never fabricated), and its modeled `q_s`.
 
-`correlatedAvailability` is the fraction of trials where the system stayed up.
-`correlatedShareOfDowntime` (exposed to the UI as `invisibleShare`) is
-`(correlatedDowntimeHours - naiveDowntimeHours) / correlatedDowntimeHours`, floored at 0 — the
-share of downtime the naive independence assumption misses entirely.
+## Why exact, not sampled
 
-### Why 20,000 trials
+At the probabilities involved (`~0.1%`), 20,000 Monte Carlo trials give a standard error around
+`1e-4` in absolute availability — fine for the headline number, but a `P(N≥3)` tail event with true
+probability `~1e-6` would need millions of trials to resolve at all, and a demo re-run would show a
+different number each time. The state space here (`2^|S|` substrate combinations times a
+Poisson-binomial DP) is small enough to enumerate exactly, so there's no reason to accept sampling
+noise at all.
 
-At the probabilities involved here (typically `1 - sla` in the 1e-3 to 1e-4 range), the binomial
-standard error of the Monte Carlo estimate at 20,000 trials is on the order of 1e-4 in absolute
-availability — small compared to the uncertainty already baked into the underlying SLA and
-substrate-rate *assumptions* themselves. Going higher buys negligible extra precision for
-meaningfully more compute; 20,000 trials runs in low single-digit milliseconds and comfortably fits
-inside a Lambda invocation. `trials` is itself an editable, capped (`MAX_TRIALS = 100_000` in
-`apiRouter.ts`) input, not a hidden constant.
+## Validation
 
-## The bug: a lone vendor can't correlate with anything
-
-**Reported symptom** (SkillSprint, 1 vendor, 1 substrate = `gcp`): naive 99.90% (~8.76 h/yr),
-correlated 99.77% (~20.6 h/yr), "correlated share of downtime" ≈ 57.45%.
-
-**Hypothesis to verify**: with one vendor there's nothing to correlate, so this number was
-suspected to be a hidden substrate-level failure rate added *on top of* the vendor's own SLA,
-rather than real correlation.
-
-**What the code actually did** (pre-fix): `deriveDefaultSubstrateFailureProbabilities` computed
-each substrate's failure probability as the mean of `1 - sla` across every vendor on that
-substrate. With exactly one vendor on `gcp`, that mean is *exactly that vendor's own* `1 - sla` —
-there's no second data point to average with. The Monte Carlo loop then:
-
-- rolled that number once as "is the substrate down" (step 1 above), **and independently**
-- rolled the vendor's own `1 - sla` again as "is the vendor's own incident happening" (step 2),
-
-and OR'd the two together. For a lone vendor, both rolls draw from the *same underlying
-probability*, sourced from the *same single number* (`1 - sla`) — so the vendor's true failure
-probability `p` was being sampled through two independent random draws instead of one, giving:
-
-```
-P(down) = 1 - (1 - p)²   instead of   P(down) = p
-```
-
-That's **not correlation** (correlation needs at least two things to correlate) — it's the same
-single risk source double-counted as a manufactured "substrate" event, on top of itself. This
-exactly explains the reported jump from 99.90% → 99.77% and the fabricated-looking 57% share: it's
-a mechanical artifact of the implementation, not a discovered transitive dependency.
-
-Confirmed with the exact numbers: `sla = 0.999`, `p = 0.001`. Pre-fix expected availability =
-`(1 - p)² = 0.998001` (99.80%, downtime ≈ 17.5 h/yr) versus the true single-source rate `sla =
-0.999` (99.90%, downtime ≈ 8.76 h/yr) — the reported 99.77%/20.6h is consistent with this
-mechanism (the small remaining gap is Monte Carlo noise, since the real run used the default 20,000
-trials and non-round SLA/substrate inputs, not the clean numbers used here to illustrate the
-mechanism).
-
-### The fix
-
-`deriveDefaultSubstrateFailureProbabilities` now **skips any substrate with fewer than 2 vendors on
-it**. Correlation requires at least two parties; a substrate with exactly one vendor gets no
-auto-derived rate, so that vendor's fate in the correlated model is governed solely by its own SLA
-roll — the same distribution as the naive model, modulo Monte Carlo noise. An **explicit,
-user-supplied** `substrateFailureProbabilities` override is *not* subject to this restriction and
-is still applied regardless of vendor count, because it represents real external data the user is
-asserting, not something derived from (and therefore duplicating) the vendor's own number.
-
-Proof, as an automated regression test
-(`'REGRESSION: a lone vendor on a substrate does not manufacture correlated risk out of nothing'`
-in `availability.test.ts`): with 1 vendor, `sla = 0.999`, 100,000 trials, the fixed model's
-`correlatedAvailability` lands close to the true single-source rate (0.999) and nowhere near the
-old double-counted rate (0.998001); `correlatedShareOfDowntime` comes out under 5%, down from the
-~57% the bug produced.
-
-For substrates with **2 or more** vendors, the derivation and shared-draw mechanism are unchanged —
-that's the legitimate case: vendors that really do share infrastructure really can go down
-together, and that risk is invisible to the naive independence assumption. The model still does not
-attempt to *net out* the overlap between a vendor's own SLA and its substrate's derived rate in the
-multi-vendor case either (a vendor still gets two draws) — that decomposition isn't independently
-knowable from public data, so, as before the fix, the model stays conservative (likely
-understates availability) rather than presenting a falsely precise split. The difference the fix
-makes is specifically: **stop inventing a shared-risk channel where there is provably nothing to
-share it with.**
-
-## The headline object
-
-`/simulate` also returns a compact `headline` object (`buildAvailabilityHeadline`) for the UI:
-
-```ts
-{
-  vendors: number          // vendor count in this simulation
-  substrates: number       // distinct substrates those vendors run on
-  invisibleShare: number   // same value as correlatedShareOfDowntime
-  expectedLossPerYear: number // same value as expectedAnnualExposure.correlated
-  breakdown: Array<{ substrate, vendorCount, failureProbability, contributesCorrelation }>
-}
-```
-
-`breakdown` lists every substrate with `contributesCorrelation: false` when it has only one vendor
-(matching the fix above) so the UI can show *why* `invisibleShare` is what it is — including why
-it's honestly 0% for a single-vendor deployment — rather than just asserting a number.
+- **Cross-validated against a seeded Monte Carlo oracle** (400,000 trials) on 20 random models
+  (2–6 substrates, 3–25 vendors): `P(N≥k)` matches within 4 standard errors wherever the true
+  probability is `≥ 1e-3`.
+- **Cross-validated against full brute-force enumeration** (independent of the DP under test) on
+  small models (`V ≤ 10`) for the tails too small for Monte Carlo to resolve.
+- **Properties**, checked over seeded random loops: the PMF sums to 1 (within `1e-9`); `P(N=0)`
+  equals the closed-form series availability; adding a vendor never increases `P(N=0)`; vendor
+  order doesn't affect the PMF; vendors on all-distinct substrates make correlated exactly equal
+  the same-marginals comparator; `q_s = 0` for every substrate makes correlated exactly equal
+  naive.
+- **A real bug was found by these property tests while building this**: the closed-form
+  `correlatedSeriesAvailability` multiplied in `(1-q_s)` for *every* substrate in the assumptions
+  map, including one with zero vendors actually on it. `pmfNumberDown` correctly marginalizes an
+  unattached substrate away (it can't affect any vendor); the closed form didn't, and would have
+  silently understated availability whenever a stale or unused substrate override was present. Now
+  fixed and covered by a regression test.
+- **Performance**: `|S|=10, V=60` measured at ~5ms locally (target: under 20ms).
 
 ## What is NOT modeled (explicit scope)
 
-- Redundancy / fallback vendors (see "What system is up means" above).
-- Netting out the overlap between a vendor's own SLA and its substrate's derived rate for
-  multi-vendor substrates — deliberately left conservative, not fabricated as a precise split.
-- Time-varying failure rates, seasonal effects, or dependence between *different* substrates (e.g.
-  AWS and Cloudflare failing together) — each substrate's coin flip is independent of every other
-  substrate's.
-- Currency conversion is illustrative only (`src/lib/currency.ts`, ~83 INR/USD) — never presented
-  as a live exchange rate.
+- Redundancy beyond curated fallback pairs — no general failover topology.
+- Time-varying rates, seasonality, or dependence *between* different substrates (each substrate's
+  coin flip is independent of every other substrate's).
+- A live currency exchange rate (`src/lib/currency.ts`, ~83 INR/USD) — illustrative only, never
+  presented as current.
+
+## Before / after
+
+**SkillSprint** (1 vendor, substrate = gcp, `sla = 0.999`) — the case that motivated this rewrite:
+
+| | Before (Monte Carlo, buggy) | After (exact) |
+|---|---|---|
+| Naive | 99.90% (8.76 h/yr) | 99.90% (8.76 h/yr) |
+| Correlated | 99.77% (~20.6 h/yr) | 99.80% (17.51 h/yr) |
+| "Correlated share of downtime" | ~57.45% (**fabricated** — see the old doc's proof: a single vendor's own SLA was sampled twice) | *(metric removed — see below)* |
+| Concentration effect | n/a | 0.00 h/yr (nothing to share with 1 vendor) |
+| Hidden upstream | n/a | 8.75 h/yr (a real, separate, illustrative substrate risk — not a duplicate of the vendor's SLA) |
+
+The "correlated share of downtime" card is gone because it conflated two different things: hidden
+substrate risk that exists (`hiddenUpstream`) and the effect of *sharing* that risk
+(`concentrationEffect`). With one vendor there's still real substrate risk (illustrative, honest,
+separate) but genuinely nothing to share, which the old single number couldn't distinguish and the
+new decomposition can.
+
+**Illustrative 5-vendor showcase** (constructed, not a live repo scan — Stripe/Razorpay/Clerk/Sentry/Vercel
+Blob, with Stripe+Razorpay sharing a curated fallback and 4 of the 5 vendors on AWS):
+
+| | Naive | Same-marginals (b) | Correlated |
+|---|---|---|---|
+| Availability | 99.591% | 98.995% | 99.292% |
+| Downtime h/yr | 35.9 | 88.1 | 62.0 |
+
+- `hiddenUpstreamHoursPerYear` ≈ **52.2** — substrate risk the vendors' own SLAs don't capture.
+- `concentrationEffectHoursPerYear` ≈ **−26.1** — sharing AWS *reduces* expected downtime for this
+  need-everyone-up system, exactly as the model predicts.
+- `tailRisk` at `k=3` (3+ vendors down at once): naive `4.6e-9`, same-marginals `7.7e-8`,
+  **correlated `1.0e-3`** — a **>1,000x** multiplier, displayed capped. This is the number that
+  matters for incident planning, and it's invisible in the expected-downtime figures above.
+- `worstSingleEvent`: an AWS outage takes down 4 of 5 vendors at once, modeled at 0.10%/yr.
+- `redundancyGroups`: Stripe + Razorpay, `P(both down)` ≈ `1.0e-3`/yr — dominated by their shared
+  AWS substrate, not their individual SLAs.

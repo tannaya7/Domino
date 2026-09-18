@@ -3,10 +3,10 @@ import type {
   AwsHealthStatus,
   ConcentrationResult,
   CriticalityResult,
+  ExactAvailabilityResult,
   FailureScenarioResult,
   GraphData,
   Runbook,
-  SimulationResult,
   Vendor,
   VendorGraph,
   VendorStatus,
@@ -77,7 +77,7 @@ export interface SimulateRequest {
 
 export interface SimulateResponse {
   scenario: FailureScenarioResult | null
-  simulation: SimulationResult
+  simulation: ExactAvailabilityResult
   presetScenarios: Array<{ id: string; label: string; downSubstrates: string[]; description?: string }>
   /** Compact summary for the UI headline — see AvailabilityHeadline. */
   headline: AvailabilityHeadline

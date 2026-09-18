@@ -13,48 +13,80 @@ function fixtureSimulation(overrides: Partial<SimulateResponse> = {}): SimulateR
     presetScenarios: [],
     simulation: {
       naiveAvailability: 0.999,
-      correlatedAvailability: 0.999,
-      trials: 20000,
-      expectedDowntimeHoursPerYear: { naive: 8.76, correlated: 8.76 },
-      expectedAnnualExposure: { naive: 5000, correlated: 5000 },
-      correlatedShareOfDowntime: 0,
-      assumptions: { trials: 20000, costPerHourOfDowntime: 600, substrateFailureProbabilities: {}, vendorSlaOverrides: {} },
+      independentSameMarginalsAvailability: 0.998,
+      correlatedAvailability: 0.998,
+      expectedDowntimeHoursPerYear: { naive: 8.76, independentSameMarginals: 17.5, correlated: 17.5 },
+      expectedAnnualExposure: { naive: 5000, independentSameMarginals: 5000, correlated: 5000 },
+      assumptions: { costPerHourOfDowntime: 600, substrateOutageProbabilities: { gcp: 0.001 }, vendorSlaOverrides: {} },
     },
     headline: {
       vendors: 1,
       substrates: 1,
-      invisibleShare: 0,
+      unknownHostingVendorCount: 0,
+      tailRisk: [
+        { k: 2, naive: 0, independentSameMarginals: 0, correlated: 0, multiplier: 1 },
+        { k: 3, naive: 0, independentSameMarginals: 0, correlated: 0, multiplier: 1 },
+      ],
+      hiddenUpstreamHoursPerYear: 8.76,
+      concentrationEffectHoursPerYear: 0,
+      worstSingleEvent: null,
+      redundancyGroups: [],
       expectedLossPerYear: 5000,
-      breakdown: [{ substrate: 'gcp', vendorCount: 1, failureProbability: 0, contributesCorrelation: false }],
     },
     ...overrides,
   }
 }
 
 describe('AvailabilityPanel', () => {
-  it('shows a prompt to run a simulation before one exists', () => {
+  it('shows a prompt to run the model before one exists', () => {
     render(<AvailabilityPanel simulation={null} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
-    expect(screen.getByText(/run a monte carlo simulation/i)).toBeInTheDocument()
+    expect(screen.getByText(/run the exact availability model/i)).toBeInTheDocument()
   })
 
-  it("labels a solo-vendor substrate as having nothing to correlate, not a hidden risk", () => {
+  it('labels the result as exact, not sampled', () => {
     render(<AvailabilityPanel simulation={fixtureSimulation()} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
-    expect(screen.getByText('nothing to correlate')).toBeInTheDocument()
-    expect(screen.queryByText(/shared risk/)).not.toBeInTheDocument()
+    expect(screen.getByText(/exact \(enumerated\).*cross-validated against monte carlo in tests/i)).toBeInTheDocument()
   })
 
-  it('labels a substrate shared by 2+ vendors as contributing shared risk', () => {
+  it('shows the worst single event with affected vendor names', () => {
     const simulation = fixtureSimulation({
       headline: {
-        vendors: 2,
-        substrates: 1,
-        invisibleShare: 0.4,
-        expectedLossPerYear: 9000,
-        breakdown: [{ substrate: 'aws', vendorCount: 2, failureProbability: 0.02, contributesCorrelation: true }],
+        ...fixtureSimulation().headline,
+        worstSingleEvent: {
+          substrate: 'aws',
+          vendorKeys: ['a', 'b'],
+          vendorNames: ['Stripe', 'Clerk'],
+          entrypointsAffected: ['app/page.tsx'],
+          probabilityPerYear: 0.001,
+        },
       },
     })
     render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
-    expect(screen.getByText(/shared risk \(2\.00%\/yr\)/)).toBeInTheDocument()
+    expect(screen.getByText(/aws outage/i)).toBeInTheDocument()
+    expect(screen.getByText(/Stripe, Clerk/)).toBeInTheDocument()
+    expect(screen.getByText(/1 entrypoint\(s\) affected/)).toBeInTheDocument()
+  })
+
+  it('does not show a worst-event card when there is none', () => {
+    render(<AvailabilityPanel simulation={fixtureSimulation()} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.queryByText(/worst single event/i)).not.toBeInTheDocument()
+  })
+
+  it('shows a curated redundancy pair', () => {
+    const simulation = fixtureSimulation({
+      headline: {
+        ...fixtureSimulation().headline,
+        redundancyGroups: [{ memberKeys: ['stripe', 'razorpay'], memberNames: ['Stripe', 'Razorpay'], groupDownProbabilityPerYear: 0.0001 }],
+      },
+    })
+    render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.getByText('Stripe + Razorpay')).toBeInTheDocument()
+  })
+
+  it('notes unknown-hosting vendors when present', () => {
+    const simulation = fixtureSimulation({ headline: { ...fixtureSimulation().headline, unknownHostingVendorCount: 2 } })
+    render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.getByText(/2 vendor\(s\) with unknown hosting, not counted as correlated/)).toBeInTheDocument()
   })
 
   it('formats estimated exposure in the given currency', () => {
@@ -63,10 +95,19 @@ describe('AvailabilityPanel', () => {
   })
 
   it('shows "not estimated" when expected loss is zero', () => {
-    const simulation = fixtureSimulation({
-      headline: { vendors: 1, substrates: 1, invisibleShare: 0, expectedLossPerYear: 0, breakdown: [] },
-    })
+    const simulation = fixtureSimulation({ headline: { ...fixtureSimulation().headline, expectedLossPerYear: 0 } })
     render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
     expect(screen.getByText('not estimated')).toBeInTheDocument()
+  })
+
+  it('displays a tail-risk multiplier capped at ">1,000x"', () => {
+    const simulation = fixtureSimulation({
+      headline: {
+        ...fixtureSimulation().headline,
+        tailRisk: [{ k: 2, naive: 0, independentSameMarginals: 0.0000001, correlated: 0.01, multiplier: 1000 }],
+      },
+    })
+    render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.getByText(/>1,000x/)).toBeInTheDocument()
   })
 })

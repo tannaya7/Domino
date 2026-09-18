@@ -175,15 +175,13 @@ describe('Workspace — simulation', () => {
       },
       simulation: {
         naiveAvailability: 0.9999,
+        independentSameMarginalsAvailability: 0.9995,
         correlatedAvailability: 0.9995,
-        trials: 2000,
-        expectedDowntimeHoursPerYear: { naive: 0.9, correlated: 4.4 },
-        expectedAnnualExposure: { naive: 0, correlated: 0 },
-        correlatedShareOfDowntime: 0.8,
+        expectedDowntimeHoursPerYear: { naive: 0.9, independentSameMarginals: 4.4, correlated: 4.4 },
+        expectedAnnualExposure: { naive: 0, independentSameMarginals: 0, correlated: 0 },
         assumptions: {
-          trials: 2000,
           costPerHourOfDowntime: 0,
-          substrateFailureProbabilities: { aws: 0.0001 },
+          substrateOutageProbabilities: { aws: 0.0001 },
           vendorSlaOverrides: {},
         },
       },
@@ -191,9 +189,13 @@ describe('Workspace — simulation', () => {
       headline: {
         vendors: 1,
         substrates: 1,
-        invisibleShare: 0.8,
+        unknownHostingVendorCount: 0,
+        tailRisk: [{ k: 2, naive: 0, independentSameMarginals: 0, correlated: 0, multiplier: 1 }],
+        hiddenUpstreamHoursPerYear: 3.5,
+        concentrationEffectHoursPerYear: 0,
+        worstSingleEvent: null,
+        redundancyGroups: [],
         expectedLossPerYear: 0,
-        breakdown: [{ substrate: 'aws', vendorCount: 1, failureProbability: 0.0001, contributesCorrelation: false }],
       },
     })
 

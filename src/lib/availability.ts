@@ -1,10 +1,28 @@
+import {
+  buildCorrelatedModel,
+  correlatedSeriesAvailability,
+  findRedundancyGroupCandidates,
+  findWorstSingleEvent,
+  naiveProbabilities,
+  pmfNumberDown,
+  poissonBinomialPmf,
+  redundancyGroupDownProbability,
+  sameMarginalsProbabilities,
+  seriesAvailabilityFromProbabilities,
+  tailProbability,
+  unknownHostingVendorKeys,
+} from '../engine/correlated'
 import type {
   AvailabilityAssumptions,
   AvailabilityHeadline,
+  ExactAvailabilityResult,
   FailureScenario,
   FailureScenarioResult,
+  RedundancyGroupSummary,
   SimulationResult,
+  TailRiskPoint,
   Vendor,
+  WorstSingleEventSummary,
 } from './types'
 
 const HOURS_PER_YEAR = 8760
@@ -162,40 +180,111 @@ export function runMonteCarloAvailability(
   }
 }
 
+// --- Exact engine orchestration (production path) ---------------------------------------------
+// Everything below computes availability EXACTLY (closed form / enumeration — see
+// src/engine/correlated.ts), never by sampling. runMonteCarloAvailability above is kept only as a
+// seeded test oracle to cross-validate the exact engine (src/engine/correlated.test.ts).
+
+/** Display-time cap so a tail-risk multiplier is never rendered as Infinity/NaN — see AvailabilityHeadline.tailRisk. */
+const MAX_DISPLAYED_TAIL_MULTIPLIER = 1000
+
+function tailRiskMultiplier(correlated: number, independentSameMarginals: number): number {
+  if (independentSameMarginals > 0) return Math.min(correlated / independentSameMarginals, MAX_DISPLAYED_TAIL_MULTIPLIER)
+  return correlated > 0 ? MAX_DISPLAYED_TAIL_MULTIPLIER : 1
+}
+
+/** k-checkpoints for tail risk: 2, 3, and the smallest k covering the top quarter of vendors —
+ * floored at 2, since "1 of N down" isn't the "many at once" event this metric is about. */
+function tailRiskCheckpoints(vendorCount: number): number[] {
+  const quarter = Math.max(2, Math.ceil(vendorCount * 0.25))
+  return [...new Set([2, 3, quarter])].sort((a, b) => a - b)
+}
+
 /**
- * One compact object for the UI headline. Built from the same `effectiveVendors` logic as the
- * simulation itself (vendor SLA overrides applied) so the breakdown always explains the number
- * next to it — never a second, drifting computation of the same thing.
+ * Exact availability under all three comparators — see ExactAvailabilityResult for what each one
+ * means. `vendors` is left untouched; overrides only affect the numbers computed here.
  */
-export function buildAvailabilityHeadline(vendors: Vendor[], result: SimulationResult): AvailabilityHeadline {
-  const vendorSlaOverrides = result.assumptions.vendorSlaOverrides
-  const effectiveVendors = vendors.map((v) => (v.key in vendorSlaOverrides ? { ...v, sla: vendorSlaOverrides[v.key] } : v))
+export function computeExactAvailability(
+  vendors: Vendor[],
+  overrides: { costPerHourOfDowntime?: number; vendorSlaOverrides?: Record<string, number>; substrateOutageProbabilities?: Record<string, number> } = {},
+): ExactAvailabilityResult {
+  const costPerHourOfDowntime = overrides.costPerHourOfDowntime ?? 0
+  const model = buildCorrelatedModel(vendors, overrides)
 
-  const bySubstrate = new Map<string, Vendor[]>()
-  for (const vendor of effectiveVendors) {
-    for (const substrate of vendor.substrate) {
-      if (!bySubstrate.has(substrate)) bySubstrate.set(substrate, [])
-      bySubstrate.get(substrate)!.push(vendor)
-    }
+  const naiveAvailability = seriesAvailabilityFromProbabilities(naiveProbabilities(model))
+  const independentSameMarginalsAvailability = seriesAvailabilityFromProbabilities(sameMarginalsProbabilities(model))
+  const correlatedAvailability = correlatedSeriesAvailability(model)
+
+  const naiveHours = (1 - naiveAvailability) * HOURS_PER_YEAR
+  const sameMarginalsHours = (1 - independentSameMarginalsAvailability) * HOURS_PER_YEAR
+  const correlatedHours = (1 - correlatedAvailability) * HOURS_PER_YEAR
+
+  return {
+    naiveAvailability,
+    independentSameMarginalsAvailability,
+    correlatedAvailability,
+    expectedDowntimeHoursPerYear: { naive: naiveHours, independentSameMarginals: sameMarginalsHours, correlated: correlatedHours },
+    expectedAnnualExposure: {
+      naive: naiveHours * costPerHourOfDowntime,
+      independentSameMarginals: sameMarginalsHours * costPerHourOfDowntime,
+      correlated: correlatedHours * costPerHourOfDowntime,
+    },
+    assumptions: {
+      costPerHourOfDowntime,
+      vendorSlaOverrides: overrides.vendorSlaOverrides ?? {},
+      substrateOutageProbabilities: model.substrateOutageProbabilities,
+    },
   }
+}
 
-  const breakdown = [...bySubstrate.entries()]
-    .map(([substrate, vs]) => ({
-      substrate,
-      vendorCount: vs.length,
-      failureProbability: result.assumptions.substrateFailureProbabilities[substrate] ?? 0,
-      // Matches deriveDefaultSubstrateFailureProbabilities: correlation needs >=2 vendors sharing
-      // the substrate. A substrate with 1 vendor never contributes correlated risk, regardless of
-      // whether a rate happens to be set for it via an explicit override.
-      contributesCorrelation: vs.length >= 2,
-    }))
-    .sort((a, b) => b.vendorCount - a.vendorCount || a.substrate.localeCompare(b.substrate))
+/**
+ * The UI headline, computed by the exact engine. `worstSingleEvent.entrypointsAffected` comes back
+ * empty here — this function has no file-graph access (pure vendor/substrate model only); the
+ * caller (apiRouter.ts, which has the cached repo's file graph) fills it in when available.
+ */
+export function buildAvailabilityHeadline(vendors: Vendor[], result: ExactAvailabilityResult): AvailabilityHeadline {
+  const model = buildCorrelatedModel(vendors, result.assumptions)
+  const vendorNameByKey = new Map(vendors.map((v) => [v.key, v.vendor]))
+
+  const naivePmf = poissonBinomialPmf(naiveProbabilities(model))
+  const sameMarginalsPmf = poissonBinomialPmf(sameMarginalsProbabilities(model))
+  const correlatedPmf = pmfNumberDown(model)
+
+  const tailRisk: TailRiskPoint[] = tailRiskCheckpoints(model.vendors.length).map((k) => {
+    const naive = tailProbability(naivePmf, k)
+    const independentSameMarginals = tailProbability(sameMarginalsPmf, k)
+    const correlated = tailProbability(correlatedPmf, k)
+    return { k, naive, independentSameMarginals, correlated, multiplier: tailRiskMultiplier(correlated, independentSameMarginals) }
+  })
+
+  const worstEvent = findWorstSingleEvent(model)
+  const worstSingleEvent: WorstSingleEventSummary | null = worstEvent
+    ? {
+        substrate: worstEvent.substrate,
+        vendorKeys: worstEvent.vendorKeys,
+        vendorNames: worstEvent.vendorKeys.map((k) => vendorNameByKey.get(k) ?? k),
+        entrypointsAffected: [],
+        probabilityPerYear: worstEvent.probabilityPerYear,
+      }
+    : null
+
+  const redundancyGroups: RedundancyGroupSummary[] = findRedundancyGroupCandidates(vendors).map((memberKeys) => ({
+    memberKeys,
+    memberNames: memberKeys.map((k) => vendorNameByKey.get(k) ?? k),
+    groupDownProbabilityPerYear: redundancyGroupDownProbability(model, memberKeys),
+  }))
+
+  const substrateIds = new Set(model.vendors.flatMap((v) => v.substrates))
 
   return {
     vendors: vendors.length,
-    substrates: bySubstrate.size,
-    invisibleShare: result.correlatedShareOfDowntime,
+    substrates: substrateIds.size,
+    unknownHostingVendorCount: unknownHostingVendorKeys(model).length,
+    tailRisk,
+    hiddenUpstreamHoursPerYear: result.expectedDowntimeHoursPerYear.independentSameMarginals - result.expectedDowntimeHoursPerYear.naive,
+    concentrationEffectHoursPerYear: result.expectedDowntimeHoursPerYear.correlated - result.expectedDowntimeHoursPerYear.independentSameMarginals,
+    worstSingleEvent,
+    redundancyGroups,
     expectedLossPerYear: result.expectedAnnualExposure.correlated,
-    breakdown,
   }
 }
