@@ -27,6 +27,8 @@ const fixtureResult: AnalyzeRepoResult = {
   filesScanned: 2,
   vendors: [fixtureVendor],
   iacSubstrates: [],
+  entrypoints: [],
+  importResolution: { total: 0, resolved: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',

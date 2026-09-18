@@ -148,4 +148,31 @@ describe('analyzeCriticality', () => {
     const result = analyzeCriticality(adjacency, ['main', 'a', 'c', 'd'])
     expect(new Set(result.articulationPoints)).toEqual(new Set(['a', 'c']))
   })
+
+  it('REGRESSION: an entrypoint never appears critical purely via self-dependence', () => {
+    // Reproduces the SkillSprint bug: many disconnected entrypoints (page.tsx/layout.tsx style
+    // files with no real edges between them) each trivially "depend on themselves", which used to
+    // surface as "1/N entrypoints depend on it" for every single one — meaningless self-reference,
+    // not a real finding.
+    const adjacency = graphFrom([
+      ['unrelated-a', 'shared-util'], // gives the fixture at least one real edge to build a graph from
+    ])
+    const entrypoints = ['page-1', 'page-2', 'page-3', 'unrelated-a']
+    const allNodeIds = [...entrypoints, 'shared-util']
+
+    const result = analyzeCriticality(adjacency, allNodeIds, entrypoints)
+
+    for (const entrypointId of entrypoints) {
+      const node = result.byNode.find((n) => n.nodeId === entrypointId)!
+      // It must never count itself as one of the entrypoints affected by its own removal.
+      expect(node.affectedEntrypoints).not.toContain(entrypointId)
+      // entrypointCount excludes the node itself from the denominator too.
+      expect(node.entrypointCount).toBe(entrypoints.length - 1)
+    }
+
+    // A page with zero real dependents shows a genuine zero, not a trivial "1/N" self-match.
+    const isolatedPage = result.byNode.find((n) => n.nodeId === 'page-1')!
+    expect(isolatedPage.affectedEntrypoints).toEqual([])
+    expect(isolatedPage.reachabilityLossRatio).toBe(0)
+  })
 })

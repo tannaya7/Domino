@@ -256,3 +256,86 @@ describe('buildGraphFromSource — scan budget', () => {
     expect(scannedIds).not.toContain('a/b/c/deep9.ts')
   })
 })
+
+describe('buildGraphFromSource — nested tsconfig alias resolution (SkillSprint regression)', () => {
+  it('resolves "@/" imports against a tsconfig nested in a subdirectory, not just the repo root', async () => {
+    // Reproduces nishantbkl3345-ship-it/SkillSprint: a Next.js app in frontend/, with
+    // frontend/tsconfig.json (not root) declaring {"@/*": ["./*"]} and no baseUrl.
+    const source = fixtureSource({
+      'frontend/tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
+      'frontend/app/page.tsx': `import { getConfig } from '@/lib/api-config'\nimport '@/app/globals.css'`,
+      'frontend/lib/api-config.ts': `export function getConfig() {}`,
+      'go-backend/main.go': 'package main', // untracked extension — must not interfere
+    })
+
+    const { graph, vendors } = await buildGraphFromSource(source)
+
+    expect(graph.edges).toContainEqual({ from: 'frontend/app/page.tsx', to: 'frontend/lib/api-config.ts' })
+    // '@/app/globals.css' has no tracked-extension match — correctly falls through to vendor
+    // discovery rather than a fabricated edge, and doesn't match any curated vendor either.
+    expect(vendors).toEqual([])
+  })
+
+  it('does not cross-resolve "@/" between two sibling apps with their own tsconfig', async () => {
+    const source = fixtureSource({
+      'apps/a/tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
+      'apps/b/tsconfig.json': JSON.stringify({ compilerOptions: { paths: { '@/*': ['./*'] } } }),
+      'apps/a/index.ts': `import { x } from '@/shared'`,
+      'apps/a/shared.ts': `export const x = 1`,
+      'apps/b/shared.ts': `export const x = 2`, // must NOT be what apps/a resolves to
+    })
+
+    const { graph } = await buildGraphFromSource(source)
+    expect(graph.edges).toEqual([{ from: 'apps/a/index.ts', to: 'apps/a/shared.ts' }])
+  })
+
+  it('resolves a workspace package import as an internal file-graph edge, not a vendor', async () => {
+    const source = fixtureSource({
+      'package.json': JSON.stringify({ workspaces: ['packages/*'] }),
+      'packages/ui/package.json': JSON.stringify({ name: '@acme/ui' }),
+      'packages/ui/index.ts': `export const Button = () => null`,
+      'apps/web/index.ts': `import { Button } from '@acme/ui'`,
+    })
+
+    const { graph, vendors } = await buildGraphFromSource(source)
+    expect(graph.edges).toContainEqual({ from: 'apps/web/index.ts', to: 'packages/ui/index.ts' })
+    expect(vendors).toEqual([]) // never misclassified as a third-party vendor
+  })
+
+  it('follows an extends chain when the child declares its own baseUrl+paths (the common real pattern)', async () => {
+    const source = fixtureSource({
+      // A realistic shared base: language/strictness options, deliberately NOT baseUrl/paths —
+      // those are inherently per-package, so each app declares its own alongside extending this.
+      'tsconfig.base.json': JSON.stringify({ compilerOptions: { strict: true, target: 'ES2020' } }),
+      'frontend/tsconfig.json': JSON.stringify({
+        extends: '../tsconfig.base.json',
+        compilerOptions: { baseUrl: '.', paths: { '@/*': ['./*'] } },
+      }),
+      'frontend/app/page.tsx': `import { x } from '@/lib/x'`,
+      'frontend/lib/x.ts': `export const x = 1`,
+    })
+
+    const { graph } = await buildGraphFromSource(source)
+    expect(graph.edges).toContainEqual({ from: 'frontend/app/page.tsx', to: 'frontend/lib/x.ts' })
+  })
+
+  it('resolves relative to the repo root when an EXTENDED base sets baseUrl — a real tsc gotcha, not a bug', async () => {
+    // If a shared base config sets baseUrl itself, tsc resolves it relative to THAT file's
+    // location, not the child's — so a child extending it without its own baseUrl gets paths
+    // resolved from the repo root, even though the child lives in a subdirectory. This
+    // deliberately documents that behavior rather than silently "fixing" it into something
+    // tsc itself wouldn't do.
+    const source = fixtureSource({
+      'tsconfig.base.json': JSON.stringify({ compilerOptions: { baseUrl: '.' } }),
+      'frontend/tsconfig.json': JSON.stringify({
+        extends: '../tsconfig.base.json',
+        compilerOptions: { paths: { '@/*': ['./*'] } },
+      }),
+      'frontend/app/page.tsx': `import { x } from '@/lib/x'`,
+      'lib/x.ts': `export const x = 1`, // repo ROOT lib/x.ts — where real tsc would actually look
+    })
+
+    const { graph } = await buildGraphFromSource(source)
+    expect(graph.edges).toContainEqual({ from: 'frontend/app/page.tsx', to: 'lib/x.ts' })
+  })
+})

@@ -51,6 +51,8 @@ export interface AnalyzeRepoResponse extends GraphData {
     truncated: boolean
     elapsedMs: number
     cached: boolean
+    /** Powers the "X% of internal imports resolved" data-quality badge. */
+    importResolution: { total: number; resolved: number }
   }
 }
 

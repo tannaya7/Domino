@@ -97,7 +97,14 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
       mostConcentrated: { substrate: 'aws', vendorKeys: ['stripe'], vendorNames: ['Stripe'], share: 1 },
     },
     criticality: { entrypoints: ['src/index.ts'], articulationPoints: [], byNode: [] },
-    meta: { owner: 'octocat', repo: 'hello', branch: 'main', truncated: false, filesScanned: 2 },
+    meta: {
+      owner: 'octocat',
+      repo: 'hello',
+      branch: 'main',
+      truncated: false,
+      filesScanned: 2,
+      importResolution: { total: 2, resolved: 2 },
+    },
     repoUrl: 'https://github.com/octocat/hello',
     ...overrides,
   }
@@ -251,12 +258,58 @@ describe('Workspace — runbook', () => {
   })
 })
 
+describe('Workspace — data-quality badge', () => {
+  it('shows the import-resolution percentage on the File graph tab', async () => {
+    const user = userEvent.setup()
+    render(
+      <Workspace
+        analyzed={fixtureAnalyzed({
+          meta: {
+            owner: 'octocat',
+            repo: 'hello',
+            branch: 'main',
+            truncated: false,
+            filesScanned: 2,
+            importResolution: { total: 10, resolved: 8 },
+          },
+        })}
+        prResult={null}
+        onReset={vi.fn()}
+        onClearPr={vi.fn()}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: /file graph/i }))
+    expect(screen.getByText('80% of internal imports resolved')).toBeInTheDocument()
+  })
+
+  it('shows no badge when there is no import-resolution data (manual/PR-mode graph)', async () => {
+    const user = userEvent.setup()
+    render(
+      <Workspace
+        analyzed={fixtureAnalyzed({ repoUrl: null, meta: null, vendors: [], vendorGraph: { rootId: '__app__', vendors: [] } })}
+        prResult={null}
+        onReset={vi.fn()}
+        onClearPr={vi.fn()}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: /file graph/i }))
+    expect(screen.queryByText(/% of internal imports resolved/)).not.toBeInTheDocument()
+  })
+})
+
 describe('Workspace — truncated scan banner', () => {
   it('shows a visible banner when the scan was truncated', () => {
     render(
       <Workspace
         analyzed={fixtureAnalyzed({
-          meta: { owner: 'octocat', repo: 'hello', branch: 'main', truncated: true, filesScanned: 8 },
+          meta: {
+            owner: 'octocat',
+            repo: 'hello',
+            branch: 'main',
+            truncated: true,
+            filesScanned: 8,
+            importResolution: { total: 10, resolved: 8 },
+          },
         })}
         prResult={null}
         onReset={vi.fn()}

@@ -24,7 +24,14 @@ export interface AnalyzedRepo {
   vendorGraph: VendorGraph
   concentration: ConcentrationResult
   criticality: CriticalityResult
-  meta: { owner: string; repo: string; branch: string; truncated: boolean; filesScanned: number } | null
+  meta: {
+    owner: string
+    repo: string
+    branch: string
+    truncated: boolean
+    filesScanned: number
+    importResolution: { total: number; resolved: number }
+  } | null
   /** Only set for a real repo scan — required to call /simulate, /status, /runbook. */
   repoUrl: string | null
 }
@@ -194,6 +201,16 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   const repoLabel = analyzed.meta ? `${analyzed.meta.owner}/${analyzed.meta.repo}` : null
   const mostConcentrated = analyzed.concentration.mostConcentrated
 
+  // Only shown when there's real internal-import data to report — never fabricated for a
+  // manual-JSON/PR-mode graph (meta is null there) or a repo with zero internal imports found.
+  const importResolutionBadge = (() => {
+    const stats = analyzed.meta?.importResolution
+    if (!stats || stats.total === 0) return null
+    const pct = Math.round((stats.resolved / stats.total) * 100)
+    const color = pct >= 90 ? 'var(--status-good)' : pct >= 60 ? 'var(--status-warning)' : 'var(--status-critical)'
+    return { label: `${pct}% of internal imports resolved`, color }
+  })()
+
   return (
     <div className="flex h-screen flex-col">
       <TopBar
@@ -270,6 +287,19 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
             >
               System overview
             </button>
+            {graphMode === 'files' && view === 'graph' && importResolutionBadge && (
+              <span
+                className="ml-auto flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[var(--text-secondary)]"
+                title={`${analyzed.meta?.importResolution.resolved} of ${analyzed.meta?.importResolution.total} internal imports resolved to a known file`}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ backgroundColor: importResolutionBadge.color }}
+                  aria-hidden="true"
+                />
+                {importResolutionBadge.label}
+              </span>
+            )}
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">

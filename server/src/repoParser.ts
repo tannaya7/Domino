@@ -1,15 +1,16 @@
 import type { GraphData } from '../../src/lib/types'
-import { parsePackageJsonImports, parseTsconfigPaths, resolveAliasedImport, type AliasEntry } from './aliasResolver'
+import { loadAliasScopes, loadWorkspaceAliasEntries, resolveAliasedImport, scopeForFile } from './aliasResolver'
 import { extractEnvVarNames, parseEnvFile } from './envScanner'
 import { getDefaultBranch, getRawFileContent, getRepoTree, parseRepoUrl } from './github'
 import { inferFileType } from './inferFileType'
+import { inferEntrypointsForRepo } from './entrypoints'
 import { extractImportSpecifiers, resolveRelativeImport } from './importParser'
 import { isIacFile, parseIacFile, type IacSubstrateSignal } from './iacParser'
 import { KNOWN_MANIFEST_FILENAMES, parseManifest } from './manifestParser'
 import { resolveVendors, type DetectedVendor, type FileVendorSignal } from './vendorResolver'
 
 const TRACKED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
-const EXCLUDED_DIR_SEGMENTS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage'])
+const EXCLUDED_DIR_SEGMENTS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage', '.next', 'out'])
 const MAX_FILES = 80
 const CONCURRENCY = 8
 
@@ -96,29 +97,13 @@ function prioritizeFiles(paths: string[]): string[] {
   return [...paths].sort((a, b) => priorityScore(a) - priorityScore(b))
 }
 
-/** Loads TS path aliases and Node subpath imports from the repo root, if present. Never throws. */
-async function loadAliasEntries(source: RepoSource, allPaths: string[]): Promise<AliasEntry[]> {
-  const entries: AliasEntry[] = []
-
-  for (const configPath of ['tsconfig.json', 'jsconfig.json']) {
-    if (!allPaths.includes(configPath)) continue
-    try {
-      entries.push(...parseTsconfigPaths(await source.readFile(configPath)))
-    } catch {
-      // Missing or unreadable config — proceed without these aliases.
-    }
-    break
-  }
-
-  if (allPaths.includes('package.json')) {
-    try {
-      entries.push(...parsePackageJsonImports(await source.readFile('package.json')))
-    } catch {
-      // Missing or unreadable package.json — proceed without subpath imports.
-    }
-  }
-
-  return entries
+/** A specifier "looks internal" — and so belongs in the data-quality badge's denominator — if
+ * it's a relative import, or if it matches a known alias prefix (even when resolution ultimately
+ * fails, e.g. a genuinely broken "@/nonexistent/file"). A bare "react"-style specifier with no
+ * matching alias is presumed external and never counted as an unresolved internal import. */
+function looksInternal(specifier: string, aliasEntries: Array<{ prefix: string }>): boolean {
+  if (specifier.startsWith('.')) return true
+  return aliasEntries.some((e) => specifier === e.prefix || specifier.startsWith(e.prefix))
 }
 
 interface DiscoveryFile {
@@ -172,6 +157,13 @@ async function loadVendorDiscoverySources(
   return { manifestFiles, envFiles, iacFiles }
 }
 
+export interface ImportResolutionStats {
+  /** Import specifiers that looked internal (relative, or alias-shaped) — the denominator. */
+  total: number
+  /** Of those, how many actually resolved to a known file. */
+  resolved: number
+}
+
 export interface BuildGraphResult {
   graph: GraphData
   truncated: boolean
@@ -180,6 +172,11 @@ export interface BuildGraphResult {
   vendors: DetectedVendor[]
   /** Cloud-provider signals found in IaC files (Terraform, serverless.yml, vercel.json). */
   iacSubstrates: IacSubstrateSignal[]
+  /** Framework-aware entrypoints (Next.js/Vite/package.json main-bin) when the repo follows one of
+   * those conventions; [] otherwise — callers should fall back to a structural heuristic then. */
+  entrypoints: string[]
+  /** Powers the "X% of internal imports resolved" data-quality badge. */
+  importResolution: ImportResolutionStats
 }
 
 export interface BuildGraphOptions {
@@ -204,7 +201,12 @@ export async function buildGraphFromSource(
   // we don't fetch content for (because of the cap) can still never be a valid edge target,
   // silently dropping real edges into every file past the cap.
   const knownFilePaths = new Set(trackedPaths)
-  const aliasEntries = await loadAliasEntries(source, allPaths)
+  // Per-directory alias scopes (nearest tsconfig/jsconfig ancestor wins) plus workspace package
+  // names, which apply everywhere regardless of which tsconfig scope a file falls under.
+  const [aliasScopes, workspaceEntries] = await Promise.all([
+    loadAliasScopes(source, allPaths),
+    loadWorkspaceAliasEntries(source, allPaths),
+  ])
 
   // Vendor-discovery sources (manifests/env/IaC) run to completion FIRST, ahead of the file-import
   // walk — they're small, bounded (<=60 files total), and carry the vendor-detection signal the
@@ -228,6 +230,8 @@ export async function buildGraphFromSource(
   // exactly what it was — but they're the primary vendor-discovery signal, so we keep them here.
   const fileSignals: FileVendorSignal[] = []
   let fetchedCount = 0
+  let internalImportsTotal = 0
+  let internalImportsResolved = 0
 
   filesToFetch.forEach((path, i) => {
     const content = contents[i]
@@ -237,11 +241,19 @@ export async function buildGraphFromSource(
 
     const specifiers = extractImportSpecifiers(content)
     const bareSpecifiers: string[] = []
+    const scope = scopeForFile(path, aliasScopes)
+    const aliasEntriesForFile = scope ? [...scope.entries, ...workspaceEntries] : workspaceEntries
 
     for (const specifier of specifiers) {
       const resolved =
         resolveRelativeImport(specifier, path, knownFilePaths) ??
-        resolveAliasedImport(specifier, aliasEntries, knownFilePaths)
+        (scope ? resolveAliasedImport(specifier, scope.entries, knownFilePaths) : null) ??
+        resolveAliasedImport(specifier, workspaceEntries, knownFilePaths)
+
+      if (looksInternal(specifier, aliasEntriesForFile)) {
+        internalImportsTotal++
+        if (resolved) internalImportsResolved++
+      }
 
       if (resolved && resolved !== path) {
         const key = `${path}|${resolved}`
@@ -278,6 +290,7 @@ export async function buildGraphFromSource(
 
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
   const budgetCapped = fetchedCount < filesToFetch.length
+  const entrypoints = inferEntrypointsForRepo([...nodeIds], discoverySources.manifestFiles, knownFilePaths)
 
   return {
     graph: { nodes, edges },
@@ -285,6 +298,8 @@ export async function buildGraphFromSource(
     filesScanned: fetchedCount,
     vendors,
     iacSubstrates,
+    entrypoints,
+    importResolution: { total: internalImportsTotal, resolved: internalImportsResolved },
   }
 }
 

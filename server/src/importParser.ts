@@ -20,13 +20,19 @@ export function extractImportSpecifiers(source: string): string[] {
   return [...specifiers]
 }
 
-const CANDIDATE_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx']
+const CANDIDATE_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json']
 const CANDIDATE_INDEX_SUFFIXES = [
   '/index.ts',
   '/index.tsx',
   '/index.js',
   '/index.jsx',
+  '/index.mjs',
+  '/index.cjs',
+  '/index.json',
 ]
+/** ESM-style specifiers reference the compiled output extension (e.g. "./foo.js") even when the
+ * real source is TypeScript ("foo.ts") — this is stripped so the candidate list above still applies. */
+const JS_FAMILY_EXTENSION = /\.(js|jsx|mjs|cjs)$/
 
 export function normalizePath(path: string): string {
   const parts = path.split('/')
@@ -54,6 +60,16 @@ export function resolveToKnownPath(path: string, knownFilePaths: Set<string>): s
     const candidate = base ? base + suffix : suffix.slice(1)
     if (knownFilePaths.has(candidate)) return candidate
   }
+
+  // Didn't match as-is — if the specifier already carries a JS-family extension (ESM style, e.g.
+  // "./foo.js" written against a "foo.ts" source file), strip it and retry the same candidates.
+  const stripped = base.replace(JS_FAMILY_EXTENSION, '')
+  if (stripped !== base) {
+    for (const ext of CANDIDATE_EXTENSIONS) {
+      if (knownFilePaths.has(stripped + ext)) return stripped + ext
+    }
+  }
+
   return null
 }
 

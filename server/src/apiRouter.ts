@@ -81,9 +81,12 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const adjacency = buildAdjacencyMap(result.graph.nodes, result.graph.edges)
     const vendorGraph = buildVendorGraph(result.vendors, adjacency)
     const concentration = analyzeConcentration(result.vendors, result.iacSubstrates)
+    // Framework-aware entrypoints (Next.js/Vite/package.json main-bin) when the repo follows one
+    // of those conventions; analyzeCriticality falls back to its own structural heuristic when [].
     const criticality = analyzeCriticality(
       adjacency,
       result.graph.nodes.map((n) => n.id),
+      result.entrypoints.length > 0 ? result.entrypoints : undefined,
     )
 
     setVendorsToWatch(result.vendors)
@@ -106,6 +109,8 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
           truncated: result.truncated,
           elapsedMs: Date.now() - start,
           cached: Boolean(cached),
+          // "X% of internal imports resolved" data-quality badge.
+          importResolution: result.importResolution,
         },
       },
     }

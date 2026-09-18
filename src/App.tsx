@@ -5,23 +5,25 @@ import Workspace, { type AnalyzedRepo } from './components/Workspace'
 import type { AnalyzePrResponse, AnalyzeRepoResponse } from './lib/api'
 import { analyzeConcentration } from './lib/concentration'
 import { analyzeCriticality } from './lib/criticality'
+import { inferProjectEntrypoints } from './lib/entrypoints'
 import { buildAdjacencyMap, VENDOR_GRAPH_ROOT_ID } from './lib/graph'
 import type { GraphData } from './lib/types'
 
 /** Builds the AnalyzedRepo shape for a file-graph-only source (manual JSON, sample data, or a PR
  * result) — no vendor data exists for these, but criticality is still real, computed client-side
- * on the real file graph, not fabricated. */
+ * on the real file graph, not fabricated. Framework-aware entrypoints (Next.js/Vite path
+ * conventions) are inferred from the node paths when present, same as the real repo-scan path;
+ * package.json main/bin isn't available here since there's no manifest content client-side. */
 function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
   const adjacency = buildAdjacencyMap(graph.nodes, graph.edges)
+  const nodeIds = graph.nodes.map((n) => n.id)
+  const entrypoints = inferProjectEntrypoints(nodeIds)
   return {
     graph,
     vendors: [],
     vendorGraph: { rootId: VENDOR_GRAPH_ROOT_ID, vendors: [] },
     concentration: analyzeConcentration([]),
-    criticality: analyzeCriticality(
-      adjacency,
-      graph.nodes.map((n) => n.id),
-    ),
+    criticality: analyzeCriticality(adjacency, nodeIds, entrypoints.length > 0 ? entrypoints : undefined),
     meta: null,
     repoUrl: null,
   }

@@ -27,6 +27,8 @@ const sampleResult: AnalyzeRepoResult = {
   filesScanned: 1,
   vendors: [],
   iacSubstrates: [],
+  entrypoints: [],
+  importResolution: { total: 0, resolved: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',

@@ -79,14 +79,15 @@ export function reachabilityLoss(
   entrypoints: string[],
   removedNodeId: string,
 ): ReachabilityLossResult {
-  const affectedEntrypoints = entrypoints.filter(
-    (e) => e === removedNodeId || getUpstream(e, adjacencyMap).includes(removedNodeId),
-  )
+  // An entrypoint trivially "depends on itself" — that's not a finding, so it's excluded from
+  // both the numerator and the denominator here. Without this, every entrypoint node showed up
+  // as "1/N entrypoints depend on it" (itself), which is meaningless self-reference, not signal.
+  const otherEntrypoints = entrypoints.filter((e) => e !== removedNodeId)
+  const affectedEntrypoints = otherEntrypoints.filter((e) => getUpstream(e, adjacencyMap).includes(removedNodeId))
 
   const reachableBefore = new Set<string>()
   const reachableAfter = new Set<string>()
-  for (const entrypoint of entrypoints) {
-    if (entrypoint === removedNodeId) continue
+  for (const entrypoint of otherEntrypoints) {
     reachableBefore.add(entrypoint)
     for (const n of getUpstream(entrypoint, adjacencyMap)) reachableBefore.add(n)
     reachableAfter.add(entrypoint)
@@ -98,8 +99,8 @@ export function reachabilityLoss(
     removedNodeId,
     affectedEntrypoints,
     orphanedNodes,
-    entrypointCount: entrypoints.length,
-    reachabilityLossRatio: entrypoints.length > 0 ? affectedEntrypoints.length / entrypoints.length : 0,
+    entrypointCount: otherEntrypoints.length,
+    reachabilityLossRatio: otherEntrypoints.length > 0 ? affectedEntrypoints.length / otherEntrypoints.length : 0,
   }
 }
 
@@ -128,7 +129,14 @@ export function analyzeCriticality(
         reachabilityLossRatio: loss.reachabilityLossRatio,
       }
     })
-    .sort((a, b) => b.reachabilityLossRatio - a.reachabilityLossRatio || b.orphanedNodes.length - a.orphanedNodes.length)
+    // Ranked by the number of OTHER entrypoints/files that depend on this node (both already
+    // exclude the node itself) — a plain count, not a ratio, so a node affecting 10 of 200
+    // entrypoints outranks one affecting 1 of 2.
+    .sort((a, b) => {
+      const bImpact = b.affectedEntrypoints.length + b.orphanedNodes.length
+      const aImpact = a.affectedEntrypoints.length + a.orphanedNodes.length
+      return bImpact - aImpact
+    })
 
   return { entrypoints: resolvedEntrypoints, articulationPoints: [...articulationPoints], byNode }
 }
