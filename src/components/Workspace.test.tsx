@@ -180,9 +180,21 @@ describe('Workspace — simulation', () => {
         expectedDowntimeHoursPerYear: { naive: 0.9, correlated: 4.4 },
         expectedAnnualExposure: { naive: 0, correlated: 0 },
         correlatedShareOfDowntime: 0.8,
-        assumptions: { trials: 2000, costPerHourOfDowntime: 0, substrateFailureProbabilities: { aws: 0.0001 } },
+        assumptions: {
+          trials: 2000,
+          costPerHourOfDowntime: 0,
+          substrateFailureProbabilities: { aws: 0.0001 },
+          vendorSlaOverrides: {},
+        },
       },
       presetScenarios: [],
+      headline: {
+        vendors: 1,
+        substrates: 1,
+        invisibleShare: 0.8,
+        expectedLossPerYear: 0,
+        breakdown: [{ substrate: 'aws', vendorCount: 1, failureProbability: 0.0001, contributesCorrelation: false }],
+      },
     })
 
     const user = userEvent.setup()
@@ -190,7 +202,17 @@ describe('Workspace — simulation', () => {
 
     await user.click(screen.getByRole('button', { name: /^simulate$/i }))
 
-    await waitFor(() => expect(simulateMock).toHaveBeenCalledWith({ repoUrl: 'https://github.com/octocat/hello', scenarioId: 'aws-outage' }))
+    // The Assumptions panel prefills an illustrative, editable cost/hr and empty override maps —
+    // every /simulate call carries them, so "estimated exposure" is never silently zero-by-default.
+    await waitFor(() =>
+      expect(simulateMock).toHaveBeenCalledWith({
+        repoUrl: 'https://github.com/octocat/hello',
+        scenarioId: 'aws-outage',
+        costPerHourOfDowntime: 602,
+        vendorSlaOverrides: {},
+        substrateFailureProbabilities: {},
+      }),
+    )
     // "99.95%" appears twice: the hero stat strip and the AvailabilityPanel's own tile.
     expect((await screen.findAllByText('99.95%')).length).toBeGreaterThanOrEqual(2)
     expect(await screen.findByTestId('node-stripe')).toHaveAttribute('data-color', '#d03b3b')

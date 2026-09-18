@@ -3,6 +3,8 @@ import type { AnalyzePrResponse, SimulateResponse, StatusResponse } from '../lib
 import { ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import type { ConcentrationResult, CriticalityResult, GraphData, Runbook, Vendor, VendorGraph } from '../lib/types'
+import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
+import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import type { HealthSummary } from './TopBar'
 import TopBar from './TopBar'
 import GraphView from './GraphView'
@@ -12,6 +14,7 @@ import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
 import SystemOverview from './SystemOverview'
 import ConcentrationPanel from './ConcentrationPanel'
+import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
 import CriticalityPanel from './CriticalityPanel'
 import LiveStatusPanel from './LiveStatusPanel'
@@ -64,6 +67,12 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   const [simulation, setSimulation] = useState<SimulateResponse | null>(null)
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationError, setSimulationError] = useState<string | null>(null)
+  const [activeScenarioId, setActiveScenarioId] = useState<string | undefined>(undefined)
+  // Debounced edits re-run whichever scenario (or baseline) is currently active, so tweaking an
+  // assumption updates the view you're looking at instead of silently resetting it.
+  const { assumptions, setAssumptions } = useAvailabilityAssumptions(analyzed.repoUrl, (next) =>
+    runSimulation(activeScenarioId, next),
+  )
 
   const [statusResult, setStatusResult] = useState<StatusResponse | null>(null)
   const [isLoadingStatus, setIsLoadingStatus] = useState(false)
@@ -141,15 +150,24 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     setView('graph')
   }
 
-  async function handleSimulateScenario(scenarioId: string) {
+  async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
     if (!analyzed.repoUrl) return
+    setActiveScenarioId(scenarioId)
     setIsSimulating(true)
     setSimulationError(null)
     try {
-      const result = await simulate({ repoUrl: analyzed.repoUrl, scenarioId })
+      const result = await simulate({
+        repoUrl: analyzed.repoUrl,
+        scenarioId,
+        costPerHourOfDowntime: withAssumptions.costPerHour,
+        vendorSlaOverrides: withAssumptions.vendorSlaOverrides,
+        substrateFailureProbabilities: withAssumptions.substrateRateOverrides,
+      })
       setSimulation(result)
-      setGraphMode('vendors')
-      setSelectedVendorKey(null)
+      if (scenarioId) {
+        setGraphMode('vendors')
+        setSelectedVendorKey(null)
+      }
     } catch (err) {
       setSimulationError(apiErrorMessage(err, 'Could not run the simulation.'))
     } finally {
@@ -157,18 +175,12 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     }
   }
 
+  async function handleSimulateScenario(scenarioId: string) {
+    await runSimulation(scenarioId, assumptions)
+  }
+
   async function handleRunBaseline() {
-    if (!analyzed.repoUrl) return
-    setIsSimulating(true)
-    setSimulationError(null)
-    try {
-      const result = await simulate({ repoUrl: analyzed.repoUrl })
-      setSimulation(result)
-    } catch (err) {
-      setSimulationError(apiErrorMessage(err, 'Could not run the simulation.'))
-    } finally {
-      setIsSimulating(false)
-    }
+    await runSimulation(undefined, assumptions)
   }
 
   async function handleRefreshStatus() {
@@ -361,10 +373,12 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
 
           {hasVendorData && (
             <>
+              <AssumptionsPanel vendors={analyzed.vendors} assumptions={assumptions} onChange={setAssumptions} />
               <AvailabilityPanel
                 simulation={simulation}
                 isLoading={isSimulating}
                 error={simulationError}
+                currency={assumptions.currency}
                 onRun={handleRunBaseline}
               />
               <LiveStatusPanel

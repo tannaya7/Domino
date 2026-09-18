@@ -1,4 +1,6 @@
 import type { SimulateResponse } from '../lib/api'
+import type { Currency } from '../lib/currency'
+import { formatCurrency } from '../lib/currency'
 import Panel from './ui/Panel'
 import Spinner from './ui/Spinner'
 import StatTile from './ui/StatTile'
@@ -7,14 +9,16 @@ interface AvailabilityPanelProps {
   simulation: SimulateResponse | null
   isLoading: boolean
   error: string | null
+  currency: Currency
   onRun: () => void
 }
 
 const formatPercent = (n: number) => `${n.toFixed(2)}%`
 const formatHours = (n: number) => `${n.toFixed(1)} hrs/yr`
-const formatMoney = (n: number) => (n > 0 ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}/yr` : 'not estimated')
 
-function AvailabilityPanel({ simulation, isLoading, error, onRun }: AvailabilityPanelProps) {
+function AvailabilityPanel({ simulation, isLoading, error, currency, onRun }: AvailabilityPanelProps) {
+  const formatMoney = (n: number) => (n > 0 ? `${formatCurrency(n, currency)}/yr` : 'not estimated')
+
   return (
     <Panel
       title="Availability"
@@ -62,22 +66,43 @@ function AvailabilityPanel({ simulation, isLoading, error, onRun }: Availability
               value={simulation.simulation.expectedDowntimeHoursPerYear.correlated}
               format={formatHours}
             />
-            <StatTile
-              label="Estimated exposure"
-              value={simulation.simulation.expectedAnnualExposure.correlated}
-              format={formatMoney}
-            />
+            <StatTile label="Estimated exposure" value={simulation.headline.expectedLossPerYear} format={formatMoney} />
           </div>
           <StatTile
             label="Correlated share of downtime"
-            value={simulation.simulation.correlatedShareOfDowntime * 100}
+            value={simulation.headline.invisibleShare * 100}
             format={formatPercent}
-            hint="Share of downtime the naive model misses entirely."
+            hint="Share of downtime the naive model misses entirely — 0% when there's nothing to correlate."
           />
+
+          <div>
+            <p className="mb-1 text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+              Why: {simulation.headline.vendors} vendor(s), {simulation.headline.substrates} substrate(s)
+            </p>
+            <ul className="space-y-1">
+              {simulation.headline.breakdown.map((row) => (
+                <li key={row.substrate} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-[var(--text-secondary)]">
+                    {row.substrate} · {row.vendorCount} vendor{row.vendorCount === 1 ? '' : 's'}
+                  </span>
+                  <span
+                    className={
+                      row.contributesCorrelation ? 'font-medium text-[var(--status-critical)]' : 'text-[var(--text-muted)]'
+                    }
+                  >
+                    {row.contributesCorrelation
+                      ? `shared risk (${(row.failureProbability * 100).toFixed(2)}%/yr)`
+                      : 'nothing to correlate'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <p className="text-xs text-[var(--text-muted)]">
-            Based on {simulation.simulation.trials.toLocaleString()} Monte Carlo trials. Substrate failure rates are
-            derived from vendor SLA, not independently measured — edit assumptions before using this for a real
-            budget.
+            Based on {simulation.simulation.trials.toLocaleString()} Monte Carlo trials. Substrate failure rates
+            default from vendor SLA only where 2+ vendors share a substrate — edit assumptions above before using
+            this for a real budget.
           </p>
         </div>
       )}

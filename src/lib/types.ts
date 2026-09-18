@@ -129,8 +129,10 @@ export interface AvailabilityAssumptions {
   trials: number
   /** Currency-agnostic cost per hour of full downtime. 0 disables financial exposure output. */
   costPerHourOfDowntime: number
-  /** Per-substrate failure probability used by the correlated model — defaults are DERIVED from vendor SLA, not independently measured. */
+  /** Per-substrate failure probability used by the correlated model — defaults are DERIVED from vendor SLA (only when >=2 vendors share the substrate; see availability.ts), not independently measured. */
   substrateFailureProbabilities: Record<string, number>
+  /** Per-vendor SLA overrides keyed by Vendor.key — defaults come from the curated vendor knowledge base (server/src/vendorMap.ts), itself an editable input, not ground truth. */
+  vendorSlaOverrides: Record<string, number>
 }
 
 export interface SimulationResult {
@@ -144,6 +146,25 @@ export interface SimulationResult {
   /** Share of correlated downtime the naive model misses entirely: (correlated - naive) / correlated, floored at 0. */
   correlatedShareOfDowntime: number
   assumptions: AvailabilityAssumptions
+}
+
+/** One compact summary object for the UI headline — everything a reader needs without pulling apart SimulationResult. */
+export interface AvailabilityHeadline {
+  /** Vendor count included in the simulation. */
+  vendors: number
+  /** Distinct substrates those vendors run on. */
+  substrates: number
+  /** Same value as SimulationResult.correlatedShareOfDowntime, under the name a headline reads better with: the share of downtime that's invisible to a naive independence assumption. 0 when there's nothing to correlate (e.g. a single vendor, or vendors on disjoint substrates). */
+  invisibleShare: number
+  /** Expected annual financial exposure under the correlated model, in whatever unit costPerHourOfDowntime was supplied in (currency-agnostic; the UI is responsible for labeling the unit). */
+  expectedLossPerYear: number
+  /** Per-substrate transparency: only a substrate with >=2 vendors on it actually contributes correlated risk (see availability.ts) — the rest are listed with contributesCorrelation:false so the UI can show *why* invisibleShare is what it is, not just assert it. */
+  breakdown: Array<{
+    substrate: string
+    vendorCount: number
+    failureProbability: number
+    contributesCorrelation: boolean
+  }>
 }
 
 /** A structured remediation runbook for one vendor's failure. */

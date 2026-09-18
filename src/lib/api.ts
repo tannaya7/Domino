@@ -1,4 +1,5 @@
 import type {
+  AvailabilityHeadline,
   AwsHealthStatus,
   ConcentrationResult,
   CriticalityResult,
@@ -68,12 +69,18 @@ export interface SimulateRequest {
   downSubstrates?: string[]
   trials?: number
   costPerHourOfDowntime?: number
+  /** Per-vendor SLA overrides keyed by Vendor.key, from the Assumptions panel. */
+  vendorSlaOverrides?: Record<string, number>
+  /** Per-substrate failure-rate overrides keyed by substrate name, from the Assumptions panel. */
+  substrateFailureProbabilities?: Record<string, number>
 }
 
 export interface SimulateResponse {
   scenario: FailureScenarioResult | null
   simulation: SimulationResult
   presetScenarios: Array<{ id: string; label: string; downSubstrates: string[]; description?: string }>
+  /** Compact summary for the UI headline — see AvailabilityHeadline. */
+  headline: AvailabilityHeadline
 }
 
 export async function simulate(input: SimulateRequest): Promise<SimulateResponse> {

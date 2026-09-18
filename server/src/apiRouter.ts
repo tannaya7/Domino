@@ -1,5 +1,5 @@
 import { analyzeConcentration } from '../../src/lib/concentration'
-import { PRESET_SCENARIOS, runMonteCarloAvailability, simulateFailureScenario } from '../../src/lib/availability'
+import { PRESET_SCENARIOS, buildAvailabilityHeadline, runMonteCarloAvailability, simulateFailureScenario } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
 import { buildAdjacencyMap, buildVendorGraph } from '../../src/lib/graph'
 import type { FailureScenario } from '../../src/lib/types'
@@ -51,6 +51,23 @@ function sanitizeTrials(value: unknown): number | undefined {
 
 function sanitizeCost(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
+}
+
+const MAX_OVERRIDE_ENTRIES = 100
+
+/** A user-supplied {key: probability} map from the Assumptions panel — bounded size, values clamped to [0, 1]. */
+function sanitizeProbabilityMap(value: unknown): Record<string, number> | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
+  const result: Record<string, number> = {}
+  let count = 0
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+    if (count >= MAX_OVERRIDE_ENTRIES) break
+    if (typeof key !== 'string' || key.length === 0 || key.length > 200) continue
+    if (typeof v !== 'number' || !Number.isFinite(v)) continue
+    result[key] = Math.max(0, Math.min(1, v))
+    count++
+  }
+  return result
 }
 
 /** Shared by /simulate, /status, /runbook — they all operate on a repo /analyze-repo already cached. */
@@ -151,9 +168,12 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const simulation = runMonteCarloAvailability(vendors, {
       trials: sanitizeTrials(body.trials),
       costPerHourOfDowntime: sanitizeCost(body.costPerHourOfDowntime),
+      vendorSlaOverrides: sanitizeProbabilityMap(body.vendorSlaOverrides),
+      substrateFailureProbabilities: sanitizeProbabilityMap(body.substrateFailureProbabilities),
     })
+    const headline = buildAvailabilityHeadline(vendors, simulation)
 
-    return { status: 200, body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS } }
+    return { status: 200, body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS, headline } }
   }
 
   if (path === '/status') {
