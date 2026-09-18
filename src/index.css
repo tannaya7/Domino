@@ -1,1 +1,148 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-base: #0a0b0e;
+  --bg-elevated: #101218;
+  --bg-panel: #14161d;
+  --border-subtle: #23262f;
+  --border-strong: #33374a;
+
+  /* Ink */
+  --text-primary: #f4f5f7;
+  --text-secondary: #a6acbb;
+  --text-muted: #6b7280;
+
+  /* Accent (product identity) */
+  --accent: #6d8bff;
+  --accent-strong: #8ea2ff;
+
+  /* Status palette (fixed — never reused for series identity) */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-unknown: #6b7280;
+
+  /* Substrate categorical palette — fixed order, dark-surface validated hues */
+  --substrate-aws: #3987e5;
+  --substrate-gcp: #d95926;
+  --substrate-azure: #199e70;
+  --substrate-cloudflare: #c98500;
+  --substrate-vercel: #9085e9;
+  --substrate-other: #6b7280;
+}
+
+* {
+  border-color: var(--border-subtle);
+}
+
+html,
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+body {
+  font-feature-settings: "cv11";
+}
+
+::selection {
+  background: var(--accent);
+  color: #0a0b0e;
+}
+
+/* Thin, unobtrusive scrollbars that match the dark surface */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+
+/* Restrained glass panel: subtle translucency + blur, not a heavy glassmorphism effect. */
+.panel-glass {
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Rotating conic-gradient border glow — used sparingly (selected node detail, articulation-point
+   callout). Pure CSS, no JS animation loop. */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.glow-ring {
+  position: relative;
+}
+.glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--glow-angle), transparent 0%, var(--glow-color, var(--accent)) 12%, transparent 24%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: glow-rotate 3.2s linear infinite;
+  pointer-events: none;
+}
+@keyframes glow-rotate {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+/* Entrance animation for panels/sections mounting in. Short and purposeful. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-rise-in {
+  animation: rise-in 0.28s ease-out both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* Global reduced-motion kill-switch — verbatim technique from the VengeanceUI reference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

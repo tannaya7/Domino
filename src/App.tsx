@@ -1,73 +1,63 @@
-import { useMemo, useState } from 'react'
-import GraphView from './components/GraphView'
+import { useState } from 'react'
 import InputScreen from './components/InputScreen'
 import LandingPage from './components/LandingPage'
-import PrSummaryPanel from './components/PrSummaryPanel'
-import SidePanel from './components/SidePanel'
-import SystemOverview from './components/SystemOverview'
-import type { AnalyzePrResponse } from './lib/api'
-import { buildAdjacencyMap, getBlastRadius } from './lib/graph'
+import Workspace, { type AnalyzedRepo } from './components/Workspace'
+import type { AnalyzePrResponse, AnalyzeRepoResponse } from './lib/api'
+import { analyzeConcentration } from './lib/concentration'
+import { analyzeCriticality } from './lib/criticality'
+import { buildAdjacencyMap, VENDOR_GRAPH_ROOT_ID } from './lib/graph'
 import type { GraphData } from './lib/types'
 
-type View = 'graph' | 'overview'
+/** Builds the AnalyzedRepo shape for a file-graph-only source (manual JSON, sample data, or a PR
+ * result) — no vendor data exists for these, but criticality is still real, computed client-side
+ * on the real file graph, not fabricated. */
+function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
+  const adjacency = buildAdjacencyMap(graph.nodes, graph.edges)
+  return {
+    graph,
+    vendors: [],
+    vendorGraph: { rootId: VENDOR_GRAPH_ROOT_ID, vendors: [] },
+    concentration: analyzeConcentration([]),
+    criticality: analyzeCriticality(
+      adjacency,
+      graph.nodes.map((n) => n.id),
+    ),
+    meta: null,
+    repoUrl: null,
+  }
+}
 
 function App() {
   const [showLanding, setShowLanding] = useState(true)
-  const [graphData, setGraphData] = useState<GraphData | null>(null)
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const [view, setView] = useState<View>('graph')
+  const [analyzed, setAnalyzed] = useState<AnalyzedRepo | null>(null)
   const [prResult, setPrResult] = useState<AnalyzePrResponse | null>(null)
-  const isPrMode = prResult !== null && selectedNodeId === null
 
-  const adjacencyMap = useMemo(
-    () => (graphData ? buildAdjacencyMap(graphData.nodes, graphData.edges) : null),
-    [graphData],
-  )
-
-  const nodesById = useMemo(
-    () => new Map((graphData?.nodes ?? []).map((n) => [n.id, n])),
-    [graphData],
-  )
-
-  const selectedNode = selectedNodeId ? (nodesById.get(selectedNodeId) ?? null) : null
-
-  const blastRadius = useMemo(
-    () => (selectedNodeId && adjacencyMap ? getBlastRadius(selectedNodeId, adjacencyMap) : null),
-    [selectedNodeId, adjacencyMap],
-  )
-
-  function handleLoad(data: GraphData) {
-    setGraphData(data)
-    setSelectedNodeId(null)
+  function handleRepoAnalyzed(result: AnalyzeRepoResponse, repoUrl: string) {
+    setAnalyzed({
+      graph: { nodes: result.nodes, edges: result.edges },
+      vendors: result.vendors,
+      vendorGraph: result.vendorGraph,
+      concentration: result.concentration,
+      criticality: result.criticality,
+      meta: result.meta,
+      repoUrl,
+    })
     setPrResult(null)
-    setView('graph')
   }
 
-  function handleReset() {
-    setGraphData(null)
-    setSelectedNodeId(null)
+  function handleManualLoad(data: GraphData) {
+    setAnalyzed(analyzedFromFileGraph(data))
     setPrResult(null)
-    setView('graph')
-  }
-
-  function handleSelectFromOverview(nodeId: string) {
-    setPrResult(null)
-    setSelectedNodeId(nodeId)
-    setView('graph')
   }
 
   function handlePrAnalyzed(result: AnalyzePrResponse) {
-    setGraphData(result.graph)
+    setAnalyzed(analyzedFromFileGraph(result.graph))
     setPrResult(result)
-    setSelectedNodeId(null)
-    setView('graph')
   }
 
-  // Clicking any node — including while a PR's combined view is showing — falls back to the
-  // existing single-node selection flow (same handler DataInput/RepoInput graphs already use).
-  function handleNodeClick(nodeId: string) {
+  function handleReset() {
+    setAnalyzed(null)
     setPrResult(null)
-    setSelectedNodeId(nodeId)
   }
 
   if (showLanding) {
@@ -75,66 +65,16 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-white">
-      <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Blast Radius — Dependency Impact Mapper
-        </h1>
-        {graphData && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setView(view === 'graph' ? 'overview' : 'graph')}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {view === 'graph' ? 'System Overview' : 'Back to Graph'}
-            </button>
-            <button
-              onClick={handleReset}
-              className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Load different data
-            </button>
-          </div>
-        )}
-      </header>
-
-      <main className="flex flex-1 overflow-hidden">
-        {!graphData ? (
-          <InputScreen onLoad={handleLoad} onPrAnalyzed={handlePrAnalyzed} />
-        ) : view === 'overview' ? (
-          <SystemOverview
-            graphData={graphData}
-            adjacencyMap={adjacencyMap!}
-            onSelectNode={handleSelectFromOverview}
-          />
-        ) : (
-          <>
-            <div className="flex-1 overflow-hidden">
-              <GraphView
-                graphData={graphData}
-                selectedNodeId={selectedNodeId}
-                blastRadius={blastRadius}
-                onNodeClick={handleNodeClick}
-                highlightedNodeIds={isPrMode ? prResult.changedNodes.map((n) => n.id) : undefined}
-                combinedBlastRadius={isPrMode ? prResult.combinedBlastRadius : undefined}
-              />
-            </div>
-            {isPrMode ? (
-              <PrSummaryPanel result={prResult} onClear={() => setPrResult(null)} />
-            ) : (
-              selectedNode &&
-              blastRadius && (
-                <SidePanel
-                  selectedNode={selectedNode}
-                  blastRadius={blastRadius}
-                  nodesById={nodesById}
-                  onClear={() => setSelectedNodeId(null)}
-                />
-              )
-            )}
-          </>
-        )}
-      </main>
+    <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
+      {!analyzed ? (
+        <InputScreen
+          onRepoAnalyzed={handleRepoAnalyzed}
+          onManualLoad={handleManualLoad}
+          onPrAnalyzed={handlePrAnalyzed}
+        />
+      ) : (
+        <Workspace analyzed={analyzed} prResult={prResult} onReset={handleReset} onClearPr={() => setPrResult(null)} />
+      )}
     </div>
   )
 }

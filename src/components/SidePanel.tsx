@@ -39,30 +39,30 @@ function SidePanel({ selectedNode, blastRadius, nodesById, onClear }: SidePanelP
   }
 
   return (
-    <aside className="flex h-full w-80 shrink-0 flex-col gap-4 overflow-y-auto border-l border-gray-200 p-4">
+    <aside className="panel-glass animate-rise-in flex shrink-0 flex-col gap-4 rounded-xl p-4">
       <div>
-        <p className="text-xs font-medium text-gray-500 uppercase">{selectedNode.type}</p>
-        <h2 className="text-lg font-semibold text-gray-900">{selectedNode.label}</h2>
+        <p className="text-xs font-medium text-[var(--text-muted)] uppercase">{selectedNode.type}</p>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{selectedNode.label}</h2>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-2xl font-bold text-gray-900">{blastRadius.totalCount}</span>
-        <span className="text-sm text-gray-500">affected components</span>
+        <span className="text-2xl font-bold text-[var(--text-primary)]">{blastRadius.totalCount}</span>
+        <span className="text-sm text-[var(--text-secondary)]">affected components</span>
         <span className={`ml-auto rounded px-2 py-0.5 text-xs font-medium ${RISK_STYLES[risk]}`}>
           {risk} risk
         </span>
       </div>
 
       <section>
-        <h3 className="mb-1 text-sm font-medium text-gray-700">
+        <h3 className="mb-1 text-sm font-medium text-[var(--text-secondary)]">
           Downstream — will break ({blastRadius.downstream.length})
         </h3>
         {blastRadius.downstream.length === 0 ? (
-          <p className="text-sm text-gray-400">Nothing depends on this component.</p>
+          <p className="text-sm text-[var(--text-muted)]">Nothing depends on this component.</p>
         ) : (
           <ul className="space-y-1">
             {blastRadius.downstream.map((id) => (
-              <li key={id} className="rounded bg-orange-50 px-2 py-1 text-sm text-orange-900">
+              <li key={id} className="rounded border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-sm text-orange-200">
                 {nodeLabel(id, nodesById)}
               </li>
             ))}
@@ -71,15 +71,15 @@ function SidePanel({ selectedNode, blastRadius, nodesById, onClear }: SidePanelP
       </section>
 
       <section>
-        <h3 className="mb-1 text-sm font-medium text-gray-700">
+        <h3 className="mb-1 text-sm font-medium text-[var(--text-secondary)]">
           Upstream — depends on ({blastRadius.upstream.length})
         </h3>
         {blastRadius.upstream.length === 0 ? (
-          <p className="text-sm text-gray-400">This component has no dependencies.</p>
+          <p className="text-sm text-[var(--text-muted)]">This component has no dependencies.</p>
         ) : (
           <ul className="space-y-1">
             {blastRadius.upstream.map((id) => (
-              <li key={id} className="rounded bg-blue-50 px-2 py-1 text-sm text-blue-900">
+              <li key={id} className="rounded border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-sm text-blue-200">
                 {nodeLabel(id, nodesById)}
               </li>
             ))}
@@ -97,13 +97,13 @@ function SidePanel({ selectedNode, blastRadius, nodesById, onClear }: SidePanelP
       <div className="mt-auto flex gap-2">
         <button
           onClick={handleDownload}
-          className="flex-1 rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700"
+          className="flex-1 rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[#0a0b0e] hover:bg-[var(--accent-strong)]"
         >
           Download report
         </button>
         <button
           onClick={onClear}
-          className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="flex-1 rounded border border-[var(--border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
         >
           Clear selection
         </button>

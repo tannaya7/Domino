@@ -70,68 +70,62 @@ function DataInput({ onLoad }: DataInputProps) {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-        <p className="mb-1 font-medium text-gray-700">How to use</p>
+      <div className="panel-glass rounded-lg p-3 text-sm text-[var(--text-secondary)]">
+        <p className="mb-1 font-medium text-[var(--text-primary)]">How to use</p>
         <p>
           Upload or paste a JSON file with <code className="text-xs">nodes</code> and{' '}
-          <code className="text-xs">edges</code> arrays, or load the sample data below. Then
-          click any node in the graph to see everything that would be affected if it broke.
+          <code className="text-xs">edges</code> arrays, or load the sample data below. This path is file-graph
+          only — no vendor/AWS analysis, since there's no repo to scan for imports, env vars, or manifests.
         </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Upload a JSON file
-        </label>
+        <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Upload a JSON file</label>
         <input
           ref={fileInputRef}
           type="file"
           accept="application/json,.json"
           onChange={handleFileChange}
           disabled={isLoading}
-          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-gray-700 disabled:opacity-50"
+          className="block w-full text-sm text-[var(--text-secondary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--accent)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#0a0b0e] hover:file:bg-[var(--accent-strong)] disabled:opacity-50"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Or paste JSON
-        </label>
+        <label className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">Or paste JSON</label>
         <textarea
           value={pasteValue}
           onChange={(e) => setPasteValue(e.target.value)}
           rows={6}
           placeholder='{"nodes": [...], "edges": [...]}'
           disabled={isLoading}
-          className="w-full rounded border border-gray-300 p-2 font-mono text-sm text-gray-900 focus:border-gray-500 focus:outline-none disabled:opacity-50"
+          className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-2 font-mono text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
         />
         <button
           onClick={handlePasteSubmit}
           disabled={isLoading}
-          className="mt-2 rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          className="mt-2 rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[#0a0b0e] hover:bg-[var(--accent-strong)] disabled:opacity-50"
         >
           {isLoading ? 'Parsing…' : 'Load pasted JSON'}
         </button>
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs text-gray-400">or</span>
-        <div className="h-px flex-1 bg-gray-200" />
+        <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+        <span className="text-xs text-[var(--text-muted)]">or</span>
+        <div className="h-px flex-1 bg-[var(--border-subtle)]" />
       </div>
 
       <button
         onClick={handleLoadSample}
         disabled={isLoading}
-        className="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        className="rounded-md border border-[var(--border-subtle)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:opacity-50"
       >
         Load sample data
       </button>
 
       {error && (
-        <p className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">
-          {error}
-        </p>
+        <p className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300" role="alert">{error}</p>
       )}
     </div>
   )

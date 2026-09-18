@@ -39,10 +39,14 @@ function RiskSummarySection({ name, type, downstream, upstream }: RiskSummarySec
 
   return (
     <section>
-      <h3 className="mb-1 text-sm font-medium text-gray-700">Risk Summary</h3>
-      {isLoading && <p className="text-sm text-gray-400">Generating summary…</p>}
-      {!isLoading && error && <p className="text-sm text-red-600">{error}</p>}
-      {!isLoading && !error && summary && <p className="text-sm text-gray-700">{summary}</p>}
+      <h3 className="mb-1 text-sm font-medium text-[var(--text-secondary)]">Risk Summary</h3>
+      {isLoading && <p className="text-sm text-[var(--text-muted)]">Generating summary…</p>}
+      {!isLoading && error && (
+        <p className="text-sm text-red-300" role="alert">
+          {error}
+        </p>
+      )}
+      {!isLoading && !error && summary && <p className="text-sm text-[var(--text-secondary)]">{summary}</p>}
     </section>
   )
 }

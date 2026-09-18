@@ -35,8 +35,8 @@ function PrInput({ onAnalyzed }: PrInputProps) {
 
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-4">
-      <div className="rounded border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
-        <p className="mb-1 font-medium text-gray-700">How to use</p>
+      <div className="panel-glass rounded-lg p-3 text-sm text-[var(--text-secondary)]">
+        <p className="mb-1 font-medium text-[var(--text-primary)]">How to use</p>
         <p>
           Paste a public GitHub pull request URL. We'll find every file it changes, map them onto
           the repo's dependency graph, and show the combined blast radius before you merge.
@@ -44,21 +44,24 @@ function PrInput({ onAnalyzed }: PrInputProps) {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">GitHub PR URL</label>
+        <label htmlFor="pr-url" className="mb-1 block text-sm font-medium text-[var(--text-secondary)]">
+          GitHub PR URL
+        </label>
         <div className="flex gap-2">
           <input
+            id="pr-url"
             type="text"
             value={prUrl}
             onChange={(e) => setPrUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
             placeholder="https://github.com/owner/repo/pull/42"
             disabled={isLoading}
-            className="flex-1 rounded border border-gray-300 p-2 text-sm text-gray-900 focus:border-gray-500 focus:outline-none disabled:opacity-50"
+            className="flex-1 rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={handleAnalyze}
             disabled={isLoading}
-            className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+            className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#0a0b0e] hover:bg-[var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:opacity-50"
           >
             {isLoading ? 'Analyzing…' : 'Analyze'}
           </button>
@@ -66,7 +69,7 @@ function PrInput({ onAnalyzed }: PrInputProps) {
       </div>
 
       {error && (
-        <p className="rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-300" role="alert">{error}</p>
       )}
     </div>
   )
