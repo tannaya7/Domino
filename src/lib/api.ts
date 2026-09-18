@@ -1,4 +1,15 @@
-import type { GraphData } from './types'
+import type {
+  AwsHealthStatus,
+  ConcentrationResult,
+  CriticalityResult,
+  FailureScenarioResult,
+  GraphData,
+  Runbook,
+  SimulationResult,
+  Vendor,
+  VendorGraph,
+  VendorStatus,
+} from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8787'
 
@@ -26,6 +37,12 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
 }
 
 export interface AnalyzeRepoResponse extends GraphData {
+  /** Third-party vendors detected from imports, env vars, manifests, and IaC. */
+  vendors: Vendor[]
+  vendorGraph: VendorGraph
+  concentration: ConcentrationResult
+  /** Graph-theory criticality of the file graph (articulation points, reachability loss). */
+  criticality: CriticalityResult
   meta: {
     owner: string
     repo: string
@@ -39,6 +56,39 @@ export interface AnalyzeRepoResponse extends GraphData {
 
 export async function analyzeRepo(repoUrl: string): Promise<AnalyzeRepoResponse> {
   return postJson<AnalyzeRepoResponse>('/analyze-repo', { repoUrl })
+}
+
+export interface SimulateRequest {
+  repoUrl: string
+  /** One of the backend's PRESET_SCENARIOS ids, e.g. "aws-outage". Ignored if downSubstrates is set. */
+  scenarioId?: string
+  /** A custom list of substrates to treat as fully down, e.g. ["aws"]. */
+  downSubstrates?: string[]
+  trials?: number
+  costPerHourOfDowntime?: number
+}
+
+export interface SimulateResponse {
+  scenario: FailureScenarioResult | null
+  simulation: SimulationResult
+  presetScenarios: Array<{ id: string; label: string; downSubstrates: string[]; description?: string }>
+}
+
+export async function simulate(input: SimulateRequest): Promise<SimulateResponse> {
+  return postJson<SimulateResponse>('/simulate', input)
+}
+
+export interface StatusResponse {
+  vendorStatuses: VendorStatus[]
+  awsHealth: AwsHealthStatus
+}
+
+export async function fetchStatus(repoUrl: string): Promise<StatusResponse> {
+  return postJson<StatusResponse>('/status', { repoUrl })
+}
+
+export async function fetchRunbook(repoUrl: string, vendorKey: string, scenarioLabel?: string): Promise<Runbook> {
+  return postJson<Runbook>('/runbook', { repoUrl, vendorKey, scenarioLabel })
 }
 
 export interface ChangedNode {

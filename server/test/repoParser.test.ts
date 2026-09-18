@@ -130,4 +130,76 @@ describe('buildGraphFromSource', () => {
     expect(graph.edges).toContainEqual({ from: 'src/file0.ts', to: 'src/file90.ts' })
     expect(graph.nodes.map((n) => n.id)).toContain('src/file90.ts')
   })
+
+  it('does not turn a bare package import into a file-graph node or edge', async () => {
+    const source = fixtureSource({ 'src/pay.ts': `import Stripe from 'stripe'` })
+    const { graph } = await buildGraphFromSource(source)
+    expect(graph.nodes.map((n) => n.id)).toEqual(['src/pay.ts'])
+    expect(graph.edges).toEqual([])
+  })
+})
+
+describe('buildGraphFromSource — vendor discovery', () => {
+  it('detects a vendor from a bare import and attributes it to the importing file', async () => {
+    const source = fixtureSource({ 'src/pay.ts': `import Stripe from 'stripe'` })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors).toEqual([expect.objectContaining({ key: 'stripe', detectedInFiles: ['src/pay.ts'] })])
+  })
+
+  it('detects a vendor from a process.env reference', async () => {
+    const source = fixtureSource({ 'src/pay.ts': `const key = process.env.STRIPE_SECRET_KEY` })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors).toEqual([
+      expect.objectContaining({ key: 'stripe', detectedVia: ['env:STRIPE_SECRET_KEY'] }),
+    ])
+  })
+
+  it('detects a vendor from package.json dependencies', async () => {
+    const source = fixtureSource({
+      'package.json': JSON.stringify({ dependencies: { stripe: '^14.0.0' } }),
+      'src/index.ts': `export const noop = () => {}`,
+    })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors).toEqual([
+      expect.objectContaining({ key: 'stripe', detectedInFiles: ['package.json'] }),
+    ])
+  })
+
+  it('detects a vendor from a .env.example file', async () => {
+    const source = fixtureSource({
+      '.env.example': 'STRIPE_SECRET_KEY=\nOPENAI_API_KEY=',
+      'src/index.ts': `export const noop = () => {}`,
+    })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors.map((v) => v.key).sort()).toEqual(['openai', 'stripe'])
+  })
+
+  it('merges detection across imports, env, and manifest into one vendor entry', async () => {
+    const source = fixtureSource({
+      'package.json': JSON.stringify({ dependencies: { stripe: '^14.0.0' } }),
+      'src/pay.ts': `import Stripe from 'stripe'\nconst key = process.env.STRIPE_SECRET_KEY`,
+    })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors).toHaveLength(1)
+    expect(vendors[0].detectedVia.sort()).toEqual(
+      ['import:stripe', 'env:STRIPE_SECRET_KEY', 'manifest:npm:stripe'].sort(),
+    )
+  })
+
+  it('reports no vendors for a repo with no recognized signals', async () => {
+    const source = fixtureSource({ 'src/index.ts': `import React from 'react'` })
+    const { vendors } = await buildGraphFromSource(source)
+    expect(vendors).toEqual([])
+  })
+
+  it('extracts IaC substrate signals from a Terraform file', async () => {
+    const source = fixtureSource({
+      'infra/main.tf': `resource "aws_lambda_function" "api" {}`,
+      'src/index.ts': `export const noop = () => {}`,
+    })
+    const { iacSubstrates } = await buildGraphFromSource(source)
+    expect(iacSubstrates).toEqual([
+      { provider: 'aws', resourceType: 'aws_lambda_function', source: 'infra/main.tf' },
+    ])
+  })
 })

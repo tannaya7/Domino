@@ -1,4 +1,4 @@
-import type { GraphData } from './types'
+import type { GraphData, Vendor, VendorGraph, VendorWithBlastRadius } from './types'
 
 export interface AdjacencyMap {
   /** node id -> ids of nodes it depends on (forward edges, from -> to) */
@@ -30,16 +30,17 @@ export function buildAdjacencyMap(nodes: GraphData['nodes'], edges: GraphData['e
   return { forward, reverse }
 }
 
-function traverse(nodeId: string, adjacency: Map<string, string[]>): string[] {
+/** `exclude` simulates that node being removed from the graph — used to answer "what's still reachable if X dies?" */
+function traverse(nodeId: string, adjacency: Map<string, string[]>, exclude?: string): string[] {
   const visited = new Set<string>()
-  const queue = [...(adjacency.get(nodeId) ?? [])]
+  const queue = [...(adjacency.get(nodeId) ?? [])].filter((n) => n !== exclude)
 
   while (queue.length > 0) {
     const current = queue.shift()!
-    if (visited.has(current)) continue
+    if (visited.has(current) || current === exclude) continue
     visited.add(current)
     for (const next of adjacency.get(current) ?? []) {
-      if (!visited.has(next)) queue.push(next)
+      if (!visited.has(next) && next !== exclude) queue.push(next)
     }
   }
 
@@ -47,13 +48,13 @@ function traverse(nodeId: string, adjacency: Map<string, string[]>): string[] {
 }
 
 /** Everything that depends on this node, directly or transitively — breaks if this node breaks. */
-export function getDownstream(nodeId: string, adjacencyMap: AdjacencyMap): string[] {
-  return traverse(nodeId, adjacencyMap.reverse)
+export function getDownstream(nodeId: string, adjacencyMap: AdjacencyMap, exclude?: string): string[] {
+  return traverse(nodeId, adjacencyMap.reverse, exclude)
 }
 
 /** Everything this node depends on, directly or transitively. */
-export function getUpstream(nodeId: string, adjacencyMap: AdjacencyMap): string[] {
-  return traverse(nodeId, adjacencyMap.forward)
+export function getUpstream(nodeId: string, adjacencyMap: AdjacencyMap, exclude?: string): string[] {
+  return traverse(nodeId, adjacencyMap.forward, exclude)
 }
 
 export function getBlastRadius(nodeId: string, adjacencyMap: AdjacencyMap): BlastRadius {
@@ -64,4 +65,30 @@ export function getBlastRadius(nodeId: string, adjacencyMap: AdjacencyMap): Blas
     upstream,
     totalCount: downstream.length + upstream.length,
   }
+}
+
+/** Synthetic id for "this application" in a VendorGraph — the node every vendor edge originates from. */
+export const VENDOR_GRAPH_ROOT_ID = '__app__'
+
+/**
+ * Rolls a repo's file graph up into a vendor graph: each detected vendor's `detectedInFiles` are
+ * the files that reference it directly; `affectedFiles` extends that with everything downstream of
+ * those files in the existing file-import graph — the real answer to "what breaks if this vendor
+ * fails," reusing the same BFS this app already uses for file-level blast radius.
+ */
+export function buildVendorGraph(vendors: Vendor[], fileAdjacency: AdjacencyMap): VendorGraph {
+  const withBlastRadius: VendorWithBlastRadius[] = vendors.map((vendor) => {
+    // Manifest/env files (e.g. package.json, .env.example) aren't file-graph nodes, so they
+    // wouldn't have an adjacency entry — only real source files can seed a downstream traversal.
+    const directFiles = vendor.detectedInFiles.filter((file) => fileAdjacency.reverse.has(file))
+
+    const affected = new Set<string>(directFiles)
+    for (const file of directFiles) {
+      for (const downstream of getDownstream(file, fileAdjacency)) affected.add(downstream)
+    }
+
+    return { ...vendor, directFiles, affectedFiles: [...affected] }
+  })
+
+  return { rootId: VENDOR_GRAPH_ROOT_ID, vendors: withBlastRadius }
 }

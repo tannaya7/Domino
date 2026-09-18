@@ -34,9 +34,9 @@ export async function analyzePr(prUrl: string): Promise<AnalyzePrResult> {
   const base = pr.base
 
   const repoCacheKey = `${base.owner}/${base.repo}`
-  const cached = getCachedGraph(repoCacheKey)
+  const cached = await getCachedGraph(repoCacheKey)
   const repoResult = cached ?? (await analyzeRepo(`https://github.com/${base.owner}/${base.repo}`, base.ref))
-  if (!cached) setCachedGraph(repoCacheKey, repoResult)
+  if (!cached) await setCachedGraph(repoCacheKey, repoResult)
 
   const graph = repoResult.graph
   const nodesById = new Map(graph.nodes.map((n) => [n.id, n]))

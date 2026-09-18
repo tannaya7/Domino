@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import sampleData from '../data/sample.json'
-import { buildAdjacencyMap, getBlastRadius, getDownstream, getUpstream } from './graph'
-import type { GraphData } from './types'
+import { buildAdjacencyMap, buildVendorGraph, getBlastRadius, getDownstream, getUpstream } from './graph'
+import type { GraphData, Vendor } from './types'
+
+function fixtureVendor(overrides: Partial<Vendor>): Vendor {
+  return {
+    key: 'stripe',
+    vendor: 'Stripe',
+    tier: 'payments',
+    substrate: ['aws'],
+    sla: 0.9999,
+    detectedVia: ['import:stripe'],
+    detectedInFiles: [],
+    ...overrides,
+  }
+}
 
 const data = sampleData as GraphData
 const adjacencyMap = buildAdjacencyMap(data.nodes, data.edges)
@@ -63,5 +76,40 @@ describe('graph engine (edge cases)', () => {
 
     const radius = getBlastRadius('isolated', map)
     expect(radius).toEqual({ downstream: [], upstream: [], totalCount: 0 })
+  })
+})
+
+describe('buildVendorGraph', () => {
+  it("extends a vendor's direct files with everything downstream in the file graph", () => {
+    // order-service's downstream (from the sample dataset) is api-gateway, web-app.
+    const vendor = fixtureVendor({ detectedInFiles: ['order-service'] })
+    const vendorGraph = buildVendorGraph([vendor], adjacencyMap)
+
+    expect(vendorGraph.vendors).toHaveLength(1)
+    expect(vendorGraph.vendors[0].directFiles).toEqual(['order-service'])
+    expect(new Set(vendorGraph.vendors[0].affectedFiles)).toEqual(
+      new Set(['order-service', 'api-gateway', 'web-app']),
+    )
+  })
+
+  it('excludes a detectedInFiles entry that is not an actual file-graph node (e.g. package.json)', () => {
+    const vendor = fixtureVendor({ detectedInFiles: ['package.json'] })
+    const vendorGraph = buildVendorGraph([vendor], adjacencyMap)
+
+    expect(vendorGraph.vendors[0].directFiles).toEqual([])
+    expect(vendorGraph.vendors[0].affectedFiles).toEqual([])
+  })
+
+  it('merges affected files across multiple direct files without duplicates', () => {
+    const vendor = fixtureVendor({ detectedInFiles: ['order-service', 'orders-db'] })
+    const vendorGraph = buildVendorGraph([vendor], adjacencyMap)
+
+    expect(new Set(vendorGraph.vendors[0].affectedFiles)).toEqual(
+      new Set(['order-service', 'orders-db', 'api-gateway', 'web-app', 'inventory-service']),
+    )
+  })
+
+  it('returns an empty vendor list for an empty input without throwing', () => {
+    expect(buildVendorGraph([], adjacencyMap)).toEqual({ rootId: '__app__', vendors: [] })
   })
 })

@@ -1,13 +1,22 @@
 import type { GraphData } from '../../src/lib/types'
 import { parsePackageJsonImports, parseTsconfigPaths, resolveAliasedImport, type AliasEntry } from './aliasResolver'
+import { extractEnvVarNames, parseEnvFile } from './envScanner'
 import { getDefaultBranch, getRawFileContent, getRepoTree, parseRepoUrl } from './github'
 import { inferFileType } from './inferFileType'
 import { extractImportSpecifiers, resolveRelativeImport } from './importParser'
+import { isIacFile, parseIacFile, type IacSubstrateSignal } from './iacParser'
+import { KNOWN_MANIFEST_FILENAMES, parseManifest } from './manifestParser'
+import { resolveVendors, type DetectedVendor, type FileVendorSignal } from './vendorResolver'
 
 const TRACKED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
 const EXCLUDED_DIR_SEGMENTS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage'])
 const MAX_FILES = 80
 const CONCURRENCY = 8
+
+const ENV_FILENAMES = new Set(['.env.example', '.env.sample', 'env.example'])
+// Bounds targeted fetches for vendor-discovery sources (manifests/env/IaC), kept separate from and
+// much smaller than MAX_FILES — these are a handful of well-known filenames, not the whole tree.
+const MAX_DISCOVERY_FILES_PER_KIND = 20
 
 export interface RepoSource {
   /** All file paths in the repo (blobs only, relative to repo root). */
@@ -34,6 +43,10 @@ class GithubRepoSource implements RepoSource {
   async readFile(path: string): Promise<string> {
     return getRawFileContent(this.owner, this.repo, this.ref, path)
   }
+}
+
+function basename(path: string): string {
+  return path.split('/').pop() ?? path
 }
 
 function isTrackedFile(path: string): boolean {
@@ -79,13 +92,59 @@ async function loadAliasEntries(source: RepoSource, allPaths: string[]): Promise
   return entries
 }
 
+interface DiscoveryFile {
+  path: string
+  content: string
+}
+
+interface DiscoverySources {
+  manifestFiles: DiscoveryFile[]
+  envFiles: DiscoveryFile[]
+  iacFiles: DiscoveryFile[]
+}
+
+/**
+ * Fetches a small, bounded set of manifest/.env/IaC files for vendor discovery — deliberately
+ * separate from and much cheaper than the tracked-file walk above (a handful of well-known
+ * filenames, not every file in the repo). Never throws; unreadable files are silently skipped.
+ */
+async function loadVendorDiscoverySources(source: RepoSource, allPaths: string[]): Promise<DiscoverySources> {
+  const manifestPaths = allPaths
+    .filter((path) => KNOWN_MANIFEST_FILENAMES.includes(basename(path)))
+    .slice(0, MAX_DISCOVERY_FILES_PER_KIND)
+  const envPaths = allPaths.filter((path) => ENV_FILENAMES.has(basename(path))).slice(0, MAX_DISCOVERY_FILES_PER_KIND)
+  const iacPaths = allPaths.filter(isIacFile).slice(0, MAX_DISCOVERY_FILES_PER_KIND)
+
+  async function readAll(paths: string[]): Promise<DiscoveryFile[]> {
+    const results = await mapWithConcurrency(paths, CONCURRENCY, async (path): Promise<DiscoveryFile | null> => {
+      try {
+        return { path, content: await source.readFile(path) }
+      } catch {
+        return null
+      }
+    })
+    return results.filter((r): r is DiscoveryFile => r !== null)
+  }
+
+  const [manifestFiles, envFiles, iacFiles] = await Promise.all([
+    readAll(manifestPaths),
+    readAll(envPaths),
+    readAll(iacPaths),
+  ])
+  return { manifestFiles, envFiles, iacFiles }
+}
+
 export interface BuildGraphResult {
   graph: GraphData
   truncated: boolean
   filesScanned: number
+  /** Third-party vendors detected from imports, env vars, and manifests — the app's blast-radius layer. */
+  vendors: DetectedVendor[]
+  /** Cloud-provider signals found in IaC files (Terraform, serverless.yml, vercel.json). */
+  iacSubstrates: IacSubstrateSignal[]
 }
 
-/** Builds a {nodes, edges} import graph from any RepoSource — used for both live GitHub repos and tests. */
+/** Builds a {nodes, edges} import graph plus vendor/substrate signals from any RepoSource. */
 export async function buildGraphFromSource(source: RepoSource): Promise<BuildGraphResult> {
   const allPaths = await source.listFiles()
   const trackedPaths = allPaths.filter(isTrackedFile)
@@ -98,31 +157,63 @@ export async function buildGraphFromSource(source: RepoSource): Promise<BuildGra
   const knownFilePaths = new Set(trackedPaths)
   const aliasEntries = await loadAliasEntries(source, allPaths)
 
-  const contents = await mapWithConcurrency(filesToFetch, CONCURRENCY, (path) => source.readFile(path))
+  const [contents, discoverySources] = await Promise.all([
+    mapWithConcurrency(filesToFetch, CONCURRENCY, (path) => source.readFile(path)),
+    loadVendorDiscoverySources(source, allPaths),
+  ])
 
   const edgeKeys = new Set<string>()
   const edges: GraphData['edges'] = []
   const nodeIds = new Set(filesToFetch)
+  // Bare (non-relative) specifiers never become file-graph edges/nodes — the file graph stays
+  // exactly what it was — but they're the primary vendor-discovery signal, so we keep them here.
+  const fileSignals: FileVendorSignal[] = []
 
   filesToFetch.forEach((path, i) => {
     const specifiers = extractImportSpecifiers(contents[i])
+    const bareSpecifiers: string[] = []
+
     for (const specifier of specifiers) {
       const resolved =
         resolveRelativeImport(specifier, path, knownFilePaths) ??
         resolveAliasedImport(specifier, aliasEntries, knownFilePaths)
-      if (!resolved || resolved === path) continue
 
-      const key = `${path}|${resolved}`
-      if (edgeKeys.has(key)) continue
-      edgeKeys.add(key)
-      edges.push({ from: path, to: resolved })
-      nodeIds.add(resolved)
+      if (resolved && resolved !== path) {
+        const key = `${path}|${resolved}`
+        if (!edgeKeys.has(key)) {
+          edgeKeys.add(key)
+          edges.push({ from: path, to: resolved })
+          nodeIds.add(resolved)
+        }
+        continue
+      }
+
+      // Doesn't resolve to a known file — a real (non-relative) vendor/package specifier,
+      // not a broken relative import — the primary signal for vendor discovery below.
+      if (!specifier.startsWith('.')) bareSpecifiers.push(specifier)
+    }
+
+    const envVarNames = extractEnvVarNames(contents[i])
+    if (bareSpecifiers.length > 0 || envVarNames.length > 0) {
+      fileSignals.push({ file: path, importSpecifiers: bareSpecifiers, envVarNames })
     }
   })
 
+  for (const { path, content } of discoverySources.manifestFiles) {
+    const manifestDeps = parseManifest(path, content)
+    if (manifestDeps.length > 0) fileSignals.push({ file: path, manifestDeps })
+  }
+  for (const { path, content } of discoverySources.envFiles) {
+    const envVarNames = parseEnvFile(content)
+    if (envVarNames.length > 0) fileSignals.push({ file: path, envVarNames })
+  }
+
+  const vendors = resolveVendors({ fileSignals })
+  const iacSubstrates = discoverySources.iacFiles.flatMap(({ path, content }) => parseIacFile(path, content))
+
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
 
-  return { graph: { nodes, edges }, truncated, filesScanned: filesToFetch.length }
+  return { graph: { nodes, edges }, truncated, filesScanned: filesToFetch.length, vendors, iacSubstrates }
 }
 
 export interface AnalyzeRepoResult extends BuildGraphResult {

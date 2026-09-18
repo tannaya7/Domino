@@ -1,4 +1,5 @@
 import { getRiskLevel } from '../../src/lib/risk'
+import { extractJson, invokeBedrock } from './bedrock'
 
 export interface RiskSummaryInput {
   name: string
@@ -7,12 +8,39 @@ export interface RiskSummaryInput {
   upstream: string[]
 }
 
-// TODO: replace with a real Amazon Bedrock call (e.g. InvokeModel via
-// @aws-sdk/client-bedrock-runtime, prompt: "Given this component and its affected
-// dependencies, write a 2-3 sentence risk summary for a developer...") once Bedrock
-// model access is enabled in your AWS account. This deterministic generator stands
-// in so the rest of the app keeps working without AWS credentials.
+function buildPrompt(input: RiskSummaryInput): string {
+  return [
+    'You are a reliability engineer writing a short risk summary for another developer.',
+    `Component: ${input.name} (${input.type}).`,
+    `If it fails, these break: ${input.downstream.join(', ') || 'nothing tracked'}.`,
+    `It depends on: ${input.upstream.join(', ') || 'nothing tracked'}.`,
+    'Write 2-3 plain-English sentences covering what breaks and a recommendation.',
+    'Respond with ONLY JSON, no other text: {"summary": "..."}',
+  ].join('\n')
+}
+
+/** Tries the real Bedrock call; returns null (never throws) for the caller to fall back on. */
+async function tryBedrockSummary(input: RiskSummaryInput): Promise<string | null> {
+  const raw = await invokeBedrock(buildPrompt(input))
+  if (!raw) return null
+  const parsed = extractJson<{ summary?: string }>(raw)
+  const summary = parsed?.summary?.trim()
+  return summary && summary.length > 0 ? summary : null
+}
+
+/**
+ * Real Amazon Bedrock is used when BEDROCK_MODEL_ID is configured (InvokeModel via
+ * @aws-sdk/client-bedrock-runtime — see ./bedrock.ts). This deterministic generator is the
+ * NON-NEGOTIABLE fallback: missing credentials, disabled model access, a timeout, or a malformed
+ * response all fall through to it, so the app never depends on Bedrock being reachable.
+ */
 export async function getRiskSummary(input: RiskSummaryInput): Promise<string> {
+  const bedrockSummary = await tryBedrockSummary(input)
+  if (bedrockSummary) return bedrockSummary
+  return generateDeterministicSummary(input)
+}
+
+function generateDeterministicSummary(input: RiskSummaryInput): string {
   const { name, type, downstream, upstream } = input
   const totalCount = downstream.length + upstream.length
   const risk = getRiskLevel(totalCount)

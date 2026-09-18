@@ -7,7 +7,7 @@ export function getRiskLevel(totalCount: number): RiskLevel {
 }
 
 export const RISK_STYLES: Record<RiskLevel, string> = {
-  Low: 'bg-green-100 text-green-800',
-  Medium: 'bg-amber-100 text-amber-800',
-  High: 'bg-red-100 text-red-800',
+  Low: 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  Medium: 'border border-amber-500/30 bg-amber-500/10 text-amber-300',
+  High: 'border border-red-500/30 bg-red-500/10 text-red-300',
 }
