@@ -1,0 +1,61 @@
+import type { AdjacencyMap } from '../lib/graph'
+import { getBlastRadius } from '../lib/graph'
+import { getRiskLevel, RISK_STYLES } from '../lib/risk'
+import type { GraphData } from '../lib/types'
+
+interface SystemOverviewProps {
+  graphData: GraphData
+  adjacencyMap: AdjacencyMap
+  onSelectNode: (nodeId: string) => void
+}
+
+function SystemOverview({ graphData, adjacencyMap, onSelectNode }: SystemOverviewProps) {
+  const rows = graphData.nodes
+    .map((node) => {
+      const radius = getBlastRadius(node.id, adjacencyMap)
+      return {
+        id: node.id,
+        label: node.label,
+        type: node.type,
+        count: radius.totalCount,
+        risk: getRiskLevel(radius.totalCount),
+      }
+    })
+    .sort((a, b) => b.count - a.count)
+
+  return (
+    <div className="flex-1 overflow-auto p-6">
+      <h2 className="mb-4 text-lg font-semibold text-gray-900">System Overview</h2>
+      <table className="w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-gray-200 text-gray-500">
+            <th className="py-2 pr-4 font-medium">Component Name</th>
+            <th className="py-2 pr-4 font-medium">Type</th>
+            <th className="py-2 pr-4 font-medium">Blast Radius Count</th>
+            <th className="py-2 pr-4 font-medium">Risk Level</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              onClick={() => onSelectNode(row.id)}
+              className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+            >
+              <td className="py-2 pr-4 text-gray-900">{row.label}</td>
+              <td className="py-2 pr-4 text-gray-600">{row.type}</td>
+              <td className="py-2 pr-4 text-gray-900">{row.count}</td>
+              <td className="py-2 pr-4">
+                <span className={`rounded px-2 py-0.5 text-xs font-medium ${RISK_STYLES[row.risk]}`}>
+                  {row.risk}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export default SystemOverview
