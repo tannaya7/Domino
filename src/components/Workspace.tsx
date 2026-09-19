@@ -5,6 +5,7 @@ import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS }
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { computeStatusChip } from '../lib/statusChip'
 import type { ConcentrationResult, CriticalityResult, GraphData, Runbook, Vendor, VendorGraph } from '../lib/types'
+import { selectBannerVendor } from '../lib/vendorStatusBanner'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import TopBar from './TopBar'
@@ -14,6 +15,7 @@ import VendorHeadlineCard from './VendorHeadlineCard'
 import SidePanel from './SidePanel'
 import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
+import StatusBanner from './StatusBanner'
 import SystemOverview from './SystemOverview'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
@@ -79,6 +81,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   const [statusResult, setStatusResult] = useState<StatusResponse | null>(null)
   const [isLoadingStatus, setIsLoadingStatus] = useState(false)
   const [statusError, setStatusError] = useState<string | null>(null)
+  // Independent of the substrate-scenario `simulation` above — "Simulate this vendor's outage"
+  // (VendorDetailPanel) or "Show blast radius" (the live-status banner) sets this directly.
+  const [singleVendorCascadeTarget, setSingleVendorCascadeTarget] = useState<string | null>(null)
 
   const [runbook, setRunbook] = useState<Runbook | null>(null)
   const [isLoadingRunbook, setIsLoadingRunbook] = useState(false)
@@ -142,10 +147,30 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     )
   }, [analyzed.concentration])
 
+  const entrypointsAffectedByVendorKey = useMemo(() => {
+    const entrypointSet = new Set(analyzed.criticality.entrypoints)
+    return new Map(
+      analyzed.vendorGraph.vendors.map((v) => [v.key, v.affectedFiles.filter((f) => entrypointSet.has(f)).length]),
+    )
+  }, [analyzed.vendorGraph, analyzed.criticality])
+
+  const bannerCandidate = useMemo(
+    () => selectBannerVendor(statusResult?.vendorStatuses ?? [], entrypointsAffectedByVendorKey),
+    [statusResult, entrypointsAffectedByVendorKey],
+  )
+  const bannerVendorStatus = bannerCandidate
+    ? (statusResult?.vendorStatuses.find((s) => s.vendorKey === bannerCandidate.vendorKey) ?? null)
+    : null
+
   function handleSelectVendor(key: string | null) {
     setSelectedVendorKey(key)
+    setSingleVendorCascadeTarget(null)
     setRunbook(null)
     setRunbookError(null)
+  }
+
+  function handleSimulateVendorOutage(key: string) {
+    setSingleVendorCascadeTarget(key)
   }
 
   function handleViewAffectedFiles() {
@@ -154,6 +179,13 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     setSelectedNodeId(null)
     onClearPr()
     setVendorFileHighlight({ directFiles: selectedVendor.directFiles, affectedFiles: selectedVendor.affectedFiles })
+  }
+
+  function handleShowBlastRadiusForVendor(key: string) {
+    setGraphMode('vendors')
+    setView('graph')
+    setSelectedVendorKey(key)
+    setSingleVendorCascadeTarget(key)
   }
 
   function handleNodeClick(nodeId: string) {
@@ -173,6 +205,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
     if (!analyzed.repoUrl) return
     setActiveScenarioId(scenarioId)
+    setSingleVendorCascadeTarget(null) // a substrate-scenario cascade and a per-vendor one never run at once
     setIsSimulating(true)
     setSimulationError(null)
     try {
@@ -270,6 +303,14 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
           {hasVendorData && (
             <VendorHeadlineCard headline={clientHeadline} result={clientExactResult} currency={assumptions.currency} />
           )}
+          {bannerCandidate && bannerVendorStatus && (
+            <StatusBanner
+              candidate={bannerCandidate}
+              vendorName={vendorNameByKey.get(bannerCandidate.vendorKey) ?? bannerCandidate.vendorKey}
+              checkedAt={bannerVendorStatus.checkedAt}
+              onShowBlastRadius={() => handleShowBlastRadiusForVendor(bannerCandidate.vendorKey)}
+            />
+          )}
           {analyzed.meta?.truncated && (
             <div
               role="status"
@@ -360,6 +401,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
                 criticalVendorKeys={criticalVendorKeys}
                 simulation={simulation}
                 currency={assumptions.currency}
+                costPerHour={assumptions.costPerHour}
+                vendorStatuses={statusResult?.vendorStatuses}
+                singleVendorTarget={singleVendorCascadeTarget}
               />
             ) : (
               <GraphView
@@ -395,7 +439,16 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
           ) : selectedNode && blastRadius ? (
             <SidePanel selectedNode={selectedNode} blastRadius={blastRadius} nodesById={nodesById} onClear={() => setSelectedNodeId(null)} />
           ) : selectedVendor ? (
-            <VendorDetailPanel vendor={selectedVendor} onViewFiles={handleViewAffectedFiles} onClear={() => handleSelectVendor(null)} />
+            <VendorDetailPanel
+              key={selectedVendor.key}
+              vendor={selectedVendor}
+              entrypoints={analyzed.criticality.entrypoints}
+              costPerHour={assumptions.costPerHour}
+              currency={assumptions.currency}
+              onViewFiles={handleViewAffectedFiles}
+              onSimulateOutage={() => handleSimulateVendorOutage(selectedVendor.key)}
+              onClear={() => handleSelectVendor(null)}
+            />
           ) : (
             <div className="panel-glass animate-rise-in rounded-xl p-4 text-sm text-[var(--text-muted)]">
               {graphMode === 'vendors'

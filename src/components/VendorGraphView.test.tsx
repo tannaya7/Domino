@@ -108,6 +108,8 @@ const noopProps = {
   onSelectVendor: vi.fn(),
   simulation: null,
   currency: 'USD' as const,
+  costPerHour: 500,
+  singleVendorTarget: null,
 }
 
 describe('VendorGraphView', () => {
@@ -184,5 +186,29 @@ describe('VendorGraphView', () => {
     render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([stripe])} simulation={simulation} />)
     expect(screen.getByText(/AWS regional outage — outage/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /replay/i })).toBeInTheDocument()
+  })
+
+  it('runs a per-vendor cascade (loss PER HOUR, not annual) when singleVendorTarget is set', () => {
+    const stripe = fixtureVendor()
+    render(
+      <VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([stripe])} singleVendorTarget="stripe" costPerHour={250} />,
+    )
+    expect(screen.getByText(/Stripe — outage/i)).toBeInTheDocument()
+    expect(screen.getByText(/Loss per hour at your assumptions/i)).toBeInTheDocument()
+  })
+
+  it('snapshot mode shows an "as of" badge and never the word "live"', () => {
+    const stripe = fixtureVendor()
+    render(
+      <VendorGraphView
+        {...noopProps}
+        vendorGraph={fixtureVendorGraph([stripe])}
+        vendorStatuses={[{ vendorKey: 'stripe', indicator: 'outage', checkedAt: '2026-01-01T12:00:00Z', stale: false }]}
+        isSnapshot
+      />,
+    )
+    expect(screen.getByText(/\(snapshot\)/i)).toBeInTheDocument()
+    expect(screen.getByText(/as of/i)).toBeInTheDocument()
+    expect(screen.getByTestId('vendor-graph-view').textContent?.toLowerCase()).not.toContain('live')
   })
 })

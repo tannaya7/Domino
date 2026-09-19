@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import ForceGraph2D, { type ForceGraphMethods } from 'react-force-graph-2d'
 import type { SimulateResponse } from '../lib/api'
+import { cascadeReducer } from '../lib/cascadeStateMachine'
 import { colorForSubstrate, DIMMED_COLOR, FAILED_COLOR, SELECTED_COLOR, STATUS_COLORS, SUBSTRATE_LEGEND } from '../lib/colors'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
@@ -9,6 +10,7 @@ import { VENDOR_GRAPH_ROOT_ID } from '../lib/graph'
 import { useElementSize } from '../hooks/useElementSize'
 import { prefersReducedMotion } from '../lib/motion'
 import { escapeHtml } from '../lib/sanitize'
+import { formatAsOf, STATUS_MARKER } from '../lib/statusMarker'
 import { counterValueAt, isCascadeComplete, revealedVendorKeys } from '../lib/vendorGraphCascade'
 import {
   computeClusterAnchors,
@@ -18,7 +20,7 @@ import {
   shouldShowLabel,
   vendorNodeRadius,
 } from '../lib/vendorGraphLayout'
-import type { VendorGraph, VendorWithBlastRadius } from '../lib/types'
+import type { VendorGraph, VendorStatus, VendorWithBlastRadius } from '../lib/types'
 
 const ROOT_ID = VENDOR_GRAPH_ROOT_ID
 const ROOT_COLOR = '#f4f5f7'
@@ -59,6 +61,15 @@ interface VendorGraphViewProps {
   criticalVendorKeys?: Set<string>
   simulation: SimulateResponse | null
   currency: Currency
+  costPerHour: number
+  /** Live status per vendor, once fetched — drawn as an icon+color marker on each node, never color alone. */
+  vendorStatuses?: VendorStatus[] | null
+  /** Set when the checked-at timestamps are from a captured/replayed snapshot rather than this
+   * session's own fetch — forces every status display to say "as of <time>", never look live. */
+  isSnapshot?: boolean
+  /** Vendor key to run a single-vendor cascade for (from VendorDetailPanel's "Simulate this
+   * vendor's outage", or the status banner's "Show blast radius") — independent of `simulation`. */
+  singleVendorTarget: string | null
 }
 
 function primaryShareableSubstrate(substrates: string[]): string | null {
@@ -75,14 +86,25 @@ function VendorGraphView({
   criticalVendorKeys,
   simulation,
   currency,
+  costPerHour,
+  vendorStatuses,
+  isSnapshot,
+  singleVendorTarget,
 }: VendorGraphViewProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const graphRef = useRef<ForceGraphMethods<GraphNodeDatum> | undefined>(undefined)
   const [groupBySubstrate, setGroupBySubstrate] = useState(true)
   const [revealedVendors, setRevealedVendors] = useState<Set<string>>(new Set())
   const [replayTick, setReplayTick] = useState(0)
+  const [cascadeState, dispatchCascade] = useReducer(cascadeReducer, 'idle')
   const entrypointsCounterRef = useRef<HTMLSpanElement>(null)
   const lossCounterRef = useRef<HTMLSpanElement>(null)
+
+  const statusByVendorKey = useMemo(() => new Map((vendorStatuses ?? []).map((s) => [s.vendorKey, s])), [vendorStatuses])
+  const mostRecentStatusCheckedAt = useMemo(() => {
+    if (!vendorStatuses || vendorStatuses.length === 0) return null
+    return vendorStatuses.reduce((latest, s) => (s.checkedAt > latest ? s.checkedAt : latest), vendorStatuses[0].checkedAt)
+  }, [vendorStatuses])
 
   const entrypointSet = useMemo(() => new Set(entrypoints), [entrypoints])
 
@@ -157,19 +179,17 @@ function VendorGraphView({
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
-  const scenario = simulation?.scenario ?? null
+  const scenario = singleVendorTarget ? null : (simulation?.scenario ?? null)
   const vendorGraphByKey = useMemo(() => new Map(vendorGraph.vendors.map((v) => [v.key, v])), [vendorGraph])
-  const affectedVendorKeys = useMemo(
-    () =>
-      scenario
-        ? [...scenario.affectedVendors.map((v) => v.key)].sort((a, b) => {
-            const wa = vendorGraphByKey.get(a)?.affectedFiles.length ?? 0
-            const wb = vendorGraphByKey.get(b)?.affectedFiles.length ?? 0
-            return wb - wa
-          })
-        : [],
-    [scenario, vendorGraphByKey],
-  )
+  const affectedVendorKeys = useMemo(() => {
+    if (singleVendorTarget) return vendorGraphByKey.has(singleVendorTarget) ? [singleVendorTarget] : []
+    if (!scenario) return []
+    return [...scenario.affectedVendors.map((v) => v.key)].sort((a, b) => {
+      const wa = vendorGraphByKey.get(a)?.affectedFiles.length ?? 0
+      const wb = vendorGraphByKey.get(b)?.affectedFiles.length ?? 0
+      return wb - wa
+    })
+  }, [singleVendorTarget, scenario, vendorGraphByKey])
   const affectedEntrypointsCount = useMemo(() => {
     const affected = new Set<string>()
     for (const key of affectedVendorKeys) {
@@ -179,6 +199,15 @@ function VendorGraphView({
     }
     return affected.size
   }, [affectedVendorKeys, vendorGraphByKey, entrypointSet])
+  // Per-vendor cascades report loss PER HOUR (not probability-weighted — see VendorDetailPanel);
+  // substrate-scenario cascades keep the existing annual-exposure framing from the headline.
+  const cascadeLossTarget = singleVendorTarget ? costPerHour : (simulation?.headline.expectedLossPerYear ?? 0)
+  const cascadeLossLabel = singleVendorTarget ? 'Loss per hour at your assumptions' : 'Annual exposure at your assumptions'
+  const cascadeSourceLabel = singleVendorTarget
+    ? `${vendorGraphByKey.get(singleVendorTarget)?.vendor ?? singleVendorTarget} — outage`
+    : scenario
+      ? `${scenario.scenario.label} — outage`
+      : null
 
   // One requestAnimationFrame loop drives the whole cascade: which vendors have "lit up" (island
   // is implicit — it's drawn red as soon as any vendor is revealed, see nodeFillColor/drawHulls)
@@ -192,9 +221,10 @@ function VendorGraphView({
 
     if (affectedVendorKeys.length === 0) {
       timers.push(setTimeout(() => setRevealedVendors(new Set()), 0))
+      timers.push(setTimeout(() => dispatchCascade('reset'), 0))
       return () => timers.forEach(clearTimeout)
     }
-    const lossTarget = simulation?.headline.expectedLossPerYear ?? 0
+    timers.push(setTimeout(() => dispatchCascade('start'), 0))
     const setCounters = (entrypointsValue: number, lossValue: number) => {
       if (entrypointsCounterRef.current) {
         entrypointsCounterRef.current.textContent = `${Math.round(entrypointsValue)}/${entrypoints.length}`
@@ -204,7 +234,8 @@ function VendorGraphView({
 
     if (prefersReducedMotion()) {
       timers.push(setTimeout(() => setRevealedVendors(new Set(affectedVendorKeys)), 0))
-      timers.push(setTimeout(() => setCounters(affectedEntrypointsCount, lossTarget), 0))
+      timers.push(setTimeout(() => setCounters(affectedEntrypointsCount, cascadeLossTarget), 0))
+      timers.push(setTimeout(() => dispatchCascade('complete'), 0))
       return () => timers.forEach(clearTimeout)
     }
 
@@ -220,15 +251,19 @@ function VendorGraphView({
         lastRevealedCount = revealed.size
         setRevealedVendors(revealed)
       }
-      setCounters(counterValueAt(elapsed, affectedEntrypointsCount), counterValueAt(elapsed, lossTarget))
-      if (!isCascadeComplete(elapsed)) frame = requestAnimationFrame(tick)
+      setCounters(counterValueAt(elapsed, affectedEntrypointsCount), counterValueAt(elapsed, cascadeLossTarget))
+      if (!isCascadeComplete(elapsed)) {
+        frame = requestAnimationFrame(tick)
+      } else {
+        dispatchCascade('complete')
+      }
     }
     frame = requestAnimationFrame(tick)
     return () => {
       timers.forEach(clearTimeout)
       cancelAnimationFrame(frame)
     }
-  }, [scenario, affectedVendorKeys, affectedEntrypointsCount, simulation, entrypoints.length, currency, replayTick])
+  }, [affectedVendorKeys, affectedEntrypointsCount, cascadeLossTarget, entrypoints.length, currency, replayTick])
 
   const nodeFillColor = useCallback(
     (node: GraphNodeDatum): string => {
@@ -267,6 +302,29 @@ function VendorGraphView({
         ctx.stroke()
       }
 
+      // Live status marker: color AND an icon glyph, never color alone. Drawn at every zoom level
+      // (unlike labels) since "is this vendor actually up" matters more than its name up close.
+      if (node.kind === 'vendor') {
+        const status = statusByVendorKey.get(node.id)
+        if (status) {
+          const marker = STATUS_MARKER[status.indicator]
+          const badgeX = x + radius * 0.72
+          const badgeY = y - radius * 0.72
+          ctx.beginPath()
+          ctx.arc(badgeX, badgeY, 5, 0, 2 * Math.PI)
+          ctx.fillStyle = STATUS_COLORS[status.indicator]
+          ctx.fill()
+          ctx.lineWidth = 1
+          ctx.strokeStyle = '#0a0b0e'
+          ctx.stroke()
+          ctx.fillStyle = '#0a0b0e'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.font = '600 7px system-ui, sans-serif'
+          ctx.fillText(marker.icon, badgeX, badgeY + 0.5)
+        }
+      }
+
       const rank = node.kind === 'vendor' ? (weightRanks.get(node.id) ?? Infinity) : -1
       const showLabel = node.kind === 'hub' || shouldShowLabel(rank, globalScale, ZOOM_LABEL_THRESHOLD, TOP_N_LABELS)
       if (!showLabel) return
@@ -284,7 +342,7 @@ function VendorGraphView({
         ctx.fillText(node.vendor.tier, x, y + radius + 2 + fontSize + 1)
       }
     },
-    [criticalVendorKeys, weightRanks, nodeFillColor],
+    [criticalVendorKeys, weightRanks, nodeFillColor, statusByVendorKey],
   )
 
   const drawHulls = useCallback(
@@ -398,9 +456,9 @@ function VendorGraphView({
         onEngineStop={() => graphRef.current?.zoomToFit(400, 60)}
       />
 
-      {scenario && (
+      {(scenario || singleVendorTarget) && (
         <div className="pointer-events-none absolute top-3 left-3 max-w-xs rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/90 p-3 text-xs">
-          {affectedVendorKeys.length === 0 ? (
+          {affectedVendorKeys.length === 0 && scenario ? (
             <p className="flex items-center gap-1.5 font-medium text-amber-300">
               <span aria-hidden="true">⚠</span>
               No vendors on {scenario.scenario.downSubstrates.join(', ')} — no impact.
@@ -409,13 +467,13 @@ function VendorGraphView({
             <div className="space-y-1">
               <p className="flex items-center gap-1.5 font-medium" style={{ color: STATUS_COLORS.outage }}>
                 <span aria-hidden="true">●</span>
-                {scenario.scenario.label} — outage
+                {cascadeSourceLabel}
               </p>
               <p className="text-[var(--text-secondary)]">
                 Entrypoints down: <span ref={entrypointsCounterRef} className="tabular-nums text-[var(--text-primary)]">0/{entrypoints.length}</span>
               </p>
               <p className="text-[var(--text-secondary)]">
-                Annual exposure at your assumptions:{' '}
+                {cascadeLossLabel}:{' '}
                 <span ref={lossCounterRef} className="tabular-nums text-[var(--text-primary)]">
                   {formatCurrency(0, currency)}
                 </span>
@@ -425,7 +483,8 @@ function VendorGraphView({
           <button
             type="button"
             onClick={handleReplay}
-            className="pointer-events-auto mt-2 rounded-md border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            disabled={cascadeState === 'propagating'}
+            className="pointer-events-auto mt-2 rounded-md border border-[var(--border-subtle)] px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] disabled:opacity-50"
           >
             Replay
           </button>
@@ -443,6 +502,12 @@ function VendorGraphView({
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full border border-[#f0b429]" aria-hidden="true" />
             Touches a structurally critical file
+          </span>
+        )}
+        {mostRecentStatusCheckedAt && (
+          <span className="ml-auto">
+            Status {formatAsOf(mostRecentStatusCheckedAt)}
+            {isSnapshot ? ' (snapshot)' : ''}
           </span>
         )}
       </div>
