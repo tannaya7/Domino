@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blast-radius-mapper/vendors/schema.json",
+  "title": "Vendor knowledge-base entry",
+  "description": "One third-party vendor's curated data. See CONTRIBUTING.md before editing or adding a file here — every claim needs to be either backed by an evidence URL or honestly marked unknown. Validated by scripts/validate-kb.ts (npm run kb:check).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "category", "aliases", "packages", "envPrefixes", "hosts", "statusFeed", "substrate", "sla", "alternatives"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable kebab-case id. Must equal the filename (vendors/<id>.json). Never renamed once published — other vendors' alternatives[] reference it."
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "category": {
+      "type": "string",
+      "enum": ["auth", "payments", "data", "email", "observability", "ai", "messaging", "analytics", "search", "maps", "storage"]
+    },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Other detection strings (npm package names, mainly) this same vendor is also known by, beyond packages.npm."
+    },
+    "packages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["npm", "pypi", "go", "gem", "maven"],
+      "properties": {
+        "npm": { "type": ["string", "null"], "minLength": 1 },
+        "pypi": { "type": ["string", "null"], "minLength": 1 },
+        "go": { "type": ["string", "null"], "minLength": 1 },
+        "gem": { "type": ["string", "null"], "minLength": 1 },
+        "maven": { "type": ["string", "null"], "minLength": 1 }
+      },
+      "description": "The primary package name per ecosystem this vendor is imported/required under. null where not yet mapped for that ecosystem — never guess a package name that hasn't actually been checked."
+    },
+    "envPrefixes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Env var names (today: exact names, each trivially a valid prefix of itself) that identify this vendor when found in a repo's env files."
+    },
+    "hosts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Known global API hostnames for scripts/verify-substrates.ts's DNS/IP-range check. Empty when the vendor's real endpoint is a per-tenant subdomain with no single global host to check — never a guessed placeholder."
+    },
+    "statusFeed": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "url"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["statuspage", "other"] },
+            "url": { "type": "string", "format": "uri", "pattern": "^https://" }
+          }
+        }
+      ]
+    },
+    "substrate": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "confidence", "evidence"],
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Coarse hosting-provider tag, e.g. aws/gcp/azure/cloudflare/vercel/fastly/self/other/unknown."
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["verified", "reported", "unknown"],
+            "description": "verified = backed by an official/first-party source in evidence[]. reported = someone claimed it (docs, a blog post, a prior curator) but it isn't independently confirmed, or there is a live finding worth a second look. unknown = no real source at all."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["url", "note", "retrievedAt"],
+              "properties": {
+                "url": { "type": "string", "format": "uri", "pattern": "^https://" },
+                "note": { "type": "string", "minLength": 1 },
+                "retrievedAt": { "type": "string", "format": "date" }
+              }
+            },
+            "description": "Required (at least one entry) when confidence is verified or reported. Must be empty when confidence is unknown — never a placeholder entry."
+          }
+        }
+      }
+    },
+    "sla": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "sourceUrl", "retrievedAt"],
+          "properties": {
+            "value": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "sourceUrl": { "oneOf": [{ "type": "null" }, { "type": "string", "format": "uri", "pattern": "^https://" }] },
+            "retrievedAt": { "oneOf": [{ "type": "null" }, { "type": "string", "format": "date" }] }
+          },
+          "description": "sourceUrl/retrievedAt are null where the SLA number is an unsourced curator estimate, same honesty rule as substrate — never a fabricated citation."
+        }
+      ]
+    },
+    "alternatives": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+      "description": "Vendor ids (not names) of same-category substitutes. Every id here must exist as vendors/<id>.json — checked by scripts/validate-kb.ts, not by this schema alone."
+    }
+  }
+}

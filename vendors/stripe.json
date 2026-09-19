@@ -1,0 +1,39 @@
+{
+  "id": "stripe",
+  "name": "Stripe",
+  "category": "payments",
+  "aliases": [],
+  "packages": {
+    "npm": "stripe",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_SECRET_KEY"
+  ],
+  "hosts": [
+    "api.stripe.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.stripe.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.9999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": [
+    "razorpay"
+  ]
+}

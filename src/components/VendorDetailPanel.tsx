@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { colorForSubstrate } from '../lib/colors'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { VendorWithBlastRadius } from '../lib/types'
 import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, computeVendorConfidence, VENDOR_CONFIDENCE_RULE } from '../lib/vendorConfidence'
 import { formatVerificationBadge, type VendorVerificationResult } from '../lib/substrateVerification'
+import { formatSubstrateBadges } from '../lib/vendorKbBadge'
+import { buildReportWrongSubstrateIssueUrl } from '../lib/vendorKbIssueUrl'
+import { VENDOR_KB_BY_DETECTION_KEY } from '../data/vendors.generated'
 import Panel from './ui/Panel'
 
 interface VendorDetailPanelProps {
@@ -63,16 +65,26 @@ function VendorDetailPanel({
         </button>
       }
     >
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        {vendor.substrate.map((s) => (
-          <span
-            key={s}
-            className="rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: `${colorForSubstrate(s)}26`, color: colorForSubstrate(s) }}
-          >
-            {s}
-          </span>
-        ))}
+      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+        {(() => {
+          const kb = VENDOR_KB_BY_DETECTION_KEY[vendor.key]
+          return formatSubstrateBadges(kb).map((badge, i) => {
+            const title = 'Curated substrate confidence — see CONTRIBUTING.md and vendors/schema.json. verified = an official/first-party source. reported = claimed but not independently confirmed. unverified = no real source yet.'
+            const content = (
+              <span key={`${badge.label}-${i}`} className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.style}`} title={title}>
+                {badge.label}
+                {badge.href && ' ↗'}
+              </span>
+            )
+            return badge.href ? (
+              <a key={`${badge.label}-${i}`} href={badge.href} target="_blank" rel="noreferrer">
+                {content}
+              </a>
+            ) : (
+              content
+            )
+          })
+        })()}
         {(() => {
           const confidence = computeVendorConfidence(vendor.detectedVia)
           return (
@@ -96,6 +108,15 @@ function VendorDetailPanel({
           )
         })()}
       </div>
+
+      <a
+        href={buildReportWrongSubstrateIssueUrl({ name: vendor.vendor, substrate: vendor.substrate, tier: vendor.tier })}
+        target="_blank"
+        rel="noreferrer"
+        className="mb-3 inline-block text-xs text-[var(--text-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)]"
+      >
+        Report wrong substrate ↗
+      </a>
 
       <p className="mb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Blast radius</p>
       <p className="mb-3 text-sm text-[var(--text-secondary)]">

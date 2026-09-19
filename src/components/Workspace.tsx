@@ -60,6 +60,7 @@ import Drawer from './Drawer'
 import WhyDrawerContent from './WhyDrawerContent'
 import ScenarioBuilderPanel from './ScenarioBuilderPanel'
 import FisValidateModal from './FisValidateModal'
+import KbFooter from './KbFooter'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -765,6 +766,8 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           )}
         </aside>
       </div>
+
+      <KbFooter />
 
       <Drawer isOpen={whyContent !== null} onClose={() => setWhyContent(null)} title={whyContent?.title ?? 'Why'}>
         {whyContent && <WhyDrawerContent content={whyContent} />}

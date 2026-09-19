@@ -1,0 +1,39 @@
+{
+  "id": "mixpanel",
+  "name": "Mixpanel",
+  "category": "analytics",
+  "aliases": [],
+  "packages": {
+    "npm": "mixpanel",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "MIXPANEL_TOKEN"
+  ],
+  "hosts": [
+    "api.mixpanel.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "reported",
+      "evidence": [
+        {
+          "url": "https://www.gstatic.com/ipranges/cloud.json",
+          "note": "CONFLICT — curated substrate is aws, but api.mixpanel.com resolves to 107.178.240.159, published in Google Cloud's cloud.json (region global). Left at \"aws\" (behavior-preserving) pending human review; see docs/kb-todo.md.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

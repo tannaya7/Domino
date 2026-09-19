@@ -1,5 +1,9 @@
 import type { UnclassifiedItem, UnclassifiedSummary } from '../lib/types'
+import { buildSuggestVendorIssueUrl } from '../lib/vendorKbIssueUrl'
+import { VENDOR_KB } from '../data/vendors.generated'
 import Panel from './ui/Panel'
+
+const KNOWN_VENDOR_COUNT = Object.keys(VENDOR_KB).length
 
 interface UnclassifiedPanelProps {
   /** null when no scan ran for this analysis (manual JSON/PR mode) — renders nothing rather than a
@@ -20,11 +24,18 @@ function ItemGroup({ label, items }: { label: string; items: UnclassifiedItem[] 
             <span className="truncate font-mono" title={item.name}>
               {item.name}
             </span>
-            <span
-              className="shrink-0 text-[var(--text-muted)]"
-              title={item.files.join(', ')}
-            >
-              {item.files.length} file{item.files.length === 1 ? '' : 's'}
+            <span className="flex shrink-0 items-center gap-1.5 text-[var(--text-muted)]">
+              <span title={item.files.join(', ')}>
+                {item.files.length} file{item.files.length === 1 ? '' : 's'}
+              </span>
+              <a
+                href={buildSuggestVendorIssueUrl({ name: item.name, occurrenceCount: item.files.length })}
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)]"
+              >
+                Suggest this vendor
+              </a>
             </span>
           </li>
         ))}
@@ -41,7 +52,7 @@ function UnclassifiedPanel({ unclassified }: UnclassifiedPanelProps) {
   return (
     <Panel
       title="Unclassified external dependencies"
-      subtitle="Our curated vendor knowledge base recognizes ~33 vendors — everything below is real but not in it."
+      subtitle={`Our curated vendor knowledge base recognizes ~${KNOWN_VENDOR_COUNT} vendors — everything below is real but not in it.`}
     >
       {totalCount === 0 ? (
         <p className="text-sm text-[var(--text-secondary)]">

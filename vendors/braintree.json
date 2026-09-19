@@ -1,0 +1,33 @@
+{
+  "id": "braintree",
+  "name": "Braintree",
+  "category": "payments",
+  "aliases": [],
+  "packages": {
+    "npm": "braintree",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "BRAINTREE_MERCHANT_ID"
+  ],
+  "hosts": [
+    "api.braintreegateway.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

@@ -1,0 +1,33 @@
+{
+  "id": "resend",
+  "name": "Resend",
+  "category": "email",
+  "aliases": [],
+  "packages": {
+    "npm": "resend",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "RESEND_API_KEY"
+  ],
+  "hosts": [
+    "api.resend.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

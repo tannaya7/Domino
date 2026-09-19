@@ -13,7 +13,9 @@
     "deploy": "bash scripts/deploy.sh",
     "verify:aws": "tsx scripts/verify-aws.ts",
     "verify:substrates": "tsx scripts/verify-substrates.ts",
-    "verify:fis": "tsx scripts/verify-fis-actions.ts"
+    "verify:fis": "tsx scripts/verify-fis-actions.ts",
+    "kb:generate": "tsx scripts/generate-vendor-map.ts",
+    "kb:check": "tsx scripts/validate-kb.ts && npm run kb:generate -- --check"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1135.0",

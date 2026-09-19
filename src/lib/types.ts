@@ -39,6 +39,42 @@ export interface VendorEntry {
   fallbacks?: string[]
 }
 
+/** One evidence citation backing a substrate (or other) claim — never fabricated; see CONTRIBUTING.md. */
+export interface VendorKbEvidence {
+  url: string
+  note: string
+  retrievedAt: string
+}
+
+/** verified = backed by an official/first-party source in evidence[]. reported = claimed (prior
+ * curator, docs, or a live finding worth a second look) but not independently confirmed. unknown =
+ * no real source at all. Never affects the correlated-failure engine — purely UI/data-quality
+ * metadata; only VendorEntry.substrate's plain string values feed the math. */
+export type VendorKbConfidence = 'verified' | 'reported' | 'unknown'
+
+export interface VendorKbSubstrateEntry {
+  value: string
+  confidence: VendorKbConfidence
+  evidence: VendorKbEvidence[]
+}
+
+/** The full data-driven knowledge-base record for one vendor — source: vendors/<id>.json, schema:
+ * vendors/schema.json. src/data/vendors.generated.ts (built by scripts/generate-vendor-map.ts) is
+ * the only place this is actually read into the running app — never a runtime file read. */
+export interface VendorKbEntry {
+  id: string
+  name: string
+  category: VendorTier
+  aliases: string[]
+  packages: { npm: string | null; pypi: string | null; go: string | null; gem: string | null; maven: string | null }
+  envPrefixes: string[]
+  hosts: string[]
+  statusFeed: { kind: 'statuspage' | 'other'; url: string } | null
+  substrate: VendorKbSubstrateEntry[]
+  sla: { value: number; sourceUrl: string | null; retrievedAt: string | null } | null
+  alternatives: string[]
+}
+
 /** A vendor as detected in a specific repo, with full provenance back to what triggered detection. */
 export interface Vendor extends VendorEntry {
   /** Stable key into the curated vendor knowledge base, e.g. "@sentry/react". */

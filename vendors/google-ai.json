@@ -1,0 +1,33 @@
+{
+  "id": "google-ai",
+  "name": "Google AI",
+  "category": "ai",
+  "aliases": [],
+  "packages": {
+    "npm": "@google/generative-ai",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "GOOGLE_GENERATIVE_AI_API_KEY"
+  ],
+  "hosts": [
+    "generativelanguage.googleapis.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}
