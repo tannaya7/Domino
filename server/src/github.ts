@@ -123,6 +123,22 @@ export function parsePrUrl(url: string): ParsedPrUrl {
   return { owner: match[1], repo: match[2], prNumber: Number(match[3]) }
 }
 
+// Strict: PR Resilience Gate accepts one shape only — https, github.com exactly (not a lookalike
+// host, not an SSH remote, no query/hash/extra path segments). This is deliberately narrower than
+// parsePrUrl above (which stays lenient for the existing manual "Pull Request" tab) — a gate meant
+// to run unattended in CI is a more sensitive place to be permissive about what counts as "GitHub".
+const STRICT_GITHUB_PR_URL = /^https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)\/pull\/(\d+)\/?$/
+
+export function parseStrictPrUrl(url: string): ParsedPrUrl {
+  const match = STRICT_GITHUB_PR_URL.exec(url.trim())
+  if (!match) {
+    throw new Error(
+      'Expected exactly https://github.com/{owner}/{repo}/pull/{n} — no other host, scheme, query string, or path is accepted.',
+    )
+  }
+  return { owner: match[1], repo: match[2], prNumber: Number(match[3]) }
+}
+
 export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
   const res = await githubFetch(`/repos/${owner}/${repo}`)
   const data = (await res.json()) as { default_branch: string }
@@ -164,20 +180,55 @@ export async function getRawFileContent(
 }
 
 export interface PullRequestMeta {
-  base: { ref: string; owner: string; repo: string }
+  base: { ref: string; sha: string; owner: string; repo: string }
 }
 
 export async function getPullRequest(owner: string, repo: string, prNumber: number): Promise<PullRequestMeta> {
   const res = await githubFetch(`/repos/${owner}/${repo}/pulls/${prNumber}`)
   const data = (await res.json()) as {
-    base: { ref: string; repo: { owner: { login: string }; name: string } }
+    base: { ref: string; sha: string; repo: { owner: { login: string }; name: string } }
   }
   return {
     base: {
       ref: data.base.ref,
+      sha: data.base.sha,
       owner: data.base.repo.owner.login,
       repo: data.base.repo.name,
     },
+  }
+}
+
+export interface FullPullRequestMeta {
+  number: number
+  title: string
+  base: { ref: string; sha: string; owner: string; repo: string }
+  /** null when the source fork/branch has been deleted since the PR was opened — GitHub itself
+   * returns head.repo: null in that case; there is no content left to fetch for it. */
+  head: { ref: string; sha: string; owner: string; repo: string } | null
+}
+
+/** Fuller PR metadata for the resilience gate — includes head (which may be a fork, hence its own
+ * owner/repo, not assumed to equal base's) needed to fetch raw content on both sides of the diff. */
+export async function getFullPullRequest(owner: string, repo: string, prNumber: number): Promise<FullPullRequestMeta> {
+  const res = await githubFetch(`/repos/${owner}/${repo}/pulls/${prNumber}`)
+  const data = (await res.json()) as {
+    number: number
+    title: string
+    base: { ref: string; sha: string; repo: { owner: { login: string }; name: string } }
+    head: { ref: string; sha: string; repo: { owner: { login: string }; name: string } | null }
+  }
+  return {
+    number: data.number,
+    title: data.title,
+    base: {
+      ref: data.base.ref,
+      sha: data.base.sha,
+      owner: data.base.repo.owner.login,
+      repo: data.base.repo.name,
+    },
+    head: data.head.repo
+      ? { ref: data.head.ref, sha: data.head.sha, owner: data.head.repo.owner.login, repo: data.head.repo.name }
+      : null,
   }
 }
 

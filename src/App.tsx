@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import InputScreen from './components/InputScreen'
 import Workspace, { type AnalyzedRepo } from './components/Workspace'
-import type { AnalyzePrResponse, AnalyzeRepoResponse } from './lib/api'
+import type { AnalyzePrResponse, AnalyzeRepoResponse, GateResponse } from './lib/api'
 import { analyzeConcentration } from './lib/concentration'
 import { analyzeCriticality } from './lib/criticality'
 import { EXAMPLE_REPOS } from './data/exampleRepos'
@@ -41,6 +41,8 @@ function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
 function App() {
   const [analyzed, setAnalyzed] = useState<AnalyzedRepo | null>(null)
   const [prResult, setPrResult] = useState<AnalyzePrResponse | null>(null)
+  const [gateResult, setGateResult] = useState<GateResponse | null>(null)
+  const [gateError, setGateError] = useState<string | null>(null)
 
   function handleRepoAnalyzed(result: AnalyzeRepoResponse, repoUrl: string) {
     setAnalyzed({
@@ -55,6 +57,8 @@ function App() {
       bedrockAvailable: result.bedrockAvailable,
     })
     setPrResult(null)
+    setGateResult(null)
+    setGateError(null)
   }
 
   function handleSnapshotLoaded(snapshot: DemoSnapshot) {
@@ -74,21 +78,29 @@ function App() {
       bedrockAvailable: false,
     })
     setPrResult(null)
+    setGateResult(null)
+    setGateError(null)
   }
 
   function handleManualLoad(data: GraphData) {
     setAnalyzed(analyzedFromFileGraph(data))
     setPrResult(null)
+    setGateResult(null)
+    setGateError(null)
   }
 
-  function handlePrAnalyzed(result: AnalyzePrResponse) {
+  function handlePrAnalyzed(result: AnalyzePrResponse, gate: GateResponse | null, gateErr: string | null) {
     setAnalyzed(analyzedFromFileGraph(result.graph))
     setPrResult(result)
+    setGateResult(gate)
+    setGateError(gateErr)
   }
 
   function handleReset() {
     setAnalyzed(null)
     setPrResult(null)
+    setGateResult(null)
+    setGateError(null)
   }
 
   // --- Guided tour bootstrapping (src/tour/) ---------------------------------------------------
@@ -171,8 +183,14 @@ function App() {
         <Workspace
           analyzed={analyzed}
           prResult={prResult}
+          gateResult={gateResult}
+          gateError={gateError}
           onReset={handleReset}
-          onClearPr={() => setPrResult(null)}
+          onClearPr={() => {
+            setPrResult(null)
+            setGateResult(null)
+            setGateError(null)
+          }}
           onLiveAnalysisComplete={handleRepoAnalyzed}
           onPlayTour={() => void handlePlayTour()}
           tour={tour}

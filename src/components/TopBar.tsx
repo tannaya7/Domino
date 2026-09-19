@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PRESET_SCENARIOS } from '../lib/availability'
+import { HISTORICAL_REPLAY_SCENARIOS, PRESET_SCENARIOS } from '../lib/availability'
 
 /** Computed upstream (Workspace.tsx) from real status data — TopBar just renders it, never guesses. */
 export interface StatusChipInfo {
@@ -100,11 +100,20 @@ function TopBar({
               onChange={(e) => setScenarioId(e.target.value)}
               className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1.5 text-xs text-[var(--text-secondary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
             >
-              {PRESET_SCENARIOS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
+              <optgroup label="Failure scenarios">
+                {PRESET_SCENARIOS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Replay real outage">
+                {HISTORICAL_REPLAY_SCENARIOS.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </optgroup>
             </select>
             <button
               type="button"

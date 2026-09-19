@@ -1,0 +1,28 @@
+# Copy this file to .github/workflows/blast-radius.yml in the repo you want gated.
+#
+# Actions are disabled by default on a repo forked from another org/user until you enable them
+# yourself: go to the Actions tab of YOUR fork and click "I understand my workflows, go ahead and
+# enable them" — otherwise this workflow simply never triggers on PRs opened against your fork.
+name: Blast Radius PR Resilience Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Blast Radius PR Resilience Gate
+        uses: <owner>/<repo>/action@main # replace with wherever you've published this action
+        with:
+          api-url: https://your-blast-radius-api.example.com
+          policy-file: .blast-radius.json
+          # github-token defaults to ${{ github.token }} — override only if you need different scope.
+          # fail-on-error: 'true'  # uncomment to hard-fail the check when the API itself is unreachable

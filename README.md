@@ -36,6 +36,37 @@ Every AWS integration is real when configured, and degrades to a deterministic/l
 
 Credentials always resolve via the standard AWS SDK credential chain (env vars, shared config, IMDS, ...) — never hardcoded.
 
+## PR Resilience Gate (GitHub Action)
+
+A composite GitHub Action (bash + curl + jq + gh only — no Node runtime, no build step) that comments on every PR with the new shared-fate vendor risk it introduces, and can fail the check against a policy file you own.
+
+### Add it in 30 seconds
+
+1. Copy [`examples/workflow.yml`](examples/workflow.yml) to `.github/workflows/blast-radius.yml` and set `api-url` to a running Blast Radius Mapper API.
+2. (Optional) Copy [`examples/.blast-radius.json`](examples/.blast-radius.json) to `.blast-radius.json` at your repo root to turn on policy enforcement — without it, the gate is report-only and never fails the check.
+3. Push. Every PR gets a sticky comment (updated in place on new pushes, not reposted) with new vendors, before/after concentration, modeled exposure delta, and a "why it matters" note.
+
+If you forked the showcase repo to try this yourself: **Actions are disabled by default on forks** — go to the Actions tab of your fork and enable them, or the workflow will silently never trigger.
+
+### Policy schema (`.blast-radius.json`)
+
+| Key | Type | Meaning |
+|---|---|---|
+| `maxSubstrateShare` | 0-1 | Fail if more than this share of vendors would share one substrate after the PR. |
+| `minSubstrates` | integer | Fail if fewer than this many distinct substrates remain after the PR. |
+| `maxNewVendorsPerPr` | integer | Fail if the PR introduces more new vendors than this. |
+| `maxEntrypointsAffectedPct` | 0-100 | Fail if more than this percent of the repo's entrypoints are affected. |
+| `maxExposureIncreasePerYear` | number | Fail if modeled annual exposure increases by more than this (a decrease never fails). |
+| `failOn` | `"fail"` \| `"warn"` | Whether a violation blocks the check (`fail`, exit 1) or just comments (`warn`, default). |
+
+No policy file → every PR is report-only (`status: "info"`), and the check never fails — you get the visibility first, and can turn on enforcement whenever you're ready. An unknown key in the policy file is rejected with a clear error rather than silently doing nothing.
+
+### Real-world behavior
+
+- **Fails open.** If the API is down, times out (28s), or errors, the check warns and passes — a backend outage never blocks every PR in the repo (`fail-on-error: true` overrides this if you want the opposite).
+- **Fork PRs get a read-only token** by GitHub's own design — the gate detects this, skips the comment, and still writes the same report to the job's step summary, without failing.
+- **Never re-posts.** The comment carries a hidden marker and is updated in place on every push to the PR, not duplicated.
+
 ## Running locally
 
 ```bash

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { analyzePr, ApiError, type AnalyzePrResponse } from '../lib/api'
+import { analyzePr, ApiError, runGate, type AnalyzePrResponse, type GateResponse } from '../lib/api'
 
 interface PrInputProps {
-  onAnalyzed: (result: AnalyzePrResponse) => void
+  onAnalyzed: (result: AnalyzePrResponse, gateResult: GateResponse | null, gateError: string | null) => void
 }
 
 function PrInput({ onAnalyzed }: PrInputProps) {
@@ -25,7 +25,16 @@ function PrInput({ onAnalyzed }: PrInputProps) {
         )
         return
       }
-      onAnalyzed(result)
+      // Report-only (no policy) — the same check action/action.yml runs in CI, best-effort: a gate
+      // failure (e.g. a private/renamed fork) never blocks showing the PR analysis that already succeeded.
+      let gateResult: GateResponse | null = null
+      let gateError: string | null = null
+      try {
+        gateResult = await runGate({ prUrl: prUrl.trim() })
+      } catch (err) {
+        gateError = err instanceof ApiError ? err.message : 'Could not run the PR Resilience Gate for this PR.'
+      }
+      onAnalyzed(result, gateResult, gateError)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong analyzing that PR.')
     } finally {

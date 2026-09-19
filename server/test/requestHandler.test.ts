@@ -147,6 +147,17 @@ describe('POST /simulate', () => {
     expect(json.scenario.affectedCount).toBe(1)
   })
 
+  it('runs a "replay a real outage" scenario through the same code path as a preset', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      scenarioId: 'replay:aws-us-east-1-2025-10-20',
+    })
+    expect(status).toBe(200)
+    expect(json.scenario.affectedCount).toBe(1)
+    expect(json.scenario.scenario.downSubstrates).toEqual(['aws'])
+  })
+
   it('clamps an out-of-range substrate outage probability override into [0, 1] instead of accepting it verbatim', async () => {
     await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
     const { json } = await post('/simulate', {

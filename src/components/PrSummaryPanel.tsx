@@ -1,13 +1,18 @@
-import type { AnalyzePrResponse } from '../lib/api'
+import type { AnalyzePrResponse, GateResponse } from '../lib/api'
 import { RISK_STYLES } from '../lib/risk'
+import GateVerdictCard from './GateVerdictCard'
 import RiskSummarySection from './RiskSummarySection'
 
 interface PrSummaryPanelProps {
   result: AnalyzePrResponse
   onClear: () => void
+  /** null while the gate call is still in flight or hasn't been attempted; the panel still renders
+   * fully without it — the gate is a best-effort addition on top of the always-available PR analysis. */
+  gateResult: GateResponse | null
+  gateError: string | null
 }
 
-function PrSummaryPanel({ result, onClear }: PrSummaryPanelProps) {
+function PrSummaryPanel({ result, onClear, gateResult, gateError }: PrSummaryPanelProps) {
   return (
     <aside className="panel-glass animate-rise-in flex shrink-0 flex-col gap-4 rounded-xl p-4">
       <div>
@@ -16,6 +21,8 @@ function PrSummaryPanel({ result, onClear }: PrSummaryPanelProps) {
           {result.owner}/{result.repo} #{result.prNumber}
         </h2>
       </div>
+
+      {(gateResult || gateError) && <GateVerdictCard gate={gateResult as GateResponse} error={gateError} />}
 
       <div className="flex items-center gap-2">
         <span className="text-2xl font-bold text-[var(--text-primary)]">

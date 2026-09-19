@@ -164,3 +164,52 @@ export interface AskRequest {
 export async function askBlastRadius(input: AskRequest): Promise<AskResult> {
   return postJson<AskResult>('/ask', input)
 }
+
+export interface GatePolicy {
+  maxSubstrateShare?: number
+  minSubstrates?: number
+  maxNewVendorsPerPr?: number
+  maxEntrypointsAffectedPct?: number
+  maxExposureIncreasePerYear?: number
+  failOn?: 'fail' | 'warn'
+}
+
+export interface GateNewVendor {
+  key: string
+  vendor: string
+  substrate: string[]
+  category: string
+  detectedVia: string[]
+  files: string[]
+}
+
+export interface GatePolicyViolation {
+  rule: string
+  actual: number
+  limit: number
+  message: string
+}
+
+export interface GateResponse {
+  pr: { owner: string; repo: string; number: number; headSha: string; baseRef: string; baselineNote: string }
+  newVendors: GateNewVendor[]
+  entrypointsAffected: string[]
+  concentration: { before: ConcentrationResult; after: ConcentrationResult }
+  exposure: { before: number; after: number; delta: number; currency: string }
+  policy: { status: 'info' | 'pass' | 'warn' | 'fail'; violations: GatePolicyViolation[] }
+  markdown: string
+  truncated: boolean
+}
+
+export interface GateRequest {
+  prUrl: string
+  policy?: GatePolicy
+  costPerHourOfDowntime?: number
+  currency?: string
+}
+
+/** The same check `action/action.yml` runs in CI — the "Pull Request" tab calls it report-only
+ * (no policy) so a judge/reviewer sees the identical verdict card without needing a GitHub Action. */
+export async function runGate(input: GateRequest): Promise<GateResponse> {
+  return postJson<GateResponse>('/gate', input)
+}
