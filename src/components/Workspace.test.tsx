@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workspace, { type AnalyzedRepo } from './Workspace'
 import type { AnalyzePrResponse } from '../lib/api'
 import type { GraphData, Vendor } from '../lib/types'
+import verifiedFisActionsJson from '../../data/fis-actions.verified.json'
 
 // jsdom doesn't implement ResizeObserver — useElementSize (used by GraphView/VendorGraphView) needs a stub.
 class ResizeObserverStub {
@@ -582,5 +583,35 @@ describe('Workspace — scenario builder', () => {
 
     await user.click(within(dialog).getByRole('button', { name: /^clear$/i }))
     expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeDisabled()
+  })
+})
+
+describe('Workspace — FIS "Validate this in your account"', () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it('opens the modal from a vendor\'s simulated-outage result, with a real generated template', async () => {
+    globalThis.fetch = vi.fn((url: string) => {
+      if (url.includes('/fis-actions.json')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(verifiedFisActionsJson) } as Response)
+      }
+      return Promise.reject(new Error('not mocked'))
+    }) as typeof fetch
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByTestId('node-stripe'))
+    await user.click(screen.getByRole('button', { name: /simulate this vendor's outage/i }))
+    const validateButton = await screen.findByRole('button', { name: /validate this in your account/i })
+    await user.click(validateButton)
+
+    const dialog = await screen.findByRole('dialog', { name: /validate this in your account/i })
+    expect(within(dialog).getByText(/generated, not executed/i)).toBeInTheDocument()
+    // fixtureVendor's tier is 'payments' -> single-instance scenario -> a real question, not a verdict.
+    expect(within(dialog).getByText(/does the application stay available/i)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /download json/i })).toBeInTheDocument()
   })
 })

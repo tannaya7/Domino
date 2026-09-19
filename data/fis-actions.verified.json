@@ -1,0 +1,90 @@
+{
+  "$comment": "DRAFT — NOT independently confirmed via a live 'aws fis list-actions'/'get-action' call. This session's sandbox has no AWS CLI and no AWS credentials configured, so scripts/verify-fis-actions.ts could not be run. Every field below is transcribed from general knowledge of AWS FIS's public documentation, not fetched live. Run `npm run verify:fis` with real AWS credentials to regenerate this file for real — it will overwrite every entry and flip verified/fileVerified to true. src/engine/fisTemplate.ts refuses to use any action where verified !== true, so the generator is safe even with this draft in place (it will error, not silently proceed) unless you explicitly acknowledge the draft — see fisTemplate.ts's ALLOW_UNVERIFIED_DRAFT export.",
+  "generatedAt": "2026-09-19T00:00:00.000Z",
+  "region": "unknown — not queried live",
+  "fileVerified": false,
+  "actions": [
+    {
+      "id": "aws:ec2:stop-instances",
+      "description": "Stops the specified EC2 instances.",
+      "targetType": "Instances",
+      "resourceType": "aws:ec2:instance",
+      "requiredParameters": [],
+      "optionalParameters": ["startInstancesAfterDuration"],
+      "iamPermissions": ["ec2:StopInstances", "ec2:DescribeInstances"],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation (fis-actions-reference), not confirmed via aws fis get-action in this session"
+    },
+    {
+      "id": "aws:rds:reboot-db-instances",
+      "description": "Reboots the specified RDS DB instances.",
+      "targetType": "DBInstances",
+      "resourceType": "aws:rds:db",
+      "requiredParameters": [],
+      "optionalParameters": ["forceFailover"],
+      "iamPermissions": ["rds:RebootDBInstance", "rds:DescribeDBInstances"],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation, not confirmed via aws fis get-action in this session — least confident field: whether forceFailover is really optional-vs-absent on this action"
+    },
+    {
+      "id": "aws:rds:failover-db-cluster",
+      "description": "Fails over the specified Aurora DB cluster to a read replica.",
+      "targetType": "Clusters",
+      "resourceType": "aws:rds:cluster",
+      "requiredParameters": [],
+      "optionalParameters": [],
+      "iamPermissions": ["rds:FailoverDBCluster", "rds:DescribeDBClusters"],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation, not confirmed via aws fis get-action in this session"
+    },
+    {
+      "id": "aws:ecs:stop-task",
+      "description": "Stops the specified ECS tasks.",
+      "targetType": "Tasks",
+      "resourceType": "aws:ecs:task",
+      "requiredParameters": [],
+      "optionalParameters": [],
+      "iamPermissions": ["ecs:StopTask", "ecs:DescribeTasks", "ecs:ListTasks"],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation, not confirmed via aws fis get-action in this session"
+    },
+    {
+      "id": "aws:network:disrupt-connectivity",
+      "description": "Disrupts network connectivity for the specified subnets (e.g. to simulate an AZ network outage) by installing temporary network ACL rules for the given duration.",
+      "targetType": "Subnets",
+      "resourceType": "aws:ec2:subnet",
+      "requiredParameters": ["duration"],
+      "optionalParameters": ["scope"],
+      "iamPermissions": [
+        "ec2:DescribeSubnets",
+        "ec2:DescribeNetworkAcls",
+        "ec2:CreateNetworkAcl",
+        "ec2:CreateNetworkAclEntry",
+        "ec2:DeleteNetworkAclEntry",
+        "ec2:DeleteNetworkAcl",
+        "ec2:ReplaceNetworkAclAssociation",
+        "ec2:AssociateNetworkAcl",
+        "ec2:CreateTags"
+      ],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation, not confirmed via aws fis get-action in this session — LEAST confident entry: exact parameter name/values for AZ-scoping (\"scope\") need live confirmation before real use"
+    },
+    {
+      "id": "aws:ebs:pause-volume-io",
+      "description": "Pauses I/O for the specified EBS volumes for the given duration.",
+      "targetType": "Volumes",
+      "resourceType": "aws:ec2:ebs-volume",
+      "requiredParameters": ["duration"],
+      "optionalParameters": [],
+      "iamPermissions": ["ec2:PauseVolumeIo", "ec2:DescribeVolumes"],
+      "capturedDate": "2026-09-19",
+      "verified": false,
+      "source": "recalled from AWS FIS public documentation, not confirmed via aws fis get-action in this session"
+    }
+  ]
+}

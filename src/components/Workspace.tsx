@@ -31,6 +31,9 @@ import {
   summarizeSubstrateVerification,
   type SubstrateVerificationData,
 } from '../lib/substrateVerification'
+import { loadVerifiedFisActions } from '../lib/fisActions'
+import { fisScenarioForVendorTier, getFisScenario, type FisScenarioDefinition } from '../lib/fisScenarios'
+import type { VerifiedFisAction } from '../engine/fisTemplate'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import type { ScenarioResult, ScenarioSelection } from '../engine/scenario'
@@ -56,6 +59,7 @@ import StatTile from './ui/StatTile'
 import Drawer from './Drawer'
 import WhyDrawerContent from './WhyDrawerContent'
 import ScenarioBuilderPanel from './ScenarioBuilderPanel'
+import FisValidateModal from './FisValidateModal'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -174,6 +178,14 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     () => summarizeSubstrateVerification(substrateVerification, analyzed.vendors.map((v) => v.key)),
     [substrateVerification, analyzed.vendors],
   )
+
+  // Static, repo-independent constant data (the verified FIS action catalog) — fetched once,
+  // never a live AWS call. Used only by the "Validate this in your account" modal below.
+  const [fisActions, setFisActions] = useState<VerifiedFisAction[]>([])
+  useEffect(() => {
+    loadVerifiedFisActions().then((data) => setFisActions(data?.actions ?? []))
+  }, [])
+  const [fisModal, setFisModal] = useState<{ scenario: FisScenarioDefinition; targetTags: Record<string, string> } | null>(null)
 
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
@@ -342,6 +354,19 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
 
   function handleWhyNode(node: NodeCriticality) {
     setWhyContent(buildCriticalityItemWhy(node))
+  }
+
+  // "Validate this in your account" — the tags below are ILLUSTRATIVE (derived from what this
+  // analysis actually knows: the worst-single-event substrate, or the one vendor selected), never
+  // the user's real AWS resource tags. The modal's own README/checklist makes clear these must be
+  // edited to match what's actually tagged in their account before anything is deployed.
+  function handleValidateAzDisruption() {
+    const substrate = clientHeadline.worstSingleEvent?.substrate
+    setFisModal({ scenario: getFisScenario('az-disruption'), targetTags: substrate ? { substrate } : { scenario: 'az-disruption' } })
+  }
+
+  function handleValidateVendor(vendor: { key: string; tier: string }) {
+    setFisModal({ scenario: fisScenarioForVendorTier(vendor.tier), targetTags: { vendor: vendor.key } })
   }
 
   // Feeds the existing cascade animation the same way picking a preset scenario already does — a
@@ -670,6 +695,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
               verification={verificationByVendorKey.get(selectedVendor.key)}
               onViewFiles={handleViewAffectedFiles}
               onSimulateOutage={() => handleSimulateVendorOutage(selectedVendor.key)}
+              onValidateInAccount={() => handleValidateVendor(selectedVendor)}
               onClear={() => handleSelectVendor(null)}
             />
           ) : (
@@ -716,6 +742,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                     error={simulationError}
                     currency={assumptions.currency}
                     onRun={handleRunBaseline}
+                    onValidateInAccount={handleValidateAzDisruption}
                   />
                   <LiveStatusPanel
                     vendorStatuses={statusResult?.vendorStatuses ?? null}
@@ -758,6 +785,17 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           />
         )}
       </Drawer>
+
+      {fisModal && (
+        <FisValidateModal
+          isOpen
+          onClose={() => setFisModal(null)}
+          scenario={fisModal.scenario}
+          targetTags={fisModal.targetTags}
+          region="us-east-1"
+          verifiedActions={fisActions}
+        />
+      )}
     </div>
   )
 }

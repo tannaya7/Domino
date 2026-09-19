@@ -19,6 +19,8 @@ interface VendorDetailPanelProps {
   /** Starts the graph's visual cascade for this one vendor — see VendorGraphView. */
   onSimulateOutage: () => void
   onClear: () => void
+  /** Opens the FIS "Validate this in your account" modal, scoped to this one vendor's outage. */
+  onValidateInAccount?: () => void
 }
 
 function VendorDetailPanel({
@@ -30,6 +32,7 @@ function VendorDetailPanel({
   onViewFiles,
   onSimulateOutage,
   onClear,
+  onValidateInAccount,
 }: VendorDetailPanelProps) {
   const [simulated, setSimulated] = useState(false)
 
@@ -172,6 +175,15 @@ function VendorDetailPanel({
                 </li>
               ))}
             </ul>
+          )}
+          {onValidateInAccount && (
+            <button
+              type="button"
+              onClick={onValidateInAccount}
+              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            >
+              Validate this in your account
+            </button>
           )}
         </div>
       )}
