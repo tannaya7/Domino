@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AnalyzePrResponse, SimulateResponse, StatusResponse } from '../lib/api'
 import { ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
+import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
+import { computeStatusChip } from '../lib/statusChip'
 import type { ConcentrationResult, CriticalityResult, GraphData, Runbook, Vendor, VendorGraph } from '../lib/types'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
-import type { HealthSummary } from './TopBar'
 import TopBar from './TopBar'
 import GraphView from './GraphView'
 import VendorGraphView from './VendorGraphView'
+import VendorHeadlineCard from './VendorHeadlineCard'
 import SidePanel from './SidePanel'
 import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
@@ -111,16 +113,34 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     )
   }, [analyzed.vendorGraph, analyzed.criticality])
 
-  const failedVendorKeys = useMemo(
-    () => (simulation?.scenario ? new Set(simulation.scenario.affectedVendors.map((v) => v.key)) : undefined),
-    [simulation],
+  const statusChip = useMemo(
+    () => computeStatusChip(statusResult?.vendorStatuses ?? null, isLoadingStatus),
+    [statusResult, isLoadingStatus],
   )
 
-  const healthSummary: HealthSummary = useMemo(() => {
-    if (!statusResult) return 'unknown'
-    const degraded = statusResult.vendorStatuses.some((s) => s.indicator === 'degraded' || s.indicator === 'outage')
-    return degraded ? 'degraded' : 'healthy'
-  }, [statusResult])
+  // Computed client-side — buildAvailabilityHeadline/computeExactAvailability are pure, dependency-free
+  // functions shared with the backend, so the headline card and default-scenario pick don't need a
+  // network round trip and are available the instant a repo is analyzed, not just after "Run".
+  const clientExactResult = useMemo(
+    () =>
+      computeExactAvailability(analyzed.vendors, {
+        costPerHourOfDowntime: assumptions.costPerHour,
+        vendorSlaOverrides: assumptions.vendorSlaOverrides,
+        substrateOutageProbabilities: assumptions.substrateRateOverrides,
+      }),
+    [analyzed.vendors, assumptions],
+  )
+  const clientHeadline = useMemo(
+    () => buildAvailabilityHeadline(analyzed.vendors, clientExactResult),
+    [analyzed.vendors, clientExactResult],
+  )
+
+  const defaultScenarioId = useMemo(() => {
+    const mostConcentratedSubstrate = analyzed.concentration.mostConcentrated?.substrate
+    return (
+      PRESET_SCENARIOS.find((s) => s.downSubstrates[0] === mostConcentratedSubstrate)?.id ?? PRESET_SCENARIOS[0]?.id ?? ''
+    )
+  }, [analyzed.concentration])
 
   function handleSelectVendor(key: string | null) {
     setSelectedVendorKey(key)
@@ -196,6 +216,15 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     }
   }
 
+  // Auto-fetch live status once on load — non-blocking (the rest of the workspace renders
+  // immediately; LiveStatusPanel shows per-vendor skeletons while this is in flight). Workspace
+  // remounts per repo (App.tsx unmounts it between analyses), so an empty dependency array means
+  // "once per repo", not "once ever".
+  useEffect(() => {
+    if (hasVendorData) void handleRefreshStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleGenerateRunbook() {
     if (!analyzed.repoUrl || !selectedVendorKey) return
     setIsLoadingRunbook(true)
@@ -229,14 +258,18 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
         repoLabel={repoLabel}
         branch={analyzed.meta?.branch ?? null}
         hasVendorData={hasVendorData}
-        healthSummary={healthSummary}
+        statusChip={statusChip}
         isSimulating={isSimulating}
+        defaultScenarioId={defaultScenarioId}
         onSimulate={handleSimulateScenario}
         onReset={onReset}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <main className="flex flex-1 flex-col gap-3 overflow-hidden p-4">
+          {hasVendorData && (
+            <VendorHeadlineCard headline={clientHeadline} result={clientExactResult} currency={assumptions.currency} />
+          )}
           {analyzed.meta?.truncated && (
             <div
               role="status"
@@ -320,10 +353,13 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
             ) : graphMode === 'vendors' ? (
               <VendorGraphView
                 vendorGraph={analyzed.vendorGraph}
+                repoLabel={repoLabel ?? 'Your application'}
+                entrypoints={analyzed.criticality.entrypoints}
                 selectedVendorKey={selectedVendorKey}
                 onSelectVendor={handleSelectVendor}
                 criticalVendorKeys={criticalVendorKeys}
-                failedVendorKeys={failedVendorKeys}
+                simulation={simulation}
+                currency={assumptions.currency}
               />
             ) : (
               <GraphView

@@ -20,6 +20,7 @@ function LiveStatusPanel({
   onRefresh,
   vendorNameByKey,
 }: LiveStatusPanelProps) {
+  const showSkeletons = isLoading && !vendorStatuses && vendorNameByKey.size > 0
   return (
     <Panel
       title="Live status"
@@ -42,6 +43,16 @@ function LiveStatusPanel({
       )}
       {!vendorStatuses && !isLoading && !error && (
         <p className="text-sm text-[var(--text-muted)]">Fetch live status from each vendor's status feed.</p>
+      )}
+      {showSkeletons && (
+        <ul className="space-y-1.5" aria-label="Loading vendor status" aria-busy="true">
+          {[...vendorNameByKey.entries()].map(([key, name]) => (
+            <li key={key} className="flex items-center justify-between gap-2 text-sm">
+              <span className="truncate text-[var(--text-secondary)]">{name}</span>
+              <span className="h-4 w-20 animate-pulse rounded-full bg-[var(--border-subtle)]" aria-hidden="true" />
+            </li>
+          ))}
+        </ul>
       )}
       {vendorStatuses && vendorStatuses.length > 0 && (
         <ul className="space-y-1.5">

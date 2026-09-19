@@ -1,32 +1,31 @@
 import { useState } from 'react'
 import { PRESET_SCENARIOS } from '../lib/availability'
 
-export type HealthSummary = 'unknown' | 'healthy' | 'degraded'
+/** Computed upstream (Workspace.tsx) from real status data — TopBar just renders it, never guesses. */
+export interface StatusChipInfo {
+  label: string
+  color: string
+  pulsing: boolean
+}
 
 interface TopBarProps {
   repoLabel: string | null
   branch: string | null
   hasVendorData: boolean
-  healthSummary: HealthSummary
+  statusChip: StatusChipInfo
   isSimulating: boolean
+  /** The most-concentrated substrate's preset scenario id — pre-selects the scenario most worth running. */
+  defaultScenarioId: string
   onSimulate: (scenarioId: string) => void
   onReset: () => void
 }
 
-const HEALTH_LABEL: Record<HealthSummary, string> = {
-  unknown: 'Status unknown',
-  healthy: 'Analysis healthy',
-  degraded: 'Degraded dependencies detected',
-}
-
-const HEALTH_COLOR: Record<HealthSummary, string> = {
-  unknown: 'var(--status-unknown)',
-  healthy: 'var(--status-good)',
-  degraded: 'var(--status-critical)',
-}
-
-function TopBar({ repoLabel, branch, hasVendorData, healthSummary, isSimulating, onSimulate, onReset }: TopBarProps) {
-  const [scenarioId, setScenarioId] = useState(PRESET_SCENARIOS[0]?.id ?? '')
+function TopBar({ repoLabel, branch, hasVendorData, statusChip, isSimulating, defaultScenarioId, onSimulate, onReset }: TopBarProps) {
+  // Initializer only, deliberately — Workspace (and TopBar with it) fully unmounts and remounts
+  // per repo (App.tsx only renders it once `analyzed` is set, and "Load different repo" clears
+  // that first), so defaultScenarioId is already correct at mount for every repo; no effect needed
+  // to re-sync it later, and one would only fight a scenario choice the user already made.
+  const [scenarioId, setScenarioId] = useState(defaultScenarioId)
 
   return (
     <header className="panel-glass sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
@@ -42,11 +41,11 @@ function TopBar({ repoLabel, branch, hasVendorData, healthSummary, isSimulating,
         )}
         <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
           <span
-            className={`h-2 w-2 rounded-full ${healthSummary === 'degraded' ? 'animate-pulse-dot' : ''}`}
-            style={{ backgroundColor: HEALTH_COLOR[healthSummary] }}
+            className={`h-2 w-2 rounded-full ${statusChip.pulsing ? 'animate-pulse-dot' : ''}`}
+            style={{ backgroundColor: statusChip.color }}
             aria-hidden="true"
           />
-          {HEALTH_LABEL[healthSummary]}
+          {statusChip.label}
         </span>
       </div>
 

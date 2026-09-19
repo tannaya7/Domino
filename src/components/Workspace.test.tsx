@@ -24,22 +24,78 @@ vi.stubGlobal(
   vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
 )
 
+// A minimal fake CanvasRenderingContext2D — just enough for VendorGraphView's nodeCanvasObject to
+// run without throwing, capturing the FIRST fillStyle set before .fill() (the node body's color;
+// later strokes for rings don't overwrite it).
+function fakeCanvasContext() {
+  let fillStyle = ''
+  let capturedFill: string | undefined
+  const ctx = {
+    beginPath: () => {},
+    arc: () => {},
+    fill: () => {
+      if (capturedFill === undefined) capturedFill = fillStyle
+    },
+    stroke: () => {},
+    fillText: () => {},
+    set fillStyle(v: string) {
+      fillStyle = v
+    },
+    get fillStyle() {
+      return fillStyle
+    },
+    strokeStyle: '',
+    lineWidth: 0,
+    font: '',
+    textAlign: 'left',
+    textBaseline: 'alphabetic',
+  }
+  return { ctx: ctx as unknown as CanvasRenderingContext2D, getCapturedFill: () => capturedFill }
+}
+
 vi.mock('react-force-graph-2d', () => ({
   default: forwardRef(function MockForceGraph2D(props: Record<string, unknown>, ref) {
-    useImperativeHandle(ref, () => ({ zoomToFit: vi.fn(), zoom: vi.fn() }))
-    const graphData = props.graphData as { nodes: Array<{ id: string; label?: string }> }
+    useImperativeHandle(ref, () => ({
+      zoomToFit: vi.fn(),
+      zoom: vi.fn(),
+      d3Force: vi.fn(),
+      d3ReheatSimulation: vi.fn(),
+      pauseAnimation: vi.fn(),
+      resumeAnimation: vi.fn(),
+    }))
+    const graphData = props.graphData as { nodes: Array<Record<string, unknown>> }
     const nodeColor = props.nodeColor as ((n: unknown) => string) | undefined
+    const nodeCanvasObject = props.nodeCanvasObject as
+      | ((n: unknown, ctx: CanvasRenderingContext2D, scale: number) => void)
+      | undefined
     const onNodeClick = props.onNodeClick as ((n: unknown) => void) | undefined
+
+    function colorFor(n: Record<string, unknown>): string | undefined {
+      if (nodeColor) return nodeColor(n)
+      if (nodeCanvasObject) {
+        const { ctx, getCapturedFill } = fakeCanvasContext()
+        nodeCanvasObject(n, ctx, 1)
+        return getCapturedFill()
+      }
+      return undefined
+    }
+
+    function labelFor(n: Record<string, unknown>): string {
+      if (typeof n.label === 'string') return n.label
+      const vendor = n.vendor as { vendor?: string } | undefined
+      return vendor?.vendor ?? String(n.id)
+    }
+
     return (
       <div data-testid="mock-graph">
         {graphData.nodes.map((n) => (
           <button
-            key={n.id}
+            key={String(n.id)}
             data-testid={`node-${n.id}`}
-            data-color={nodeColor?.(n)}
+            data-color={colorFor(n)}
             onClick={() => onNodeClick?.(n)}
           >
-            {n.label ?? n.id}
+            {labelFor(n)}
           </button>
         ))}
       </div>
@@ -232,31 +288,46 @@ describe('Workspace — simulation', () => {
 })
 
 describe('Workspace — live status', () => {
-  it('fetches and displays vendor status without fabricating a healthy state', async () => {
+  it('auto-fetches on load (non-blocking) and displays vendor status without fabricating a healthy state', async () => {
     fetchStatusMock.mockResolvedValue({
       vendorStatuses: [{ vendorKey: 'stripe', indicator: 'unknown', checkedAt: '2026-01-01', stale: true }],
       awsHealth: { source: 'unknown', indicator: 'unknown', checkedAt: '2026-01-01' },
     })
-    const user = userEvent.setup()
     render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
 
-    const statusPanel = screen.getByText('Live status').closest('section')!
-    await user.click(within(statusPanel).getByRole('button', { name: /refresh/i }))
-
+    // No click needed — item 5's whole point is that this fires automatically on load.
     await waitFor(() => expect(fetchStatusMock).toHaveBeenCalledWith('https://github.com/octocat/hello'))
+    const statusPanel = screen.getByText('Live status').closest('section')!
     expect(await within(statusPanel).findByText('Stripe')).toBeInTheDocument()
     expect(within(statusPanel).getAllByText('Unknown').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows a status error instead of a stuck loading state', async () => {
-    fetchStatusMock.mockRejectedValue(new Error('boom'))
-    const user = userEvent.setup()
+  it('shows per-vendor skeleton rows while the auto-fetch is in flight', () => {
+    fetchStatusMock.mockReturnValue(new Promise(() => {})) // never resolves — asserts the loading state
     render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
 
     const statusPanel = screen.getByText('Live status').closest('section')!
-    await user.click(within(statusPanel).getByRole('button', { name: /refresh/i }))
+    expect(within(statusPanel).getByRole('list', { name: /loading vendor status/i })).toBeInTheDocument()
+    expect(within(statusPanel).getByText('Stripe')).toBeInTheDocument()
+  })
 
+  it('shows a status error instead of a stuck loading state', async () => {
+    fetchStatusMock.mockRejectedValue(new Error('boom'))
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+
+    const statusPanel = screen.getByText('Live status').closest('section')!
     expect(await within(statusPanel).findByText('Could not fetch live status.')).toBeInTheDocument()
+  })
+
+  it('re-fetches when Refresh is clicked after the initial auto-fetch resolves', async () => {
+    fetchStatusMock.mockResolvedValue({ vendorStatuses: [], awsHealth: null })
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+
+    await waitFor(() => expect(fetchStatusMock).toHaveBeenCalledTimes(1))
+    const statusPanel = screen.getByText('Live status').closest('section')!
+    await user.click(within(statusPanel).getByRole('button', { name: /refresh/i }))
+    await waitFor(() => expect(fetchStatusMock).toHaveBeenCalledTimes(2))
   })
 })
 
