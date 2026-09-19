@@ -1,18 +1,26 @@
 import { analyzeConcentration } from '../../src/lib/concentration'
-import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS, simulateFailureScenario } from '../../src/lib/availability'
+import {
+  buildAvailabilityHeadline,
+  computeExactAvailability,
+  HISTORICAL_REPLAY_SCENARIOS,
+  PRESET_SCENARIOS,
+  simulateFailureScenario,
+} from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { ExactAvailabilityAssumptions, FailureScenario, WhatIfOverride, WhatIfResult } from '../../src/lib/types'
 import { askQuestion } from './ask'
-import { getAwsHealthStatus } from './awsHealth'
+import { getAwsHealthStatus, isAwsHealthApiEnabled } from './awsHealth'
 import { isBedrockConfigured } from './bedrock'
-import { getCachedGraph, setCachedGraph } from './cache'
+import { getCachedGraph, isDynamoConfigured, setCachedGraph } from './cache'
 import { GithubApiError, parseRepoUrl } from './github'
 import { analyzePr } from './prAnalyzer'
 import { analyzeRepo, type AnalyzeRepoResult } from './repoParser'
+import { runPrGate } from './prGate'
 import { getRiskSummary } from './riskSummary'
 import { generateRunbook } from './runbook'
 import { setVendorsToWatch, startStatusPolling } from './scheduler'
+import { isSnsConfigured } from './sns'
 import { fetchAllVendorStatuses } from './statusPoll'
 import { computeWhatIf, MAX_WHATIF_OVERRIDES, rankRecommendedMoves } from './whatIf'
 
@@ -97,6 +105,28 @@ export interface ApiResponse {
   body: unknown
 }
 
+/** GET /health — no auth, no side effects, deliberately outside routeApi's POST-only contract so
+ * both entry points (requestHandler.ts, lambdaHandler.ts) can serve it on a plain GET before the
+ * POST/OPTIONS-only gate below. Reports which AWS integrations are actually configured in THIS
+ * running process — never whether they've been verified live (see docs/AWS_VERIFICATION.md for
+ * that distinct claim) — so a judge/monitor can tell "backend is up" from "backend is up but
+ * running every fallback" without guessing from behavior. */
+export function healthCheck(): ApiResponse {
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      timestamp: new Date().toISOString(),
+      integrations: {
+        bedrock: isBedrockConfigured(),
+        dynamodb: isDynamoConfigured(),
+        awsHealth: isAwsHealthApiEnabled(),
+        sns: isSnsConfigured(),
+      },
+    },
+  }
+}
+
 /** Routes one POST request. Callers are expected to have already rejected non-POST/OPTIONS methods. */
 export async function routeApi(path: string, body: Record<string, unknown>): Promise<ApiResponse> {
   if (path === '/analyze-repo') {
@@ -175,7 +205,10 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const downSubstrates = asStringArray(body.downSubstrates, 10)
     let scenario: FailureScenario | null = null
     if (scenarioId) {
-      scenario = PRESET_SCENARIOS.find((s) => s.id === scenarioId) ?? null
+      scenario =
+        PRESET_SCENARIOS.find((s) => s.id === scenarioId) ??
+        HISTORICAL_REPLAY_SCENARIOS.find((s) => s.id === scenarioId) ??
+        null
       if (!scenario) throw new HttpError(400, `Unknown scenarioId "${scenarioId}".`)
     } else if (downSubstrates.length > 0) {
       scenario = { id: 'custom', label: 'Custom scenario', downSubstrates }
@@ -268,6 +301,18 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
 
     const runbook = await generateRunbook({ vendor, affectedFileCount, scenario, recommendedMoves })
     return { status: 200, body: runbook }
+  }
+
+  if (path === '/gate') {
+    const prUrl = asTrimmedString(body.prUrl)
+    if (!prUrl) throw new HttpError(400, 'prUrl is required.')
+    const result = await runPrGate({
+      prUrl,
+      policy: body.policy,
+      costPerHourOfDowntime: sanitizeCost(body.costPerHourOfDowntime),
+      currency: asTrimmedString(body.currency) || undefined,
+    })
+    return { status: 200, body: result }
   }
 
   if (path === '/ask') {

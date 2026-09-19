@@ -1,0 +1,8 @@
+{
+  "maxSubstrateShare": 0.6,
+  "minSubstrates": 2,
+  "maxNewVendorsPerPr": 2,
+  "maxEntrypointsAffectedPct": 50,
+  "maxExposureIncreasePerYear": 5000,
+  "failOn": "warn"
+}

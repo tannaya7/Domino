@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AnalyzePrResponse, AnalyzeRepoResponse, SimulateResponse, StatusResponse } from '../lib/api'
+import type { AnalyzePrResponse, AnalyzeRepoResponse, GateResponse, SimulateResponse, StatusResponse } from '../lib/api'
 import { analyzeRepo, ApiError, askBlastRadius, fetchRunbook, fetchStatus, simulate } from '../lib/api'
-import { buildAvailabilityHeadline, computeExactAvailability, hiddenSharePercent, PRESET_SCENARIOS, simulateFailureScenario } from '../lib/availability'
+import {
+  affectedEntrypointsForScenario,
+  buildAvailabilityHeadline,
+  computeExactAvailability,
+  hiddenSharePercent,
+  PRESET_SCENARIOS,
+  simulateFailureScenario,
+} from '../lib/availability'
+import { outageForReplayScenarioId } from '../data/historicalOutages'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { buildOfflineSimulateResponse } from '../lib/offlineSimulate'
 import { computeStatusChip } from '../lib/statusChip'
@@ -23,6 +31,7 @@ import RiskOverview from './RiskOverview'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
+import HistoricalReplayPanel from './HistoricalReplayPanel'
 import CriticalityPanel from './CriticalityPanel'
 import LiveStatusPanel from './LiveStatusPanel'
 import RecommendedMovesPanel from './RecommendedMovesPanel'
@@ -65,6 +74,10 @@ export interface AnalyzedRepo {
 interface WorkspaceProps {
   analyzed: AnalyzedRepo
   prResult: AnalyzePrResponse | null
+  /** Optional (defaults to null) so existing tests/callers that don't exercise the PR Resilience
+   * Gate don't need to wire it up. */
+  gateResult?: GateResponse | null
+  gateError?: string | null
   onReset: () => void
   onClearPr: () => void
   /** Called after a successful "Analyze live" — same signature as App.tsx's own repo-analyzed
@@ -92,6 +105,8 @@ function apiErrorMessage(err: unknown, fallback: string): string {
 function Workspace({
   analyzed,
   prResult,
+  gateResult = null,
+  gateError = null,
   onReset,
   onClearPr,
   onLiveAnalysisComplete,
@@ -402,14 +417,11 @@ function Workspace({
   const tourSteps = (() => {
     if (!hasVendorData || !defaultScenario) return []
     const scenarioResult = simulateFailureScenario(analyzed.vendors, defaultScenario)
-    const entrypointSet = new Set(analyzed.criticality.entrypoints)
-    const affectedEntrypoints = new Set<string>()
-    for (const vendor of scenarioResult.affectedVendors) {
-      const vg = analyzed.vendorGraph.vendors.find((v) => v.key === vendor.key)
-      for (const f of vg?.affectedFiles ?? []) {
-        if (entrypointSet.has(f)) affectedEntrypoints.add(f)
-      }
-    }
+    const affectedEntrypoints = affectedEntrypointsForScenario(
+      scenarioResult,
+      analyzed.vendorGraph.vendors,
+      analyzed.criticality.entrypoints,
+    )
     return buildTourSteps({
       vendorCount: analyzed.vendors.length,
       substrateCount: analyzed.concentration.substrateCount,
@@ -419,7 +431,7 @@ function Workspace({
       mostConcentratedSubstrate: analyzed.concentration.mostConcentrated?.substrate ?? null,
       mostConcentratedVendorCount: analyzed.concentration.mostConcentrated?.vendorKeys.length ?? 0,
       scenarioLabel: defaultScenario.label,
-      scenarioAffectedEntrypoints: affectedEntrypoints.size,
+      scenarioAffectedEntrypoints: affectedEntrypoints.length,
       totalEntrypoints: analyzed.criticality.entrypoints.length,
       topMove: analyzed.tourTopMove ?? null,
       actions: {
@@ -430,6 +442,31 @@ function Workspace({
       },
     })
   })()
+
+  // "Replay a real outage": activeScenarioId is namespaced `replay:<id>` only when the user picked
+  // one of HISTORICAL_REPLAY_SCENARIOS from the dropdown — everything else (presets, no scenario
+  // yet) resolves to null here and the panel below stays hidden. Reuses the exact same
+  // simulation.scenario the cascade animation and AvailabilityPanel already render; the only new
+  // number is estimatedExposure, a plain cost/hr x real-postmortem-duration multiplication, never a
+  // probability estimate.
+  const activeHistoricalOutage = outageForReplayScenarioId(activeScenarioId)
+  const historicalReplayStats = useMemo(() => {
+    if (!activeHistoricalOutage || !simulation?.scenario) return null
+    const affectedEntrypoints = affectedEntrypointsForScenario(
+      simulation.scenario,
+      analyzed.vendorGraph.vendors,
+      analyzed.criticality.entrypoints,
+    )
+    return {
+      affectedVendorCount: simulation.scenario.affectedCount,
+      totalVendorCount: simulation.scenario.totalCount,
+      affectedEntrypointCount: affectedEntrypoints.length,
+      totalEntrypointCount: analyzed.criticality.entrypoints.length,
+      estimatedExposure:
+        assumptions.costPerHour > 0 ? assumptions.costPerHour * activeHistoricalOutage.approxDurationHours : null,
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeHistoricalOutage, simulation, analyzed.vendorGraph.vendors, analyzed.criticality.entrypoints, assumptions.costPerHour])
 
   useEffect(() => {
     if (tourAutoStart && tour.status === 'idle' && tourSteps.length > 0) {
@@ -719,7 +756,7 @@ function Workspace({
 
         <aside className="flex w-full shrink-0 flex-col gap-4 overflow-y-auto border-t border-[var(--border-subtle)] p-4 lg:h-full lg:w-[380px] lg:border-t-0 lg:border-l">
           {isPrMode && prResult ? (
-            <PrSummaryPanel result={prResult} onClear={onClearPr} />
+            <PrSummaryPanel result={prResult} onClear={onClearPr} gateResult={gateResult} gateError={gateError} />
           ) : selectedNode && blastRadius ? (
             <SidePanel selectedNode={selectedNode} blastRadius={blastRadius} nodesById={nodesById} onClear={() => setSelectedNodeId(null)} />
           ) : selectedVendor ? (
@@ -777,6 +814,17 @@ function Workspace({
                 </div>
               ) : (
                 <>
+                  {activeHistoricalOutage && historicalReplayStats && (
+                    <HistoricalReplayPanel
+                      outage={activeHistoricalOutage}
+                      affectedVendorCount={historicalReplayStats.affectedVendorCount}
+                      totalVendorCount={historicalReplayStats.totalVendorCount}
+                      affectedEntrypointCount={historicalReplayStats.affectedEntrypointCount}
+                      totalEntrypointCount={historicalReplayStats.totalEntrypointCount}
+                      estimatedExposure={historicalReplayStats.estimatedExposure}
+                      currency={assumptions.currency}
+                    />
+                  )}
                   <AvailabilityPanel
                     simulation={simulation}
                     isLoading={isSimulating}

@@ -9,7 +9,7 @@ import { withTimeout } from './withTimeout'
 const PUBLIC_STATUS_FEED_URL = 'https://status.aws.amazon.com/rss/all.rss'
 const FETCH_TIMEOUT_MS = 4000
 
-function isAwsHealthApiEnabled(): boolean {
+export function isAwsHealthApiEnabled(): boolean {
   return process.env.AWS_HEALTH_ENABLED === 'true'
 }
 

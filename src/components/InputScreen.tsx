@@ -3,14 +3,14 @@ import DataInput from './DataInput'
 import HeroAnimation from './HeroAnimation'
 import PrInput from './PrInput'
 import RepoInput from './RepoInput'
-import type { AnalyzePrResponse, AnalyzeRepoResponse } from '../lib/api'
+import type { AnalyzePrResponse, AnalyzeRepoResponse, GateResponse } from '../lib/api'
 import type { DemoSnapshot } from '../lib/demoSnapshot'
 import type { GraphData } from '../lib/types'
 
 interface InputScreenProps {
   onRepoAnalyzed: (result: AnalyzeRepoResponse, repoUrl: string) => void
   onManualLoad: (data: GraphData) => void
-  onPrAnalyzed: (result: AnalyzePrResponse) => void
+  onPrAnalyzed: (result: AnalyzePrResponse, gateResult: GateResponse | null, gateError: string | null) => void
   onSnapshotLoaded: (snapshot: DemoSnapshot) => void
   onPlayTour: () => void
   /** The guided tour's end card lands back here and focuses the repo URL input — see App.tsx. */

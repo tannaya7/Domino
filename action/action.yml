@@ -1,0 +1,138 @@
+name: 'Blast Radius PR Resilience Gate'
+description: 'Comments on a PR with new shared-fate vendor risk it introduces, and optionally fails the check against a policy file. No Node runtime, no build step — bash + curl + jq + gh only.'
+author: 'blast-radius-mapper'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  api-url:
+    description: 'Base URL of a running Blast Radius Mapper API (e.g. https://api.example.com). Required.'
+    required: true
+  policy-file:
+    description: 'Path (relative to the repo root) to a JSON policy file. If missing, the gate runs report-only and never fails.'
+    required: false
+    default: '.blast-radius.json'
+  github-token:
+    description: 'Token used to read/write the PR comment. Defaults to the workflow-provided github.token.'
+    required: false
+    default: ${{ github.token }}
+  fail-on-error:
+    description: 'When true, an unreachable/erroring API fails the check instead of the default fail-open (warn + pass).'
+    required: false
+    default: 'false'
+
+outputs:
+  status:
+    description: 'The policy status returned by the gate: info, pass, warn, or fail.'
+    value: ${{ steps.gate.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    # PR-derived values are NEVER interpolated directly into a `run:` script body below (a PR title
+    # or branch name is attacker-controlled text; splicing it into a bash script is a classic
+    # script-injection hole). Every one of them is passed through `env:` instead, so the shell only
+    # ever sees it as a variable value, never as script source.
+    - name: Run PR Resilience Gate
+      id: gate
+      shell: bash
+      env:
+        API_URL: ${{ inputs.api-url }}
+        POLICY_FILE: ${{ inputs.policy-file }}
+        FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO_FULL_NAME: ${{ github.repository }}
+        HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+      run: |
+        set -u
+        echo "status=info" >> "$GITHUB_OUTPUT"
+
+        if [ -z "${PR_URL:-}" ]; then
+          echo "::error::This action must run on a pull_request event (github.event.pull_request is empty)."
+          exit 1
+        fi
+
+        # --- 1. Read the policy file (if present) and build the request payload -------------------
+        if [ -f "$POLICY_FILE" ]; then
+          if ! POLICY_JSON=$(jq -c '.' "$POLICY_FILE" 2>&1); then
+            echo "::error::$POLICY_FILE is not valid JSON: $POLICY_JSON"
+            exit 1
+          fi
+          PAYLOAD=$(jq -n --arg prUrl "$PR_URL" --argjson policy "$POLICY_JSON" '{prUrl: $prUrl, policy: $policy}')
+          echo "Using policy from $POLICY_FILE"
+        else
+          PAYLOAD=$(jq -n --arg prUrl "$PR_URL" '{prUrl: $prUrl}')
+          echo "No $POLICY_FILE found — running report-only (no policy can fail the check)."
+        fi
+
+        # --- 2. Call the gate API — real-world behavior is FAIL-OPEN: a down/slow API warns and ----
+        # exits 0 (never blocks every PR in the repo because of an outage) unless fail-on-error=true.
+        RESPONSE_FILE=$(mktemp)
+        set +e
+        HTTP_CODE=$(curl -sS --max-time 28 -o "$RESPONSE_FILE" -w '%{http_code}' \
+          -X POST "$API_URL/gate" \
+          -H 'Content-Type: application/json' \
+          -d "$PAYLOAD")
+        CURL_EXIT=$?
+        set -e
+
+        fail_open() {
+          echo "::warning::$1"
+          if [ "$FAIL_ON_ERROR" = "true" ]; then
+            echo "::error::fail-on-error is true — failing the check instead of failing open."
+            exit 1
+          fi
+          exit 0
+        }
+
+        if [ "$CURL_EXIT" -ne 0 ]; then
+          fail_open "Could not reach the Blast Radius Mapper API at $API_URL (curl exit code $CURL_EXIT) — treating this PR as passing rather than blocking on an outage."
+        fi
+        if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+          BODY=$(cat "$RESPONSE_FILE")
+          fail_open "The gate API returned HTTP $HTTP_CODE: $BODY"
+        fi
+
+        STATUS=$(jq -r '.policy.status' "$RESPONSE_FILE")
+        echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+        # --- 3. Write the same markdown to the job's step summary — always, regardless of whether -
+        # the sticky comment below succeeds (a fork PR's read-only token can't post a comment at all).
+        jq -r '.markdown' "$RESPONSE_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+        # --- 4. Upsert the sticky comment by its hidden marker, so a new push UPDATES the existing -
+        # comment instead of piling up a new one every time. Best-effort: a fork PR's GITHUB_TOKEN is
+        # read-only by GitHub's own design, so this is EXPECTED to fail there — never let it fail the job.
+        if [ -n "${HEAD_REPO_FULL_NAME:-}" ] && [ "$HEAD_REPO_FULL_NAME" != "$REPO_FULL_NAME" ]; then
+          echo "This PR is from a fork ($HEAD_REPO_FULL_NAME) — GITHUB_TOKEN is read-only here, skipping the comment. See the step summary above instead."
+        else
+          MARKER='<!-- blast-radius-mapper -->'
+          set +e
+          # First page (100 comments) only — a sticky status-bot comment is realistically always
+          # found well within that, and it avoids the multi-page JSON-array-merging edge case.
+          EXISTING_ID=$(gh api "repos/$REPO_FULL_NAME/issues/$PR_NUMBER/comments?per_page=100" \
+            --jq "[.[] | select(.body | startswith(\"$MARKER\"))][0].id" 2>/dev/null)
+          COMMENT_BODY=$(jq -r '.markdown' "$RESPONSE_FILE")
+          COMMENT_PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
+          if [ -n "$EXISTING_ID" ] && [ "$EXISTING_ID" != "null" ]; then
+            gh api "repos/$REPO_FULL_NAME/issues/comments/$EXISTING_ID" -X PATCH --input - <<< "$COMMENT_PAYLOAD" >/dev/null
+            UPSERT_EXIT=$?
+          else
+            gh api "repos/$REPO_FULL_NAME/issues/$PR_NUMBER/comments" -X POST --input - <<< "$COMMENT_PAYLOAD" >/dev/null
+            UPSERT_EXIT=$?
+          fi
+          set -e
+          if [ "${UPSERT_EXIT:-1}" -ne 0 ]; then
+            echo "::warning::Could not post/update the PR comment (insufficient permissions?) — see the step summary instead."
+          fi
+        fi
+
+        # --- 5. The ONLY thing that fails the check is the policy itself saying so. -----------------
+        if [ "$STATUS" = "fail" ]; then
+          echo "::error::Policy violated — see the PR comment / step summary for details."
+          exit 1
+        fi
+        echo "Gate status: $STATUS"

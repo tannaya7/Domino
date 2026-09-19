@@ -50,7 +50,10 @@ vi.mock('../src/repoParser', async (importOriginal) => {
   return { ...actual, analyzeRepo: analyzeRepoMock }
 })
 vi.mock('../src/statusPoll', () => ({ fetchAllVendorStatuses: fetchAllVendorStatusesMock }))
-vi.mock('../src/awsHealth', () => ({ getAwsHealthStatus: getAwsHealthStatusMock }))
+vi.mock('../src/awsHealth', () => ({
+  getAwsHealthStatus: getAwsHealthStatusMock,
+  isAwsHealthApiEnabled: () => false,
+}))
 
 let server: Server
 let baseUrl: string
@@ -145,6 +148,17 @@ describe('POST /simulate', () => {
     })
     expect(status).toBe(200)
     expect(json.scenario.affectedCount).toBe(1)
+  })
+
+  it('runs a "replay a real outage" scenario through the same code path as a preset', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      scenarioId: 'replay:aws-us-east-1-2025-10-20',
+    })
+    expect(status).toBe(200)
+    expect(json.scenario.affectedCount).toBe(1)
+    expect(json.scenario.scenario.downSubstrates).toEqual(['aws'])
   })
 
   it('clamps an out-of-range substrate outage probability override into [0, 1] instead of accepting it verbatim', async () => {
@@ -293,5 +307,26 @@ describe('unknown routes and malformed input', () => {
       body: '{not json',
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /health', () => {
+  it('returns ok:true with an integrations map, on a plain GET, without a body', async () => {
+    const res = await fetch(`${baseUrl}/health`)
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as any
+    expect(json.ok).toBe(true)
+    expect(typeof json.timestamp).toBe('string')
+    expect(json.integrations).toEqual({
+      bedrock: false,
+      dynamodb: false,
+      awsHealth: false,
+      sns: false,
+    })
+  })
+
+  it('still 404s a GET to any other path', async () => {
+    const res = await fetch(`${baseUrl}/not-health`)
+    expect(res.status).toBe(404)
   })
 })

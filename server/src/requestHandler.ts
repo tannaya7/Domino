@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { errorMessage, HttpError, routeApi } from './apiRouter'
+import { errorMessage, healthCheck, HttpError, routeApi } from './apiRouter'
 import { MAX_BODY_BYTES } from './limits'
 
 function setCors(res: ServerResponse) {
@@ -38,6 +38,11 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   try {
+    if (req.method === 'GET' && req.url === '/health') {
+      const { status, body } = healthCheck()
+      sendJson(res, status, body)
+      return
+    }
     if (req.method !== 'POST' || !req.url) {
       sendJson(res, 404, { error: 'Not found' })
       return

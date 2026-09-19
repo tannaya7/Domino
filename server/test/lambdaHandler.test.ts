@@ -48,6 +48,15 @@ describe('lambda handler', () => {
     expect(result.statusCode).toBe(404)
   })
 
+  it('serves GET /health without routing through routeApi', async () => {
+    const { handler } = await import('../src/lambdaHandler')
+    const result = await handler(event({ rawPath: '/health', requestContext: { http: { method: 'GET' } } }))
+    expect(result.statusCode).toBe(200)
+    const parsed = JSON.parse(result.body)
+    expect(parsed.ok).toBe(true)
+    expect(parsed.integrations).toEqual({ bedrock: false, dynamodb: false, awsHealth: false, sns: false })
+  })
+
   it('routes a POST body to the same logic as the Node server', async () => {
     const { handler } = await import('../src/lambdaHandler')
     const result = await handler(event({ body: JSON.stringify({ repoUrl: 'https://github.com/octocat/hello' }) }))

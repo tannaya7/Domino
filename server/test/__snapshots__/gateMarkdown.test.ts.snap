@@ -1,0 +1,95 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildGateMarkdown > matches the known-good snapshot for a failing PR with violations 1`] = `
+"<!-- blast-radius-mapper -->
+## Blast Radius — PR Resilience Gate
+
+:x: **Fail** — policy violation(s) found.
+
+| Rule | Actual | Limit |
+|---|---|---|
+| maxNewVendorsPerPr | This PR introduces 1 new vendor(s), above the limit of 0 per PR. | — |
+
+| | Before this PR | After this PR |
+|---|---|---|
+| Vendors | 2 | 3 |
+| Substrates | 2 | 2 |
+| Most concentrated | 50% on aws | 67% on aws |
+| Modeled exposure | USD 1,000/yr | USD 1,500/yr |
+
+**Exposure delta:** +USD 500/yr
+
+### New vendors (1)
+- **Stripe** (payments) on \`aws\` — via import:stripe in src/lib/payments.ts
+
+### Entrypoints affected (1/3)
+- \`src/index.ts\`
+
+### Why it matters
+This PR adds Stripe on AWS, increasing concentration risk.
+_Deterministic fallback — no AI model was used._
+
+_Baseline: the repository's default branch (main). Modeled estimate under editable assumptions — never a guarantee._
+
+<sub>blast-radius-mapper · acme/widget#42</sub>"
+`;
+
+exports[`buildGateMarkdown > matches the known-good snapshot for a passing PR 1`] = `
+"<!-- blast-radius-mapper -->
+## Blast Radius — PR Resilience Gate
+
+:white_check_mark: **Pass** — within policy.
+
+| | Before this PR | After this PR |
+|---|---|---|
+| Vendors | 2 | 3 |
+| Substrates | 2 | 2 |
+| Most concentrated | 50% on aws | 67% on aws |
+| Modeled exposure | USD 1,000/yr | USD 1,500/yr |
+
+**Exposure delta:** +USD 500/yr
+
+### New vendors (1)
+- **Stripe** (payments) on \`aws\` — via import:stripe in src/lib/payments.ts
+
+### Entrypoints affected (1/3)
+- \`src/index.ts\`
+
+### Why it matters
+This PR adds Stripe on AWS, increasing concentration risk.
+_Deterministic fallback — no AI model was used._
+
+_Baseline: the repository's default branch (main). Modeled estimate under editable assumptions — never a guarantee._
+
+<sub>blast-radius-mapper · acme/widget#42</sub>"
+`;
+
+exports[`buildGateMarkdown > matches the known-good snapshot for a report-only PR with no policy 1`] = `
+"<!-- blast-radius-mapper -->
+## Blast Radius — PR Resilience Gate
+
+:information_source: **Report only** — no policy configured for this repo.
+
+| | Before this PR | After this PR |
+|---|---|---|
+| Vendors | 2 | 3 |
+| Substrates | 2 | 2 |
+| Most concentrated | 50% on aws | 67% on aws |
+| Modeled exposure | USD 1,000/yr | USD 1,500/yr |
+
+**Exposure delta:** +USD 500/yr
+
+### New vendors (1)
+- **Stripe** (payments) on \`aws\` — via import:stripe in src/lib/payments.ts
+
+### Entrypoints affected (1/3)
+- \`src/index.ts\`
+
+### Why it matters
+This PR adds Stripe on AWS, increasing concentration risk.
+_Deterministic fallback — no AI model was used._
+
+_Baseline: the repository's default branch (main). Modeled estimate under editable assumptions — never a guarantee._
+
+<sub>blast-radius-mapper · acme/widget#42</sub>"
+`;

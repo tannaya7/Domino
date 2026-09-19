@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { parseRepoUrl } from '../src/github'
+import { parseRepoUrl, parseStrictPrUrl } from '../src/github'
 
 const ssmSendMock = vi.fn()
 
@@ -145,6 +145,48 @@ describe('parseRepoUrl', () => {
 
   it('rejects a non-GitHub URL', () => {
     expect(() => parseRepoUrl('https://gitlab.com/owner/repo')).toThrow(/does not look like a github repo url/i)
+  })
+})
+
+describe('parseStrictPrUrl (PR Resilience Gate)', () => {
+  it('parses a canonical PR URL', () => {
+    expect(parseStrictPrUrl('https://github.com/owner/repo/pull/42')).toEqual({
+      owner: 'owner',
+      repo: 'repo',
+      prNumber: 42,
+    })
+  })
+
+  it('accepts a trailing slash', () => {
+    expect(parseStrictPrUrl('https://github.com/owner/repo/pull/42/')).toEqual({
+      owner: 'owner',
+      repo: 'repo',
+      prNumber: 42,
+    })
+  })
+
+  it('rejects a non-GitHub host, even one that contains github.com', () => {
+    expect(() => parseStrictPrUrl('https://github.com.evil.example/owner/repo/pull/42')).toThrow()
+    expect(() => parseStrictPrUrl('https://evil-github.com/owner/repo/pull/42')).toThrow()
+    expect(() => parseStrictPrUrl('https://gitlab.com/owner/repo/pull/42')).toThrow()
+  })
+
+  it('rejects a non-https scheme', () => {
+    expect(() => parseStrictPrUrl('http://github.com/owner/repo/pull/42')).toThrow()
+  })
+
+  it('rejects an SSH-style remote (accepted by the lenient parseRepoUrl, not here)', () => {
+    expect(() => parseStrictPrUrl('git@github.com:owner/repo/pull/42')).toThrow()
+  })
+
+  it('rejects extra path segments, query strings, and fragments', () => {
+    expect(() => parseStrictPrUrl('https://github.com/owner/repo/pull/42/files')).toThrow()
+    expect(() => parseStrictPrUrl('https://github.com/owner/repo/pull/42?tab=files')).toThrow()
+    expect(() => parseStrictPrUrl('https://github.com/owner/repo/pull/42#discussion')).toThrow()
+  })
+
+  it('rejects a repo URL with no PR number', () => {
+    expect(() => parseStrictPrUrl('https://github.com/owner/repo')).toThrow()
   })
 })
 

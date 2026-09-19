@@ -13,6 +13,7 @@ import {
   tailProbability,
   unknownHostingVendorKeys,
 } from '../engine/correlated'
+import { HISTORICAL_OUTAGES } from '../data/historicalOutages'
 import type {
   AvailabilityAssumptions,
   AvailabilityHeadline,
@@ -24,6 +25,7 @@ import type {
   SimulationResult,
   TailRiskPoint,
   Vendor,
+  VendorWithBlastRadius,
   WhatIfOverride,
   WhatIfResult,
   WhatIfSnapshot,
@@ -67,6 +69,18 @@ export const PRESET_SCENARIOS: FailureScenario[] = [
   },
 ]
 
+/** "Replay a real outage" scenarios — same FailureScenario shape as PRESET_SCENARIOS above, built
+ * from the curated, verified src/data/historicalOutages.ts. Namespaced `replay:<outage.id>` so
+ * apiRouter's /simulate can tell them apart from the generic presets while reusing the exact same
+ * lookup, simulate, and cascade-animation code path (see outageForReplayScenarioId for the reverse
+ * lookup used to render the real-postmortem numbers back in the UI). */
+export const HISTORICAL_REPLAY_SCENARIOS: FailureScenario[] = HISTORICAL_OUTAGES.map((outage) => ({
+  id: `replay:${outage.id}`,
+  label: `${outage.name} (${new Date(outage.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })})`,
+  downSubstrates: [outage.substrate],
+  description: outage.summary,
+}))
+
 /** Deterministic: given a scenario's down substrates, which vendors are directly affected? No randomness involved. */
 export function simulateFailureScenario(vendors: Vendor[], scenario: FailureScenario): FailureScenarioResult {
   const downSubstrates = new Set(scenario.downSubstrates)
@@ -80,6 +94,25 @@ export function simulateFailureScenario(vendors: Vendor[], scenario: FailureScen
     totalCount: vendors.length,
     affectedShare: vendors.length > 0 ? affectedVendors.length / vendors.length : 0,
   }
+}
+
+/** Entrypoints reachable from any affected vendor's blast radius — shared by the guided tour's
+ * scenario step and the "Replay a real outage" result panel so the two never compute this two
+ * different ways. */
+export function affectedEntrypointsForScenario(
+  scenarioResult: FailureScenarioResult,
+  vendorGraphVendors: Pick<VendorWithBlastRadius, 'key' | 'affectedFiles'>[],
+  entrypoints: string[],
+): string[] {
+  const entrypointSet = new Set(entrypoints)
+  const affected = new Set<string>()
+  for (const vendor of scenarioResult.affectedVendors) {
+    const vg = vendorGraphVendors.find((v) => v.key === vendor.key)
+    for (const file of vg?.affectedFiles ?? []) {
+      if (entrypointSet.has(file)) affected.add(file)
+    }
+  }
+  return [...affected]
 }
 
 /**

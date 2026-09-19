@@ -2,6 +2,7 @@
   "name": "blast-radius-mapper",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +13,9 @@
     "server:dev": "tsx watch server/src/localServer.ts",
     "deploy": "bash scripts/deploy.sh",
     "verify:aws": "tsx scripts/verify-aws.ts",
-    "verify:all": "tsc -b && oxlint && tsx scripts/verification-report.ts"
+    "verify:all": "tsc -b && oxlint && tsx scripts/verification-report.ts",
+    "verify": "tsc -b && vitest run && vite build",
+    "readme:numbers": "tsx scripts/readme-numbers.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1135.0",

@@ -24,6 +24,10 @@ jobs:
       # any test failed, so a red check here means a claim in that file no longer holds.
       - run: npm run verify:all
 
+      # Production build — a red check here means `npm run build` (what scripts/deploy.sh and
+      # every judge's "run locally" step actually run) is broken, not just the test suite.
+      - run: npm run build
+
       - name: Upload docs/VERIFICATION.md
         if: always()
         uses: actions/upload-artifact@v4

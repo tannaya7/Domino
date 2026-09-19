@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { HISTORICAL_OUTAGES } from '../data/historicalOutages'
 import {
+  affectedEntrypointsForScenario,
   buildAvailabilityHeadline,
   buildWhatIfResult,
   calculateNaiveAvailability,
   computeExactAvailability,
+  HISTORICAL_REPLAY_SCENARIOS,
   PRESET_SCENARIOS,
   runMonteCarloAvailability,
   simulateFailureScenario,
@@ -68,6 +71,48 @@ describe('simulateFailureScenario', () => {
     const result = simulateFailureScenario([], PRESET_SCENARIOS[0])
     expect(result.affectedShare).toBe(0)
     expect(result.totalCount).toBe(0)
+  })
+})
+
+describe('HISTORICAL_REPLAY_SCENARIOS', () => {
+  it('has one namespaced replay: scenario per historical outage, targeting its real substrate', () => {
+    expect(HISTORICAL_REPLAY_SCENARIOS.length).toBe(HISTORICAL_OUTAGES.length)
+    for (const outage of HISTORICAL_OUTAGES) {
+      const scenario = HISTORICAL_REPLAY_SCENARIOS.find((s) => s.id === `replay:${outage.id}`)
+      expect(scenario).toBeDefined()
+      expect(scenario!.downSubstrates).toEqual([outage.substrate])
+      expect(scenario!.label).toContain(outage.name)
+    }
+  })
+
+  it('reuses simulateFailureScenario exactly like a preset scenario', () => {
+    const vendors = [vendor({ key: 'a', substrate: ['aws'] }), vendor({ key: 'b', substrate: ['gcp'] })]
+    const awsReplay = HISTORICAL_REPLAY_SCENARIOS.find((s) => s.downSubstrates.includes('aws'))!
+    const result = simulateFailureScenario(vendors, awsReplay)
+    expect(result.affectedVendors.map((v) => v.key)).toEqual(['a'])
+  })
+})
+
+describe('affectedEntrypointsForScenario', () => {
+  it('returns only entrypoints reachable from an affected vendor’s blast radius', () => {
+    const vendors = [vendor({ key: 'stripe', substrate: ['aws'] }), vendor({ key: 'sentry', substrate: ['gcp'] })]
+    const scenarioResult = simulateFailureScenario(vendors, PRESET_SCENARIOS.find((s) => s.id === 'aws-outage')!)
+    const vendorGraphVendors = [
+      { key: 'stripe', affectedFiles: ['src/checkout.ts', 'src/lib/unrelated.ts'] },
+      { key: 'sentry', affectedFiles: ['src/monitoring.ts'] },
+    ]
+    const entrypoints = ['src/checkout.ts', 'src/monitoring.ts', 'src/other-entry.ts']
+
+    const affected = affectedEntrypointsForScenario(scenarioResult, vendorGraphVendors, entrypoints)
+
+    expect(affected).toEqual(['src/checkout.ts'])
+  })
+
+  it('returns an empty array when nothing is affected', () => {
+    const vendors = [vendor({ key: 'sentry', substrate: ['gcp'] })]
+    const scenarioResult = simulateFailureScenario(vendors, PRESET_SCENARIOS.find((s) => s.id === 'aws-outage')!)
+    const affected = affectedEntrypointsForScenario(scenarioResult, [{ key: 'sentry', affectedFiles: ['src/x.ts'] }], ['src/x.ts'])
+    expect(affected).toEqual([])
   })
 })
 
