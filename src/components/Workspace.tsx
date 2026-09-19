@@ -24,8 +24,11 @@ import {
   buildVendorsSubstratesWhy,
   type WhyContent,
 } from '../lib/whyDrawer'
+import { decodeScenarioSelection } from '../lib/scenarioShare'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
+import type { ScenarioResult, ScenarioSelection } from '../engine/scenario'
+import { scenarioKnownIds } from '../engine/scenario'
 import TopBar from './TopBar'
 import GraphView from './GraphView'
 import VendorGraphView from './VendorGraphView'
@@ -46,6 +49,7 @@ import RunbookPanel from './RunbookPanel'
 import StatTile from './ui/StatTile'
 import Drawer from './Drawer'
 import WhyDrawerContent from './WhyDrawerContent'
+import ScenarioBuilderPanel from './ScenarioBuilderPanel'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -125,6 +129,16 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   const [runbookError, setRunbookError] = useState<string | null>(null)
 
   const [whyContent, setWhyContent] = useState<WhyContent | null>(null)
+
+  // Decoded once, on mount, from ?scenario= — never re-derived on later renders (a scenario link
+  // is a one-time "open with this pre-filled" seed, not something that should fight further edits).
+  const [initialScenarioSelection] = useState<ScenarioSelection | null>(() => {
+    if (typeof window === 'undefined') return null
+    const encoded = new URLSearchParams(window.location.search).get('scenario')
+    if (!encoded) return null
+    return decodeScenarioSelection(encoded, scenarioKnownIds(analyzed.vendorGraph.vendors))
+  })
+  const [scenarioBuilderOpen, setScenarioBuilderOpen] = useState(() => initialScenarioSelection !== null)
 
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
@@ -291,6 +305,38 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
 
   function handleWhyNode(node: NodeCriticality) {
     setWhyContent(buildCriticalityItemWhy(node))
+  }
+
+  // Feeds the existing cascade animation the same way picking a preset scenario already does — a
+  // compound scenario's down set is a superset of what a plain substrate filter would find (it also
+  // includes explicitly-selected vendors), so it's built directly from the scenario result rather
+  // than re-deriving via simulateFailureScenario. The exact-availability numbers stay the baseline
+  // (the engine has no per-scenario conditioning today — the same simplification /simulate already
+  // makes for preset scenarios); only expectedLossPerYear is overridden with this scenario's own
+  // modeled annual cost, so the cascade's dollar figure reflects what was actually built, not the
+  // unconditional baseline.
+  function handleRunScenario(result: ScenarioResult, selection: ScenarioSelection) {
+    const downSet = new Set(result.downVendorKeys)
+    const affectedVendors = analyzed.vendors.filter((v) => downSet.has(v.key))
+    const unaffectedVendors = analyzed.vendors.filter((v) => !downSet.has(v.key))
+    setSimulation({
+      scenario: {
+        scenario: { id: 'scenario-builder', label: 'Compound scenario', downSubstrates: selection.substrates },
+        affectedVendors,
+        unaffectedVendors,
+        affectedCount: affectedVendors.length,
+        totalCount: analyzed.vendors.length,
+        affectedShare: analyzed.vendors.length > 0 ? affectedVendors.length / analyzed.vendors.length : 0,
+      },
+      simulation: clientExactResult,
+      presetScenarios: PRESET_SCENARIOS,
+      headline: { ...clientHeadline, expectedLossPerYear: result.expectedAnnualCost },
+    })
+    setSingleVendorCascadeTarget(null)
+    setActiveScenarioId(undefined)
+    setGraphMode('vendors')
+    setView('graph')
+    setScenarioBuilderOpen(false)
   }
 
   async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
@@ -489,6 +535,15 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
             >
               Risk register
             </button>
+            {hasVendorData && (
+              <button
+                type="button"
+                onClick={() => setScenarioBuilderOpen(true)}
+                className="rounded-md border border-[var(--border-subtle)] px-2.5 py-1 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Scenario builder
+              </button>
+            )}
             {graphMode === 'files' && view === 'graph' && importResolutionBadge && (
               <span
                 className="ml-auto flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[var(--text-secondary)]"
@@ -646,6 +701,22 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
 
       <Drawer isOpen={whyContent !== null} onClose={() => setWhyContent(null)} title={whyContent?.title ?? 'Why'}>
         {whyContent && <WhyDrawerContent content={whyContent} />}
+      </Drawer>
+
+      <Drawer isOpen={scenarioBuilderOpen} onClose={() => setScenarioBuilderOpen(false)} title="Compound failure scenario">
+        {hasVendorData && (
+          <ScenarioBuilderPanel
+            vendors={analyzed.vendorGraph.vendors}
+            entrypoints={analyzed.criticality.entrypoints}
+            costPerHour={assumptions.costPerHour}
+            currency={assumptions.currency}
+            overrides={correlatedOverrides}
+            baselineExpectedLossPerYear={clientHeadline.expectedLossPerYear}
+            repoUrl={analyzed.repoUrl}
+            initialSelection={initialScenarioSelection}
+            onRun={handleRunScenario}
+          />
+        )}
       </Drawer>
     </div>
   )

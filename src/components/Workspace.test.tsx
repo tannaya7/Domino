@@ -547,3 +547,39 @@ describe('Workspace — WHY drawer', () => {
     expect(within(dialog).getByText(/structural bottleneck/)).toBeInTheDocument()
   })
 })
+
+describe('Workspace — scenario builder', () => {
+  it('opens, toggling a substrate chip updates the live summary, and Run feeds the cascade + closes the drawer', async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /scenario builder/i }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeDisabled()
+
+    await user.click(within(dialog).getByRole('button', { name: 'aws' }))
+    expect(within(dialog).getByText(/1 selected/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/1 vendor\(s\) down/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeEnabled()
+
+    await user.click(within(dialog).getByRole('button', { name: /^run$/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTestId('node-stripe')).toHaveAttribute('data-color', '#d03b3b')
+  })
+
+  it('Clear resets the selection back to nothing selected', async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /scenario builder/i }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'aws' }))
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeEnabled()
+
+    await user.click(within(dialog).getByRole('button', { name: /^clear$/i }))
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeDisabled()
+  })
+})

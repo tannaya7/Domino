@@ -1,6 +1,7 @@
 import { analyzeConcentration } from '../../src/lib/concentration'
 import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS, simulateFailureScenario } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
+import { evaluateScenario, MAX_SCENARIO_SELECTIONS, ScenarioValidationException } from '../../src/engine/scenario'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { FailureScenario } from '../../src/lib/types'
 import { getAwsHealthStatus } from './awsHealth'
@@ -189,6 +190,41 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     }
 
     return { status: 200, body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS, headline } }
+  }
+
+  if (path === '/evaluate-scenario') {
+    const repoUrl = asTrimmedString(body.repoUrl)
+    const cached = await requireCachedAnalysis(repoUrl)
+    const adjacency = buildAdjacencyMap(cached.graph.nodes, cached.graph.edges)
+    const vendorGraph = buildVendorGraph(cached.vendors, adjacency)
+
+    // Generous raw-array bound (well above MAX_SCENARIO_SELECTIONS) so an over-long payload still
+    // reaches evaluateScenario's own validation and gets the real "N selections, max 12" message,
+    // rather than being silently truncated to exactly the limit beforehand.
+    const selection = {
+      substrates: asStringArray(body.substrates, MAX_SCENARIO_SELECTIONS * 4),
+      vendors: asStringArray(body.vendors, MAX_SCENARIO_SELECTIONS * 4),
+      hours: typeof body.hours === 'number' ? body.hours : NaN,
+    }
+
+    try {
+      const result = evaluateScenario(
+        {
+          vendors: vendorGraph.vendors,
+          entrypoints: cached.entrypoints,
+          costPerHour: sanitizeCost(body.costPerHour) ?? 0,
+          overrides: {
+            vendorSlaOverrides: sanitizeProbabilityMap(body.vendorSlaOverrides),
+            substrateOutageProbabilities: sanitizeProbabilityMap(body.substrateOutageProbabilities),
+          },
+        },
+        selection,
+      )
+      return { status: 200, body: result }
+    } catch (err) {
+      if (err instanceof ScenarioValidationException) throw new HttpError(400, err.message)
+      throw err
+    }
   }
 
   if (path === '/status') {

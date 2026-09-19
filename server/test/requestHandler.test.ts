@@ -160,6 +160,82 @@ describe('POST /simulate', () => {
   })
 })
 
+describe('POST /evaluate-scenario', () => {
+  it('requires the repo to be analyzed first', async () => {
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: ['aws'],
+      vendors: [],
+      hours: 4,
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/analyze this repo/i)
+  })
+
+  it('evaluates a valid selection and returns the vendors it takes down', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: ['aws'],
+      vendors: [],
+      hours: 4,
+      costPerHour: 100,
+    })
+    expect(status).toBe(200)
+    expect(json.downVendorKeys).toEqual(['stripe'])
+    expect(json.perIncidentCost).toBe(400)
+    expect(json.illustrative).toBe(true)
+  })
+
+  it('rejects an unknown substrate id with a 400 naming it', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: ['azure'],
+      vendors: [],
+      hours: 4,
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/azure/i)
+  })
+
+  it('rejects an unknown vendor id with a 400', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: [],
+      vendors: ['paypal'],
+      hours: 4,
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/paypal/i)
+  })
+
+  it('rejects hours outside [0.25, 720] with a 400', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: ['aws'],
+      vendors: [],
+      hours: 1000,
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/hours/i)
+  })
+
+  it('rejects more than the max total selections with a 400', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/evaluate-scenario', {
+      repoUrl: 'https://github.com/octocat/hello',
+      substrates: [],
+      vendors: Array.from({ length: 13 }, (_, i) => `vendor-${i}`),
+      hours: 4,
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/12/)
+  })
+})
+
 describe('POST /runbook', () => {
   it('produces a deterministic runbook for a known vendor (no Bedrock configured)', async () => {
     await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })

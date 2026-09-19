@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 interface DrawerProps {
   isOpen: boolean
@@ -17,6 +17,9 @@ const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea, input, se
  * this same shell.
  */
 function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
+  // Two Drawer instances can exist in the tree at once (e.g. the WHY drawer and the scenario
+  // builder) — a hardcoded id would collide and break aria-labelledby if both were ever open.
+  const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
 
@@ -63,12 +66,12 @@ function Drawer({ isOpen, onClose, title, children }: DrawerProps) {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="why-drawer-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
         className="fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto border-l border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-4 shadow-xl"
       >
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 id="why-drawer-title" className="text-sm font-semibold text-[var(--text-primary)]">
+          <h2 id={titleId} className="text-sm font-semibold text-[var(--text-primary)]">
             {title}
           </h2>
           <button
