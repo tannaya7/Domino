@@ -4,6 +4,7 @@ import { formatCurrency } from './currency'
 import type { AvailabilityHeadline, ExactAvailabilityResult, NodeCriticality, Vendor, VendorWithBlastRadius } from './types'
 import { CONFIDENCE_LABEL, VENDOR_CONFIDENCE_RULE } from './vendorConfidence'
 import type { VendorRiskRow } from './vendorRiskRegister'
+import type { VendorVerificationResult } from './substrateVerification'
 
 export interface WhyInput {
   label: string
@@ -138,6 +139,7 @@ export function buildRiskRegisterRowWhy(
   allVendors: Vendor[],
   currency: Currency,
   overrides: CorrelatedModelOverrides = {},
+  verification?: VendorVerificationResult,
 ): WhyContent {
   const claim = `${row.vendor} is ${row.risk}-risk: ${row.filesAffected} file(s) and ${row.entrypointsAffected} entrypoint(s) in this repo depend on it.`
   const inputs: WhyInput[] = [
@@ -149,6 +151,14 @@ export function buildRiskRegisterRowWhy(
   const evidence: WhyEvidenceItem[] = [
     { label: 'Detected via', detail: vendor.detectedVia.join(', ') || 'unknown' },
     ...vendor.affectedFiles.slice(0, 5).map((f) => ({ label: 'File affected', detail: f })),
+    ...(verification
+      ? [
+          {
+            label: 'DNS substrate check',
+            detail: `${verification.verdict} (checked ${verification.checkedAt.slice(0, 10)}) — ${verification.hosts.map((h) => `${h.host}: ${h.detail}`).join('; ') || 'no hosts checked'}`,
+          },
+        ]
+      : []),
   ]
   const change = whatIfMoveVendorOffSubstrate(allVendors, vendor.key, overrides)
   return {

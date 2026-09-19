@@ -29,6 +29,7 @@ const baseProps = {
   costPerHour: 500,
   currency: 'USD' as const,
   vendorStatuses: null,
+  verifications: new Map(),
   onSelectVendor: vi.fn(),
 }
 

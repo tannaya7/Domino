@@ -12,6 +12,10 @@ interface VendorHeadlineCardProps {
    * findUnclassifiedDependencies. 0/undefined renders nothing (never implies "we checked and found
    * none" when unclassified scanning wasn't run for this analysis, e.g. a demo snapshot). */
   unclassifiedCount?: number
+  /** "Verified by DNS for N of M vendors; K conflicts" — undefined when verification data hasn't
+   * loaded (or doesn't apply), which renders nothing rather than implying zero conflicts. Curated
+   * substrates are still what every number above is computed from — this line never changes that. */
+  substrateVerificationSummary?: { checkedCount: number; totalCount: number; conflictCount: number }
   onWhyVendorsSubstrates?: () => void
   onWhyExpectedLoss?: () => void
 }
@@ -44,6 +48,7 @@ function VendorHeadlineCard({
   currency,
   vendors,
   unclassifiedCount,
+  substrateVerificationSummary,
   onWhyVendorsSubstrates,
   onWhyExpectedLoss,
 }: VendorHeadlineCardProps) {
@@ -92,6 +97,15 @@ function VendorHeadlineCard({
             title="External dependencies found in this repo that aren't in our curated vendor knowledge base — see the Unclassified dependencies panel."
           >
             +{unclassifiedCount} unclassified
+          </span>
+        )}
+        {substrateVerificationSummary && (
+          <span
+            className={substrateVerificationSummary.conflictCount > 0 ? 'font-medium text-amber-300' : undefined}
+            title="Independent DNS + published-IP-range evidence for curated substrate tags — informational only, never automatically applied. See docs/substrate-verification.md."
+          >
+            Verified by DNS for {substrateVerificationSummary.checkedCount} of {substrateVerificationSummary.totalCount} vendors
+            {substrateVerificationSummary.conflictCount > 0 ? `; ${substrateVerificationSummary.conflictCount} conflict(s)` : ''}
           </span>
         )}
       </p>

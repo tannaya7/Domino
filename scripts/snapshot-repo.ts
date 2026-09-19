@@ -9,16 +9,29 @@
  *
  * Usage: tsx scripts/snapshot-repo.ts <owner/repo>
  */
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { analyzeConcentration } from '../src/lib/concentration'
 import { analyzeCriticality } from '../src/lib/criticality'
 import { buildAdjacencyMap, buildVendorGraph } from '../src/lib/graph'
+import type { SubstrateVerificationData } from '../src/lib/substrateVerification'
 import { getBranchSha } from '../server/src/github'
 import { analyzeRepo } from '../server/src/repoParser'
 import { generateDeterministicSummary } from '../server/src/riskSummary'
 
 const OUT_DIR = path.join(import.meta.dirname, '..', 'public', 'demo')
+const SUBSTRATE_VERIFICATION_PATH = path.join(import.meta.dirname, '..', 'public', 'substrate-verification.json')
+
+/** Embeds whatever scripts/verify-substrates.ts last produced, frozen at this snapshot's
+ * generation time — undefined (never a fabricated empty result) if that script has never been run
+ * in this checkout. */
+async function readCurrentSubstrateVerification(): Promise<SubstrateVerificationData | undefined> {
+  try {
+    return JSON.parse(await readFile(SUBSTRATE_VERIFICATION_PATH, 'utf-8')) as SubstrateVerificationData
+  } catch {
+    return undefined
+  }
+}
 
 async function main() {
   const arg = process.argv[2]
@@ -76,6 +89,8 @@ async function main() {
         }
       })()
 
+  const substrateVerification = await readCurrentSubstrateVerification()
+
   const snapshot = {
     owner,
     repo,
@@ -90,6 +105,7 @@ async function main() {
     criticality,
     unclassified: result.unclassified,
     riskSummary,
+    ...(substrateVerification ? { substrateVerification } : {}),
     meta: {
       owner,
       repo,

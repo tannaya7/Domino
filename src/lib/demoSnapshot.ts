@@ -1,4 +1,5 @@
 import type { AnalyzeRepoResponse } from './api'
+import type { SubstrateVerificationData } from './substrateVerification'
 
 export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> {
   owner: string
@@ -12,6 +13,12 @@ export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> 
    * rate-limited/throttled). Absent means "not computed for this snapshot", same honest meaning as
    * AnalyzedRepo.unclassified === null elsewhere — never treated as "checked, found zero". */
   unclassified?: AnalyzeRepoResponse['unclassified']
+  /** Frozen copy of public/substrate-verification.json at the moment this snapshot was generated
+   * (see scripts/snapshot-repo.ts) — the snapshot never re-fetches it live, so it always reflects
+   * the DNS evidence as of `substrateVerification.generatedAt`, not whatever the script most
+   * recently produced. Optional for the same reason as `unclassified` above: older snapshots
+   * predate this field entirely. */
+  substrateVerification?: SubstrateVerificationData
 }
 
 export class DemoSnapshotError extends Error {}

@@ -4,6 +4,7 @@ import { formatCurrency } from '../lib/currency'
 import { RISK_STYLES } from '../lib/risk'
 import type { VendorStatus, VendorWithBlastRadius } from '../lib/types'
 import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, VENDOR_CONFIDENCE_RULE, type VendorConfidence } from '../lib/vendorConfidence'
+import { formatVerificationBadge, type VendorVerificationResult } from '../lib/substrateVerification'
 import { buildVendorRiskRows, type VendorRiskRow } from '../lib/vendorRiskRegister'
 import StatusBadge from './ui/StatusBadge'
 
@@ -14,6 +15,8 @@ interface VendorRiskRegisterProps {
   costPerHour: number
   currency: Currency
   vendorStatuses: VendorStatus[] | null
+  /** Keyed by vendor key — undefined entries render as "unverified", never blank. */
+  verifications: Map<string, VendorVerificationResult>
   onSelectVendor: (key: string) => void
   onWhyVendor?: (key: string) => void
 }
@@ -51,6 +54,7 @@ function VendorRiskRegister({
   costPerHour,
   currency,
   vendorStatuses,
+  verifications,
   onSelectVendor,
   onWhyVendor,
 }: VendorRiskRegisterProps) {
@@ -119,6 +123,9 @@ function VendorRiskRegister({
                   </button>
                 </th>
               ))}
+              <th className="py-2 pr-4 font-medium" title="Independent DNS + published-IP-range evidence for the curated substrate tag — see scripts/verify-substrates.ts.">
+                DNS
+              </th>
               <th className="py-2 pr-4 font-medium">Live status</th>
               {onWhyVendor && <th className="py-2 pr-4 font-medium">Why</th>}
             </tr>
@@ -155,6 +162,20 @@ function VendorRiskRegister({
                   </td>
                   <td className="py-2 pr-4">
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${RISK_STYLES[row.risk]}`}>{row.risk}</span>
+                  </td>
+                  <td className="py-2 pr-4">
+                    {(() => {
+                      const verification = verifications.get(row.key)
+                      const badge = formatVerificationBadge(verification)
+                      const title = verification
+                        ? verification.hosts.map((h) => `${h.host}: ${h.detail}`).join('\n')
+                        : 'No independent DNS/IP-range evidence for this vendor.'
+                      return (
+                        <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium ${badge.style}`} title={title}>
+                          {badge.label}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="py-2 pr-4">
                     <StatusBadge indicator={status?.indicator ?? 'unknown'} stale={status?.stale} />

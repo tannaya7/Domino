@@ -4,6 +4,7 @@ import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { VendorWithBlastRadius } from '../lib/types'
 import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, computeVendorConfidence, VENDOR_CONFIDENCE_RULE } from '../lib/vendorConfidence'
+import { formatVerificationBadge, type VendorVerificationResult } from '../lib/substrateVerification'
 import Panel from './ui/Panel'
 
 interface VendorDetailPanelProps {
@@ -12,6 +13,8 @@ interface VendorDetailPanelProps {
   entrypoints: string[]
   costPerHour: number
   currency: Currency
+  /** undefined = never checked (no known global host); present = the DNS-verification result. */
+  verification: VendorVerificationResult | undefined
   onViewFiles: () => void
   /** Starts the graph's visual cascade for this one vendor — see VendorGraphView. */
   onSimulateOutage: () => void
@@ -23,6 +26,7 @@ function VendorDetailPanel({
   entrypoints,
   costPerHour,
   currency,
+  verification,
   onViewFiles,
   onSimulateOutage,
   onClear,
@@ -74,6 +78,17 @@ function VendorDetailPanel({
               title={VENDOR_CONFIDENCE_RULE}
             >
               {CONFIDENCE_LABEL[confidence]} confidence
+            </span>
+          )
+        })()}
+        {(() => {
+          const badge = formatVerificationBadge(verification)
+          const title = verification
+            ? verification.hosts.map((h) => `${h.host}: ${h.detail}`).join('\n')
+            : 'No independent DNS/IP-range evidence for this vendor (no known global host to check, or not run yet). See scripts/verify-substrates.ts.'
+          return (
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.style}`} title={title}>
+              {badge.label}
             </span>
           )
         })()}

@@ -28,6 +28,7 @@ function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
     meta: null,
     repoUrl: null,
     snapshot: null,
+    substrateVerification: null,
   }
 }
 
@@ -46,6 +47,7 @@ function App() {
       meta: result.meta,
       repoUrl,
       snapshot: null,
+      substrateVerification: null, // live mode — Workspace fetches the current static JSON itself
     })
     setPrResult(null)
   }
@@ -61,6 +63,7 @@ function App() {
       meta: snapshot.meta,
       repoUrl: `https://github.com/${snapshot.owner}/${snapshot.repo}`,
       snapshot: { sha: snapshot.commitSha, generatedAt: snapshot.generatedAt },
+      substrateVerification: snapshot.substrateVerification ?? null,
     })
     setPrResult(null)
   }

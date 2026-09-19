@@ -11,7 +11,8 @@
     "test": "vitest run",
     "server:dev": "tsx watch server/src/localServer.ts",
     "deploy": "bash scripts/deploy.sh",
-    "verify:aws": "tsx scripts/verify-aws.ts"
+    "verify:aws": "tsx scripts/verify-aws.ts",
+    "verify:substrates": "tsx scripts/verify-substrates.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1135.0",

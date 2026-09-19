@@ -25,6 +25,12 @@ import {
   type WhyContent,
 } from '../lib/whyDrawer'
 import { decodeScenarioSelection } from '../lib/scenarioShare'
+import {
+  indexVerificationByVendorKey,
+  loadSubstrateVerification,
+  summarizeSubstrateVerification,
+  type SubstrateVerificationData,
+} from '../lib/substrateVerification'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import type { ScenarioResult, ScenarioSelection } from '../engine/scenario'
@@ -73,6 +79,11 @@ export interface AnalyzedRepo {
    * The server has never cached this repo, so /simulate, /status, and /runbook would all 404 —
    * those panels are replaced with an "Analyze live" prompt instead of letting them fail. */
   snapshot: { sha: string; generatedAt: string } | null
+  /** Embedded (frozen, from snapshot-generation time) DNS-substrate-verification results, when this
+   * analysis came from a demo snapshot that had them. null for a live analysis (Workspace fetches
+   * the current /substrate-verification.json itself instead — see its own effect) or a snapshot
+   * generated before this feature existed. */
+  substrateVerification: SubstrateVerificationData | null
 }
 
 interface WorkspaceProps {
@@ -139,6 +150,30 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     return decodeScenarioSelection(encoded, scenarioKnownIds(analyzed.vendorGraph.vendors))
   })
   const [scenarioBuilderOpen, setScenarioBuilderOpen] = useState(() => initialScenarioSelection !== null)
+
+  // Substrate verification is repo-independent (it's about whether "Stripe" is really on AWS, not
+  // about this specific repo), so it's never part of the /analyze-repo response — snapshot mode
+  // gets it pre-embedded (frozen at generation time, zero network); live mode fetches the current
+  // static JSON once. Either way this is a plain static-asset fetch, never a live DNS call — the
+  // verification script (scripts/verify-substrates.ts) is the only thing that ever touches DNS.
+  const [liveSubstrateVerification, setLiveSubstrateVerification] = useState<SubstrateVerificationData | null>(null)
+  useEffect(() => {
+    if (isSnapshot) return
+    let cancelled = false
+    loadSubstrateVerification().then((data) => {
+      if (!cancelled) setLiveSubstrateVerification(data)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const substrateVerification = analyzed.substrateVerification ?? liveSubstrateVerification
+  const verificationByVendorKey = useMemo(() => indexVerificationByVendorKey(substrateVerification), [substrateVerification])
+  const substrateVerificationSummary = useMemo(
+    () => summarizeSubstrateVerification(substrateVerification, analyzed.vendors.map((v) => v.key)),
+    [substrateVerification, analyzed.vendors],
+  )
 
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
@@ -300,7 +335,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     const row = vendorRiskRows.find((r) => r.key === key)
     const vendor = analyzed.vendorGraph.vendors.find((v) => v.key === key)
     if (!row || !vendor) return
-    setWhyContent(buildRiskRegisterRowWhy(row, vendor, analyzed.vendors, assumptions.currency, correlatedOverrides))
+    setWhyContent(
+      buildRiskRegisterRowWhy(row, vendor, analyzed.vendors, assumptions.currency, correlatedOverrides, verificationByVendorKey.get(key)),
+    )
   }
 
   function handleWhyNode(node: NodeCriticality) {
@@ -461,6 +498,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
               currency={assumptions.currency}
               vendors={analyzed.vendors}
               unclassifiedCount={analyzed.unclassified?.totalCount}
+              substrateVerificationSummary={substrateVerificationSummary ?? undefined}
               onWhyVendorsSubstrates={handleWhyVendorsSubstrates}
               onWhyExpectedLoss={handleWhyExpectedLoss}
             />
@@ -568,6 +606,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                 costPerHour={assumptions.costPerHour}
                 currency={assumptions.currency}
                 vendorStatuses={statusResult?.vendorStatuses ?? null}
+                verifications={verificationByVendorKey}
                 onSelectVendor={handleSelectVendorFromRegister}
                 onWhyVendor={handleWhyVendor}
                 graphData={analyzed.graph}
@@ -628,6 +667,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
               entrypoints={analyzed.criticality.entrypoints}
               costPerHour={assumptions.costPerHour}
               currency={assumptions.currency}
+              verification={verificationByVendorKey.get(selectedVendor.key)}
               onViewFiles={handleViewAffectedFiles}
               onSimulateOutage={() => handleSimulateVendorOutage(selectedVendor.key)}
               onClear={() => handleSelectVendor(null)}
