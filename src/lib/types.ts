@@ -318,7 +318,7 @@ export interface UnclassifiedItem {
   files: string[]
 }
 
-/** External dependencies found but NOT in the curated vendor knowledge base (~33 entries) — the
+/** External dependencies found but NOT in the curated vendor knowledge base (vendors/*.json) — the
  * "unknown != safe" honesty feature. HARD RULE, enforced by construction: nothing here ever enters
  * vendor counts, substrates, or availability math anywhere downstream — it's a wholly separate
  * field from `vendors`, never merged into it. */
@@ -327,4 +327,111 @@ export interface UnclassifiedSummary {
   envVars: UnclassifiedItem[]
   hosts: UnclassifiedItem[]
   totalCount: number
+}
+
+// --- Analysis snapshots (History tab) --------------------------------------------------------
+// A COMPACT summary of one point-in-time analysis, never the full file graph — see
+// server/src/analysisSnapshots.ts for the 100 KB/item cap this is built to respect.
+
+export interface SnapshotVendorSummary {
+  id: string
+  substrate: string[]
+  category: VendorTier
+}
+
+export interface SnapshotSubstrateShare {
+  substrate: string
+  share: number
+}
+
+export interface SnapshotTailRiskPoint {
+  k: number
+  correlated: number
+  multiplier: number
+}
+
+export interface SnapshotWorstSingleEvent {
+  substrate: string
+  vendorKeys: string[]
+  probabilityPerYear: number
+}
+
+export interface SnapshotCriticalityItem {
+  nodeId: string
+  isArticulationPoint: boolean
+  reachabilityLossRatio: number
+}
+
+export interface AnalysisSnapshotSummary {
+  /** "owner/repo" — the DynamoDB partition key. */
+  repo: string
+  /** The DynamoDB sort key: "<isoTime>#<sha>". */
+  sk: string
+  sha: string
+  analyzedAt: string
+  note?: string
+  vendors: SnapshotVendorSummary[]
+  substrateShares: SnapshotSubstrateShare[]
+  tailRisk: SnapshotTailRiskPoint[]
+  worstSingleEvent: SnapshotWorstSingleEvent | null
+  /** Top 5 by reachabilityLossRatio (criticality.byNode is already sorted that way). */
+  topCriticality: SnapshotCriticalityItem[]
+  /** null when unclassified scanning didn't run for this analysis — never fabricated as 0. */
+  unclassifiedCount: number | null
+  entrypointCount: number
+  engineVersion: string
+  kbVersion: string
+  assumptionsHash: string
+}
+
+// --- Snapshot diff (src/engine/snapshotDiff.ts) ---------------------------------------------
+
+export interface VendorSubstrateChange {
+  id: string
+  from: string[]
+  to: string[]
+}
+
+export interface SubstrateShareChange {
+  substrate: string
+  from: number
+  to: number
+  delta: number
+}
+
+export interface TailRiskChange {
+  k: number
+  correlatedFrom: number
+  correlatedTo: number
+  multiplierFrom: number
+  multiplierTo: number
+}
+
+export interface WorstSingleEventChange {
+  from: SnapshotWorstSingleEvent | null
+  to: SnapshotWorstSingleEvent | null
+  changed: boolean
+}
+
+export interface AnalysisDiff {
+  vendorsAdded: string[]
+  vendorsRemoved: string[]
+  /** Vendors present in both snapshots whose substrate list changed. */
+  substrateChanges: VendorSubstrateChange[]
+  substrateShareChanges: SubstrateShareChange[]
+  tailRiskChanges: TailRiskChange[]
+  worstSingleEventChange: WorstSingleEventChange
+  /** null when either snapshot has unclassifiedCount === null (scanning didn't run for one of them) —
+   * a delta against "we didn't check" would be fabricated, so this is honestly not computed. */
+  unclassifiedDelta: number | null
+  entrypointDelta: number
+  engineVersionChanged: boolean
+  kbVersionChanged: boolean
+  /** Non-repo-change caveats — e.g. engineVersion/kbVersion differing, which can shift numbers
+   * without anything about the repo itself changing. Always surfaced, never silently absorbed into
+   * the verdict as if it were a real finding. */
+  warnings: string[]
+  /** One deterministic sentence, e.g. "aws share rose 40% -> 62%; 3 vendors added". Describes what
+   * changed, never a prediction of what it means. */
+  verdict: string
 }

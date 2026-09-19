@@ -1,4 +1,6 @@
 import type {
+  AnalysisDiff,
+  AnalysisSnapshotSummary,
   AvailabilityHeadline,
   AwsHealthStatus,
   ConcentrationResult,
@@ -25,6 +27,24 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
+  } catch {
+    throw new ApiError(
+      `Could not reach the analysis backend at ${API_BASE_URL}. Is it running (npm run server:dev)?`,
+    )
+  }
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new ApiError(body.error ?? `Request failed with status ${res.status}.`)
+  }
+  return body as T
+}
+
+async function getJson<T>(path: string, query: Record<string, string>): Promise<T> {
+  let res: Response
+  const search = new URLSearchParams(query).toString()
+  try {
+    res = await fetch(`${API_BASE_URL}${path}?${search}`)
   } catch {
     throw new ApiError(
       `Could not reach the analysis backend at ${API_BASE_URL}. Is it running (npm run server:dev)?`,
@@ -137,4 +157,34 @@ export interface RiskSummaryRequest {
 export async function getRiskSummary(input: RiskSummaryRequest): Promise<string> {
   const { summary } = await postJson<{ summary: string }>('/risk-summary', input)
   return summary
+}
+
+export interface SaveSnapshotRequest {
+  repoUrl: string
+  note?: string
+  costPerHourOfDowntime?: number
+  vendorSlaOverrides?: Record<string, number>
+  substrateOutageProbabilities?: Record<string, number>
+}
+
+export async function saveSnapshot(input: SaveSnapshotRequest): Promise<AnalysisSnapshotSummary> {
+  return postJson<AnalysisSnapshotSummary>('/snapshot', input)
+}
+
+export async function fetchHistory(repo: string, limit = 50): Promise<AnalysisSnapshotSummary[]> {
+  const { history } = await getJson<{ repo: string; history: AnalysisSnapshotSummary[] }>('/history', {
+    repo,
+    limit: String(limit),
+  })
+  return history
+}
+
+export interface CompareResponse {
+  a: AnalysisSnapshotSummary
+  b: AnalysisSnapshotSummary
+  diff: AnalysisDiff
+}
+
+export async function compareSnapshots(repo: string, a: string, b: string): Promise<CompareResponse> {
+  return postJson<CompareResponse>('/compare', { repo, a, b })
 }

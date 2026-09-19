@@ -111,6 +111,25 @@ export function parseRepoUrl(url: string): ParsedRepoUrl {
   return { owner: match[1], repo: match[2] }
 }
 
+// GitHub username rules (roughly): alphanumeric or single hyphens, not leading/trailing, <=39
+// chars. Repo names: alphanumeric/hyphen/underscore/period, <=100 chars. Strict on purpose — this
+// parses a bare "owner/repo" shorthand (query params, snapshot keys), not a pasted URL, so there's
+// no need to tolerate the URL-shape noise parseRepoUrl above exists to handle.
+const REPO_SHORTHAND_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,38})\/[a-zA-Z0-9._-]{1,100}$/
+
+/** Strictly parses the "owner/repo" shorthand used by the snapshot/history/compare routes — never
+ * a full URL. Rejects anything with extra path segments, whitespace, or characters outside the
+ * pattern above, so a malformed `repo` query/body param fails loudly instead of silently
+ * misrouting a DynamoDB key. */
+export function parseRepoShorthand(value: string): ParsedRepoUrl {
+  const trimmed = value.trim()
+  if (!REPO_SHORTHAND_PATTERN.test(trimmed)) {
+    throw new Error(`"${value}" is not a valid "owner/repo" identifier.`)
+  }
+  const [owner, repo] = trimmed.split('/')
+  return { owner, repo }
+}
+
 export interface ParsedPrUrl extends ParsedRepoUrl {
   prNumber: number
 }

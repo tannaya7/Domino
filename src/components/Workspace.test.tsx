@@ -166,6 +166,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
     snapshot: null,
     unclassified: null,
     substrateVerification: null,
+    history: null,
     ...overrides,
   }
 }

@@ -6,6 +6,7 @@ import { analyzeDetectedRedundancy } from '../lib/detectedRedundancy'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { computeStatusChip } from '../lib/statusChip'
 import type {
+  AnalysisSnapshotSummary,
   ConcentrationResult,
   CriticalityResult,
   GraphData,
@@ -61,6 +62,7 @@ import WhyDrawerContent from './WhyDrawerContent'
 import ScenarioBuilderPanel from './ScenarioBuilderPanel'
 import FisValidateModal from './FisValidateModal'
 import KbFooter from './KbFooter'
+import HistoryPanel from './HistoryPanel'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -89,6 +91,11 @@ export interface AnalyzedRepo {
    * the current /substrate-verification.json itself instead — see its own effect) or a snapshot
    * generated before this feature existed. */
   substrateVerification: SubstrateVerificationData | null
+  /** Embedded (frozen, from snapshot-generation time) analysis-history samples, when this analysis
+   * came from a demo snapshot that had them — the History tab uses this instead of a live
+   * GET /history call, zero network in demo mode. null for a live analysis (History tab fetches
+   * live instead) or a snapshot generated before this feature existed — never fabricated as []. */
+  history: AnalysisSnapshotSummary[] | null
 }
 
 interface WorkspaceProps {
@@ -101,7 +108,7 @@ interface WorkspaceProps {
   onLiveAnalysisComplete: (result: AnalyzeRepoResponse, repoUrl: string) => void
 }
 
-type View = 'graph' | 'overview'
+type View = 'graph' | 'overview' | 'history'
 type GraphMode = 'vendors' | 'files'
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -599,6 +606,15 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
             >
               Risk register
             </button>
+            {hasVendorData && repoLabel && (
+              <button
+                type="button"
+                onClick={() => setView('history')}
+                className={`rounded-md border px-2.5 py-1 font-medium ${view === 'history' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                History
+              </button>
+            )}
             {hasVendorData && (
               <button
                 type="button"
@@ -624,7 +640,17 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
-            {view === 'overview' ? (
+            {view === 'history' && repoLabel ? (
+              <HistoryPanel
+                repo={repoLabel}
+                repoUrl={analyzed.repoUrl}
+                embeddedHistory={analyzed.history}
+                isSnapshotMode={isSnapshot}
+                costPerHour={assumptions.costPerHour}
+                vendorSlaOverrides={assumptions.vendorSlaOverrides}
+                substrateOutageProbabilities={assumptions.substrateRateOverrides}
+              />
+            ) : view === 'overview' ? (
               <RiskOverview
                 vendors={analyzed.vendorGraph.vendors}
                 entrypoints={analyzed.criticality.entrypoints}

@@ -73,6 +73,7 @@ Globals:
     Environment:
       Variables:
         DYNAMODB_GRAPH_CACHE_TABLE: !Ref GraphCacheTable
+        DYNAMODB_ANALYSIS_SNAPSHOTS_TABLE: !Ref AnalysisSnapshotsTable
         SNS_ALERT_TOPIC_ARN: !Ref VendorAlertsTopic
         GITHUB_TOKEN_SSM_PARAM: !Ref GithubTokenSsmParam
         AWS_HEALTH_ENABLED: !Ref EnableHealthApi
@@ -114,6 +115,17 @@ Resources:
               Effect: Allow
               Action: ssm:GetParameter
               Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GithubTokenSsmParam}'
+            # Least-privilege on purpose (not DynamoDBCrudPolicy, unlike GraphCacheTable above):
+            # snapshots are append-only history, never updated or deleted by the app itself — only
+            # PutItem (save), GetItem (compare, by exact key), and Query (history, by repo) are
+            # ever called against this table.
+            - Sid: AnalysisSnapshotsReadWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+                - dynamodb:Query
+              Resource: !GetAtt AnalysisSnapshotsTable.Arn
             - !If
               - HasBedrockModel
               - Sid: BedrockConverse
@@ -230,6 +242,31 @@ Resources:
         Enabled: true
 
   # ---------------------------------------------------------------------------------------------
+  # DynamoDB — analysis snapshots (History tab). PK "repo" (owner/repo), SK "sk"
+  # ("<isoTime>#<sha>" — sortable lexicographically by time, and unique per commit), so a Query on
+  # PK alone with ScanIndexForward=false returns a repo's history newest-first. 90-day TTL — this
+  # is a rolling history feature, not a permanent audit log.
+  # ---------------------------------------------------------------------------------------------
+  AnalysisSnapshotsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-analysis-snapshots'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repo
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repo
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ---------------------------------------------------------------------------------------------
   # SNS — vendor degradation alerts
   # ---------------------------------------------------------------------------------------------
   VendorAlertsTopic:
@@ -328,6 +365,8 @@ Outputs:
     Value: !Ref CloudFrontDistribution
   GraphCacheTableName:
     Value: !Ref GraphCacheTable
+  AnalysisSnapshotsTableName:
+    Value: !Ref AnalysisSnapshotsTable
   VendorAlertsTopicArn:
     Value: !Ref VendorAlertsTopic
   ApiFunctionName:

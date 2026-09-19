@@ -52,6 +52,12 @@ vi.mock('../src/repoParser', async (importOriginal) => {
 vi.mock('../src/statusPoll', () => ({ fetchAllVendorStatuses: fetchAllVendorStatusesMock }))
 vi.mock('../src/awsHealth', () => ({ getAwsHealthStatus: getAwsHealthStatusMock }))
 
+const getBranchShaMock = vi.fn().mockResolvedValue('deadbeef1234567890')
+vi.mock('../src/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/github')>()
+  return { ...actual, getBranchSha: getBranchShaMock }
+})
+
 let server: Server
 let baseUrl: string
 
@@ -61,6 +67,12 @@ async function post(path: string, body: unknown): Promise<{ status: number; json
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+  return { status: res.status, json: await res.json() }
+}
+
+async function get(path: string, query: Record<string, string> = {}): Promise<{ status: number; json: any }> {
+  const search = new URLSearchParams(query).toString()
+  const res = await fetch(`${baseUrl}${path}${search ? `?${search}` : ''}`, { method: 'GET' })
   return { status: res.status, json: await res.json() }
 }
 
@@ -79,8 +91,11 @@ afterAll(async () => {
 
 beforeEach(async () => {
   const { clearCache } = await import('../src/cache')
+  const { clearSnapshotStore } = await import('../src/analysisSnapshots')
   clearCache()
+  clearSnapshotStore()
   analyzeRepoMock.mockClear()
+  getBranchShaMock.mockClear()
 })
 
 describe('POST /analyze-repo', () => {
@@ -290,5 +305,70 @@ describe('unknown routes and malformed input', () => {
       body: '{not json',
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('POST /snapshot, GET /history, POST /compare', () => {
+  it('POST /snapshot requires the repo to be analyzed first', async () => {
+    const { status, json } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello' })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/analyze this repo/i)
+  })
+
+  it('POST /snapshot saves a compact summary and GET /history returns it', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json: saved } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello', note: 'first save' })
+    expect(status).toBe(200)
+    expect(saved.repo).toBe('octocat/hello')
+    expect(saved.sha).toBe('deadbeef1234567890')
+    expect(saved.note).toBe('first save')
+    expect(saved.vendors).toEqual([expect.objectContaining({ id: 'stripe' })])
+    expect(saved.nodes).toBeUndefined() // never the file graph
+
+    const { status: historyStatus, json: history } = await get('/history', { repo: 'octocat/hello' })
+    expect(historyStatus).toBe(200)
+    expect(history.history).toHaveLength(1)
+    expect(history.history[0].sk).toBe(saved.sk)
+  })
+
+  it('POST /snapshot refuses a truncated/degraded scan', async () => {
+    analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
+    const { status, json } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/truncated' })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/truncated|rate-limited/i)
+  })
+
+  it('GET /history uses strict repo parsing — rejects a malformed repo identifier', async () => {
+    const { status, json } = await get('/history', { repo: 'not a valid repo!!' })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/not a valid/i)
+  })
+
+  it('GET /history returns [] for a repo with no snapshots, never a 404', async () => {
+    const { status, json } = await get('/history', { repo: 'octocat/never-seen' })
+    expect(status).toBe(200)
+    expect(json.history).toEqual([])
+  })
+
+  it('POST /compare returns a real diff between two saved snapshots', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { json: first } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello' })
+    await new Promise((r) => setTimeout(r, 2))
+    getBranchShaMock.mockResolvedValueOnce('feedface0000000000')
+    const { json: second } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello' })
+
+    const { status, json } = await post('/compare', { repo: 'octocat/hello', a: first.sk, b: second.sk })
+    expect(status).toBe(200)
+    expect(json.diff.verdict).toBe('No material change.') // same fixture data both times
+    expect(json.a.sk).toBe(first.sk)
+    expect(json.b.sk).toBe(second.sk)
+  })
+
+  it('POST /compare 404s when a snapshot key does not exist', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { json: first } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status } = await post('/compare', { repo: 'octocat/hello', a: first.sk, b: 'not-a-real-sk' })
+    expect(status).toBe(404)
   })
 })

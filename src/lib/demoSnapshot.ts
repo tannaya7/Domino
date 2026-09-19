@@ -1,5 +1,6 @@
 import type { AnalyzeRepoResponse } from './api'
 import type { SubstrateVerificationData } from './substrateVerification'
+import type { AnalysisSnapshotSummary } from './types'
 
 export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> {
   owner: string
@@ -19,6 +20,10 @@ export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> 
    * recently produced. Optional for the same reason as `unclassified` above: older snapshots
    * predate this field entirely. */
   substrateVerification?: SubstrateVerificationData
+  /** Precomputed analysis-history samples for the History tab, so it works with zero network calls
+   * in demo mode — see scripts/snapshot-repo.ts. Optional/absent for the same reason as the two
+   * fields above: nothing here is ever fabricated just to fill the field. */
+  history?: AnalysisSnapshotSummary[]
 }
 
 export class DemoSnapshotError extends Error {}

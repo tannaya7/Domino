@@ -2,11 +2,20 @@ import { analyzeConcentration } from '../../src/lib/concentration'
 import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS, simulateFailureScenario } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
 import { evaluateScenario, MAX_SCENARIO_SELECTIONS, ScenarioValidationException } from '../../src/engine/scenario'
+import { diffAnalyses } from '../../src/engine/snapshotDiff'
+import { computeAssumptionsHash } from '../../src/lib/assumptionsHash'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { FailureScenario } from '../../src/lib/types'
+import {
+  buildSnapshotSummary,
+  getHistory,
+  getSnapshotBySk,
+  saveSnapshot,
+  SnapshotTooLargeError,
+} from './analysisSnapshots'
 import { getAwsHealthStatus } from './awsHealth'
 import { getCachedGraph, setCachedGraph } from './cache'
-import { GithubApiError, parseRepoUrl } from './github'
+import { getBranchSha, GithubApiError, parseRepoShorthand, parseRepoUrl } from './github'
 import { analyzePr } from './prAnalyzer'
 import { analyzeRepo, type AnalyzeRepoResult } from './repoParser'
 import { getRiskSummary } from './riskSummary'
@@ -259,6 +268,78 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
 
     const runbook = await generateRunbook({ vendor, affectedFileCount, scenario })
     return { status: 200, body: runbook }
+  }
+
+  if (path === '/snapshot') {
+    const repoUrl = asTrimmedString(body.repoUrl)
+    const cached = await requireCachedAnalysis(repoUrl)
+
+    // Never snapshot a degraded or rate-limited scan — a compact summary built from a partial file
+    // graph would misrepresent this point in history forever (snapshots are meant to be trusted
+    // later, unlike a live analysis the user can just re-run).
+    if (cached.truncated) {
+      throw new HttpError(400, 'Cannot save a snapshot from a truncated/rate-limited scan — analyze this repo again with a full scan first.')
+    }
+
+    const { owner, repo } = parseRepoUrl(repoUrl)
+    const sha = await getBranchSha(owner, repo, cached.branch)
+
+    const adjacency = buildAdjacencyMap(cached.graph.nodes, cached.graph.edges)
+    const concentration = analyzeConcentration(cached.vendors, cached.iacSubstrates)
+    const criticality = analyzeCriticality(
+      adjacency,
+      cached.graph.nodes.map((n) => n.id),
+      cached.entrypoints.length > 0 ? cached.entrypoints : undefined,
+    )
+    const costPerHourOfDowntime = sanitizeCost(body.costPerHourOfDowntime) ?? 0
+    const vendorSlaOverrides = sanitizeProbabilityMap(body.vendorSlaOverrides) ?? {}
+    const substrateOutageProbabilities = sanitizeProbabilityMap(body.substrateOutageProbabilities) ?? {}
+    const exactResult = computeExactAvailability(cached.vendors, { costPerHourOfDowntime, vendorSlaOverrides, substrateOutageProbabilities })
+    const headline = buildAvailabilityHeadline(cached.vendors, exactResult)
+
+    const note = asTrimmedString(body.note).slice(0, 280) || undefined
+
+    const summary = buildSnapshotSummary({
+      repo: `${owner}/${repo}`,
+      sha,
+      vendors: cached.vendors,
+      concentration,
+      criticality,
+      headline,
+      unclassifiedCount: cached.unclassified?.totalCount ?? null,
+      assumptionsHash: computeAssumptionsHash({ costPerHourOfDowntime, vendorSlaOverrides, substrateOutageProbabilities }),
+      note,
+    })
+
+    try {
+      await saveSnapshot(summary)
+    } catch (err) {
+      if (err instanceof SnapshotTooLargeError) throw new HttpError(500, err.message)
+      throw err
+    }
+
+    return { status: 200, body: summary }
+  }
+
+  if (path === '/history') {
+    const { owner, repo } = parseRepoShorthand(asTrimmedString(body.repo))
+    const limit = typeof body.limit === 'number' ? body.limit : Number(body.limit) || 50
+    const history = await getHistory(`${owner}/${repo}`, Math.max(1, Math.min(50, Math.trunc(limit))))
+    return { status: 200, body: { repo: `${owner}/${repo}`, history } }
+  }
+
+  if (path === '/compare') {
+    const { owner, repo } = parseRepoShorthand(asTrimmedString(body.repo))
+    const repoKey = `${owner}/${repo}`
+    const aSk = asTrimmedString(body.a)
+    const bSk = asTrimmedString(body.b)
+    if (!aSk || !bSk) throw new HttpError(400, 'Both "a" and "b" snapshot keys are required.')
+
+    const [a, b] = await Promise.all([getSnapshotBySk(repoKey, aSk), getSnapshotBySk(repoKey, bSk)])
+    if (!a) throw new HttpError(404, `Snapshot "${aSk}" was not found for ${repoKey}.`)
+    if (!b) throw new HttpError(404, `Snapshot "${bSk}" was not found for ${repoKey}.`)
+
+    return { status: 200, body: { a, b, diff: diffAnalyses(a, b) } }
   }
 
   return { status: 404, body: { error: 'Not found' } }

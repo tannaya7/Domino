@@ -9,6 +9,7 @@ import { errorMessage, routeApi } from './apiRouter'
 
 export interface ApiGatewayV2Event {
   rawPath: string
+  rawQueryString?: string
   requestContext: { http: { method: string } }
   body?: string | null
   isBase64Encoded?: boolean
@@ -45,14 +46,20 @@ function decodeBody(event: ApiGatewayV2Event): string {
 export async function handler(event: ApiGatewayV2Event): Promise<ApiGatewayV2Result> {
   const method = event.requestContext?.http?.method ?? 'GET'
   if (method === 'OPTIONS') return { statusCode: 204, headers: corsHeaders(), body: '' }
-  if (method !== 'POST') return json(404, { error: 'Not found' })
+  if (method !== 'POST' && method !== 'GET') return json(404, { error: 'Not found' })
 
   let body: Record<string, unknown> = {}
-  try {
-    const raw = decodeBody(event)
-    body = raw ? JSON.parse(raw) : {}
-  } catch {
-    return json(400, { error: 'Malformed JSON body.' })
+  if (method === 'GET') {
+    // GET routes (e.g. /history?repo=owner/repo) take their input from the query string instead of
+    // a JSON body — routeApi() reads both the same way, so every route handler stays body-shaped.
+    body = Object.fromEntries(new URLSearchParams(event.rawQueryString ?? ''))
+  } else {
+    try {
+      const raw = decodeBody(event)
+      body = raw ? JSON.parse(raw) : {}
+    } catch {
+      return json(400, { error: 'Malformed JSON body.' })
+    }
   }
 
   try {
