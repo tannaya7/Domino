@@ -1,5 +1,7 @@
 # Blast Radius Mapper
 
+[![CI](https://github.com/tannaya7/Domino/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/tannaya7/Domino/actions/workflows/ci.yml)
+
 See what breaks before it breaks: paste a GitHub repo, and in seconds see which third-party
 vendors secretly share infrastructure, and what a shared outage would actually cost you.
 
@@ -203,8 +205,10 @@ unauthenticated 60 req/hour limit.
 
 ## Tests
 
-<!-- CI badge intentionally omitted until a post-this-change CI run on this branch is confirmed
-     green — see the note in the PR/commit that introduces it. -->
+CI (badge at the top of this file) runs `npm run verify:all` (typecheck + lint + full test suite,
+writing [docs/VERIFICATION.md](docs/VERIFICATION.md) from the real results) plus `npm run build` on
+every push/PR to `main` — confirmed green on [PR #3](https://github.com/tannaya7/Domino/pull/3)
+before this badge was added.
 
 684 tests across 68 files, real numbers regenerated on every `npm run verify:all` run — differential
 tests against brute-force reference implementations, iterative-traversal robustness at 100,000+
