@@ -5,7 +5,7 @@
 See what breaks before it breaks: paste a GitHub repo, and in seconds see which third-party
 vendors secretly share infrastructure, and what a shared outage would actually cost you.
 
-**🔴 Live demo: [waters-hawaiian-computational-displays.trycloudflare.com](https://waters-hawaiian-computational-displays.trycloudflare.com)** — or skip straight to the guided tour: **[…/?tour=1](https://waters-hawaiian-computational-displays.trycloudflare.com/?tour=1)** (45 seconds, no input required).
+**🔴 Live demo: [labs-sheep-biol-sie.trycloudflare.com](https://labs-sheep-biol-sie.trycloudflare.com)** — or skip straight to the guided tour: **[…/?tour=1](https://labs-sheep-biol-sie.trycloudflare.com/?tour=1)** (45 seconds, no input required).
 
 > The live URL is a real backend behind a Cloudflare tunnel, kept up by a self-healing watchdog
 > (`scripts/live-demo-watchdog.sh`) — not a permanent AWS deployment. If it's ever down when you
@@ -17,7 +17,7 @@ vendors secretly share infrastructure, and what a shared outage would actually c
 
 ## Try it in 30 seconds
 
-1. Open the [live demo](https://waters-hawaiian-computational-displays.trycloudflare.com).
+1. Open the [live demo](https://labs-sheep-biol-sie.trycloudflare.com).
 2. Click **`documenso/documenso`** under "Try an example" — loads instantly, no GitHub call needed.
 3. Click the highlighted vendor cluster (or any node) to see its blast radius, then **Simulate** an outage.
 
