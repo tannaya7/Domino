@@ -21,8 +21,9 @@ Result: `gate` check **fails**. Sticky comment posted:
 > `maxNewVendorsPerPr` — This PR introduces 1 new vendor(s), above the limit of 0 per PR.
 > New vendors (1): **Mixpanel** (analytics) on `aws` — via `manifest:npm:mixpanel` in `package.json`
 
-Run: https://github.com/tannaya7/documenso/actions/runs/35467422897
-(earlier runs against since-replaced tunnel URLs, same result:
+Run: https://github.com/tannaya7/documenso/actions/runs/35476457501
+(earlier runs against since-replaced tunnels/tokens, same result:
+https://github.com/tannaya7/documenso/actions/runs/35467422897,
 https://github.com/tannaya7/documenso/actions/runs/35467124423,
 https://github.com/tannaya7/documenso/actions/runs/35466726759)
 
@@ -37,8 +38,9 @@ Result: `gate` check **passes**. Sticky comment posted:
 > :white_check_mark: **Pass** — within policy.
 > New vendors (0): None detected.
 
-Run: https://github.com/tannaya7/documenso/actions/runs/35467424727
-(earlier runs against since-replaced tunnel URLs, same result:
+Run: https://github.com/tannaya7/documenso/actions/runs/35476459247
+(earlier runs against since-replaced tunnels/tokens, same result:
+https://github.com/tannaya7/documenso/actions/runs/35467424727,
 https://github.com/tannaya7/documenso/actions/runs/35467127491,
 https://github.com/tannaya7/documenso/actions/runs/35466781644)
 
@@ -48,14 +50,18 @@ Both PRs were re-triggered (a synchronize push) multiple times across this
 proof's lifetime: after the demo API server was restarted from a cold start,
 after its first tunnel (`loca.lt`, free tier) degraded mid-session (went from
 working to timing out to returning 502s within about 15 minutes, even though
-the local server behind it stayed healthy throughout), and again after
-switching to a Cloudflare quick tunnel. Each time, the raw Action logs were
-pulled with `gh run view --log` to confirm the request actually reached the
-API and the job reached its real completion line (`##[error]Policy violated`
-for the fail case, `Gate status: pass` for the pass case) rather than the
-`fail_open` branch's `"Could not reach the API"` warning. The `gate` job's
-own log line and the posted comment body are shown above as they came back
-from the latest live run.
+the local server behind it stayed healthy throughout), again after switching
+to a Cloudflare quick tunnel, and once more after the backend's `GITHUB_TOKEN`
+was rotated (a routine security rotation, unrelated to the gate itself — the
+backend process was restarted to pick up the new token, which briefly took
+its old tunnel down and triggered the watchdog's normal auto-heal onto a
+fresh one). Each time, the raw Action logs were pulled with `gh run view
+--log` to confirm the request actually reached the API and the job reached
+its real completion line (`##[error]Policy violated` for the fail case,
+`Gate status: pass` for the pass case) rather than the `fail_open` branch's
+`"Could not reach the API"` warning. The `gate` job's own log line and the
+posted comment body are shown above as they came back from the latest live
+run.
 
 ## A note on the API URL
 

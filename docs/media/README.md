@@ -26,8 +26,8 @@ The Actions run detail page (not the PR conversation tab — it renders the `gat
 status and its full markdown summary in one screenshot, which the conversation tab's collapsed
 checks widget doesn't) for the two proof PRs in [docs/proof/PROOF.md](../proof/PROOF.md):
 
-- `pr-gate-fail.jpg`: https://github.com/tannaya7/documenso/actions/runs/35467422897 (PR #1, adds Mixpanel — policy violation)
-- `pr-gate-pass.jpg`: https://github.com/tannaya7/documenso/actions/runs/35467424727 (PR #2, README wording — within policy)
+- `pr-gate-fail.jpg`: https://github.com/tannaya7/documenso/actions/runs/35476457501 (PR #1, adds Mixpanel — policy violation)
+- `pr-gate-pass.jpg`: https://github.com/tannaya7/documenso/actions/runs/35476459247 (PR #2, README wording — within policy)
 
 These run URLs are specific to this proof session — if the PRs are re-triggered again (see
 PROOF.md's "How this was verified"), get the current run IDs with
