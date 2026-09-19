@@ -1,48 +1,50 @@
-# Media to capture
+# Media
 
-Every file below is referenced by filename from [README.md](../../README.md) or
-[docs/SUBMISSION.md](../SUBMISSION.md) — drop a file in at the exact path/name listed and the
-reference resolves with no other edit needed. Nothing here is committed yet (this directory holds
-only this instruction file); the README's image link is intentionally broken until you add
-`hero.gif`.
+All five files below are captured and committed — every image referenced from
+[README.md](../../README.md) or [docs/SUBMISSION.md](../SUBMISSION.md) resolves already. This file
+now documents what each one is and how it was captured, so a stale screenshot (the UI changed,
+the numbers moved) can be told apart from a wrong one and re-captured the same way.
 
-Capture everything against the live demo URL in README.md (or `npm run dev` + `npm run server:dev`
-locally, same UI) — never mock data or a design tool. A judge who reverse-engineers a screenshot
-back to the live app should find exactly what they saw in the image.
+Everything here was captured against the live demo (a real browser session driven through
+`mcp__claude-in-chrome`, screenshotting the actual rendered app and the actual GitHub PR pages) —
+never mock data or a design tool. Static screenshots are `.jpg` (the actual format the capture tool
+produces), not `.png`, despite this directory's original naming plan.
 
-## 1. `hero.gif` — required, referenced at the top of README.md
+## `hero.gif`
 
-- **What**: the 45-second guided tour (click "▶ Play 45-second tour", or load `?tour=1`), screen-recorded start to finish and converted to a looping GIF.
-- **Must show**: the vendor graph rendering with concentration highlighted, a click-through to a vendor's blast radius, and the failure-simulation result (expected downtime + $ exposure) appearing.
-- **Must NOT show**: any browser chrome/bookmarks bar, any other open tab, or your own GitHub token in a devtools panel if you have one open.
-- **Format**: GIF, ≤15s loop is fine if you trim to the highlight reel — doesn't need to be the full 45s. Keep the file under 8MB (GitHub renders large GIFs but they're slow to load in a README).
-- **Suggested tool**: `mcp__claude-in-chrome__gif_creator` if you're recording through Claude in Chrome, or any screen recorder + `gifski`/ezgif.com to convert.
+45-second-tour-style walkthrough on `documenso/documenso`: load the example → open the Risk
+Register tab → click a vendor row (Resend) to show its blast-radius panel in the vendor graph →
+click "Simulate this vendor's outage" → the result (entrypoints down, loss/hour, cascading
+highlight on shared-substrate vendors) appears. 14 frames, ~3.5MB.
 
-## 2. `pr-gate-fail.png` — referenced from README's PR Resilience Gate section (optional but recommended)
+Re-capture: open the [live demo](../../README.md), start `gif_creator` recording, repeat the
+sequence above, `export` with `download: true`, then copy the downloaded file here.
 
-- **What**: a screenshot of the real failing PR from [docs/proof/PROOF.md](../proof/PROOF.md) (PR #1, "Add mixpanel for product analytics") — the GitHub PR page showing the `gate` check as ❌ Failing, with the sticky comment visible below it.
-- **Must show**: the red/failing check status AND the comment body (new vendor, before/after table, policy violation line) in the same shot — scroll so both are visible, or capture two stacked screenshots if the page is too long.
-- **URL**: https://github.com/tannaya7/documenso/pull/1
+## `pr-gate-fail.jpg` / `pr-gate-pass.jpg`
 
-## 3. `pr-gate-pass.png` — referenced from README's PR Resilience Gate section (optional but recommended)
+The Actions run detail page (not the PR conversation tab — it renders the `gate` job's pass/fail
+status and its full markdown summary in one screenshot, which the conversation tab's collapsed
+checks widget doesn't) for the two proof PRs in [docs/proof/PROOF.md](../proof/PROOF.md):
 
-- **What**: the same, for the passing PR (PR #2, "docs: tighten wording in README intro").
-- **Must show**: the green/passing check status and its "Pass — within policy" comment.
-- **URL**: https://github.com/tannaya7/documenso/pull/2
+- `pr-gate-fail.jpg`: https://github.com/tannaya7/documenso/actions/runs/35467422897 (PR #1, adds Mixpanel — policy violation)
+- `pr-gate-pass.jpg`: https://github.com/tannaya7/documenso/actions/runs/35467424727 (PR #2, README wording — within policy)
 
-## 4. `vendor-graph.png` — referenced from docs/SUBMISSION.md (optional)
+These run URLs are specific to this proof session — if the PRs are re-triggered again (see
+PROOF.md's "How this was verified"), get the current run IDs with
+`gh run list --repo tannaya7/documenso --workflow=blast-radius.yml` and re-capture from
+`https://github.com/tannaya7/documenso/actions/runs/<id>`.
 
-- **What**: a static screenshot of the vendor graph view (not the file graph) for `documenso/documenso`, with "Group by substrate" toggled on and the concentration panel visible on the right.
-- **Must show**: the colored substrate legend at the bottom and the concentration percentage bar in the side panel — these are the two things that make "shared-fate risk" legible at a glance, which is the whole pitch.
+## `vendor-graph.jpg` / `simulate-outage.jpg`
 
-## 5. `simulate-outage.png` — referenced from docs/SUBMISSION.md (optional)
-
-- **What**: the failure-simulation result after clicking **Simulate** on an "AWS regional outage" scenario for `documenso/documenso`.
-- **Must show**: the naive-vs-correlated availability comparison and the expected downtime/exposure numbers, not just the vendor list.
+Both from the same `documenso/documenso` example session as the GIF: `vendor-graph.jpg` is the
+vendor graph grouped by substrate before any interaction (concentration panel + "4/5 vendors on
+aws" callout visible); `simulate-outage.jpg` is the result state after simulating Resend's outage
+(loss/hour, entrypoints down, and `documenso`/`Stripe` highlighted red from the cascading
+correlated-substrate effect).
 
 ## Naming and paths
 
-Keep filenames exactly as listed (lowercase, hyphenated) — README.md and SUBMISSION.md reference
-these paths literally, so a renamed file breaks the link silently (GitHub shows a broken-image
-icon, not an error). If you add a file NOT listed here, there's no README reference to update, so
-it's safe to add freely, but consider adding a line to this file so it stays a complete list.
+Filenames are referenced literally from README.md and SUBMISSION.md — renaming a file here breaks
+that link silently (GitHub shows a broken-image icon, not an error). If the UI changes enough that
+one of these no longer represents it accurately, re-capture it under the same filename rather than
+adding a new one, unless the corresponding README/SUBMISSION reference is also being updated.
