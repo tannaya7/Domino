@@ -11,6 +11,8 @@ function fixtureSimulation(overrides: Partial<SimulateResponse> = {}): SimulateR
   return {
     scenario: null,
     presetScenarios: [],
+    whatIf: null,
+    recommendedMoves: [],
     simulation: {
       naiveAvailability: 0.999,
       independentSameMarginalsAvailability: 0.998,

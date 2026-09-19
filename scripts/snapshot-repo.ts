@@ -9,14 +9,22 @@
  *
  * Usage: tsx scripts/snapshot-repo.ts <owner/repo>
  */
+import { config as loadDotenv } from 'dotenv'
+
+// Loaded before the github/whatIf imports below ever read process.env — GITHUB_TOKEN lives in the
+// git-ignored server/.env (same file server:dev loads), never typed into a command or committed.
+loadDotenv({ path: new URL('../server/.env', import.meta.url) })
+
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { analyzeConcentration } from '../src/lib/concentration'
 import { analyzeCriticality } from '../src/lib/criticality'
+import { defaultCostPerHour } from '../src/lib/currency'
 import { buildAdjacencyMap, buildVendorGraph } from '../src/lib/graph'
 import { getBranchSha } from '../server/src/github'
 import { analyzeRepo } from '../server/src/repoParser'
 import { generateDeterministicSummary } from '../server/src/riskSummary'
+import { computeWhatIf, rankRecommendedMoves } from '../server/src/whatIf'
 
 const OUT_DIR = path.join(import.meta.dirname, '..', 'public', 'demo')
 
@@ -76,6 +84,22 @@ async function main() {
         }
       })()
 
+  // Precomputed with the SAME deterministic ranking (and, for the top move, the same exact-engine
+  // baseline/mitigated/delta) a live /simulate call would return, at the app's own default
+  // assumptions (defaultCostPerHour('USD') — see useAvailabilityAssumptions.ts) — so the guided
+  // tour's "recommended move" step shows a real number with the API down, never a fabricated one.
+  // undefined (not a zeroed-out placeholder) when this repo has no mitigation worth recommending.
+  const defaultAssumptions = { costPerHourOfDowntime: defaultCostPerHour('USD'), vendorSlaOverrides: {}, substrateOutageProbabilities: {} }
+  const recommendedMoves = rankRecommendedMoves(result.vendors, defaultAssumptions)
+  const topRecommendedMove = recommendedMoves[0]
+  const topRecommendedMoveWhatIf = topRecommendedMove
+    ? computeWhatIf(
+        result.vendors,
+        [{ vendorId: topRecommendedMove.vendorId, substrate: topRecommendedMove.substrate, failoverVendorId: topRecommendedMove.failoverVendorId }],
+        defaultAssumptions,
+      )
+    : undefined
+
   const snapshot = {
     owner,
     repo,
@@ -89,6 +113,8 @@ async function main() {
     concentration,
     criticality,
     riskSummary,
+    topRecommendedMove,
+    topRecommendedMoveWhatIf,
     meta: {
       owner,
       repo,
@@ -109,6 +135,7 @@ async function main() {
   console.log(
     `  ${result.vendors.length} vendor(s) -> ${concentration.substrateCount} substrate(s), ${result.graph.nodes.length} nodes / ${result.graph.edges.length} edges, sha ${sha.slice(0, 7)}`,
   )
+  console.log(topRecommendedMove ? `  top recommended move: ${topRecommendedMove.description}` : '  no recommended move for this repo')
 }
 
 main().catch((err) => {

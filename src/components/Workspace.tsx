@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AnalyzePrResponse, AnalyzeRepoResponse, SimulateResponse, StatusResponse } from '../lib/api'
-import { analyzeRepo, ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
-import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
+import { analyzeRepo, ApiError, askBlastRadius, fetchRunbook, fetchStatus, simulate } from '../lib/api'
+import { buildAvailabilityHeadline, computeExactAvailability, hiddenSharePercent, PRESET_SCENARIOS, simulateFailureScenario } from '../lib/availability'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
+import { buildOfflineSimulateResponse } from '../lib/offlineSimulate'
 import { computeStatusChip } from '../lib/statusChip'
-import type { ConcentrationResult, CriticalityResult, GraphData, Runbook, Vendor, VendorGraph } from '../lib/types'
+import type { AskResult, ConcentrationResult, CriticalityResult, GraphData, RecommendedMove, Runbook, Vendor, VendorGraph, WhatIfOverride, WhatIfResult } from '../lib/types'
 import { selectBannerVendor } from '../lib/vendorStatusBanner'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
+import { IDLE_TOUR_CONTROLLER, type TourController } from '../tour/useTour'
+import { buildTourSteps } from '../tour/steps'
 import TopBar from './TopBar'
 import GraphView from './GraphView'
 import VendorGraphView from './VendorGraphView'
@@ -22,8 +25,11 @@ import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
 import CriticalityPanel from './CriticalityPanel'
 import LiveStatusPanel from './LiveStatusPanel'
+import RecommendedMovesPanel from './RecommendedMovesPanel'
 import RunbookPanel from './RunbookPanel'
+import AskPanel from './AskPanel'
 import StatTile from './ui/StatTile'
+import { MAX_WHATIF_STACK } from './WhatIfPanel'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -45,6 +51,15 @@ export interface AnalyzedRepo {
    * The server has never cached this repo, so /simulate, /status, and /runbook would all 404 —
    * those panels are replaced with an "Analyze live" prompt instead of letting them fail. */
   snapshot: { sha: string; generatedAt: string } | null
+  /** Precomputed by scripts/snapshot-repo.ts (server/src/whatIf.ts, same deterministic ranking a
+   * live /simulate call would return) — lets the guided tour's "recommended move" step show a real
+   * number with the API down. undefined for a live analysis or a snapshot with no curated move. */
+  tourTopMove?: RecommendedMove
+  tourTopMoveWhatIf?: WhatIfResult
+  /** Ask Blast Radius's free-text input only shows when this is true. Always false for a snapshot
+   * (the server has never cached this repo, so /ask would 404 — same reasoning as isSnapshot
+   * hiding AvailabilityPanel/RunbookPanel elsewhere in this file). */
+  bedrockAvailable: boolean
 }
 
 interface WorkspaceProps {
@@ -55,6 +70,16 @@ interface WorkspaceProps {
   /** Called after a successful "Analyze live" — same signature as App.tsx's own repo-analyzed
    * handler, so a live analysis replaces the snapshot exactly like a fresh analysis would. */
   onLiveAnalysisComplete: (result: AnalyzeRepoResponse, repoUrl: string) => void
+  /** Bubbles all the way to App.tsx — Workspace doesn't own `analyzed`, so it can't itself load the
+   * bundled tour snapshot when a different repo is currently open. Optional (no-op default) so
+   * existing tests/callers that don't care about the tour don't need to wire it up. */
+  onPlayTour?: () => void
+  tour?: TourController
+  /** True right after App.tsx has (re)loaded the bundled tour snapshot and armed the tour — consumed
+   * (flipped back via onTourAutoStartConsumed) the moment this Workspace's own steps are ready and
+   * tour.start() actually fires, so it never re-fires on an unrelated re-render. */
+  tourAutoStart?: boolean
+  onTourAutoStartConsumed?: () => void
 }
 
 type View = 'graph' | 'overview'
@@ -64,7 +89,17 @@ function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiError ? err.message : fallback
 }
 
-function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisComplete }: WorkspaceProps) {
+function Workspace({
+  analyzed,
+  prResult,
+  onReset,
+  onClearPr,
+  onLiveAnalysisComplete,
+  onPlayTour = () => {},
+  tour = IDLE_TOUR_CONTROLLER,
+  tourAutoStart = false,
+  onTourAutoStartConsumed = () => {},
+}: WorkspaceProps) {
   const hasVendorData = analyzed.repoUrl !== null
   const isSnapshot = analyzed.snapshot !== null
   const [view, setView] = useState<View>('graph')
@@ -86,7 +121,10 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   // assumption updates the view you're looking at instead of silently resetting it — except in
   // snapshot mode, where the server has never analyzed this repo and /simulate would just 404.
   const { assumptions, setAssumptions } = useAvailabilityAssumptions(analyzed.repoUrl, (next) => {
-    if (!isSnapshot) runSimulation(activeScenarioId, next)
+    if (!isSnapshot) {
+      runSimulation(activeScenarioId, next)
+      void runWhatIf(whatIfStack, next)
+    }
   })
 
   const [statusResult, setStatusResult] = useState<StatusResponse | null>(null)
@@ -99,6 +137,20 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   const [runbook, setRunbook] = useState<Runbook | null>(null)
   const [isLoadingRunbook, setIsLoadingRunbook] = useState(false)
   const [runbookError, setRunbookError] = useState<string | null>(null)
+
+  const [askResult, setAskResult] = useState<AskResult | null>(null)
+  const [isAsking, setIsAsking] = useState(false)
+  const [askError, setAskError] = useState<string | null>(null)
+
+  // What-if mitigation preview (Prompt 15) — up to MAX_WHATIF_STACK stacked overrides, computed by
+  // the same exact engine as `simulation` above under the SAME assumptions, so `whatIfResult.delta`
+  // reflects only the override, never assumption drift. recommendedMoves rides along on every call
+  // since /simulate always computes it and it's cheap relative to the round trip itself.
+  const [whatIfStack, setWhatIfStack] = useState<WhatIfOverride[]>([])
+  const [whatIfResult, setWhatIfResult] = useState<WhatIfResult | null>(null)
+  const [isLoadingWhatIf, setIsLoadingWhatIf] = useState(false)
+  const [whatIfError, setWhatIfError] = useState<string | null>(null)
+  const [recommendedMoves, setRecommendedMoves] = useState<RecommendedMove[]>([])
 
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
@@ -253,6 +305,165 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     await runSimulation(undefined, assumptions)
   }
 
+  // Separate from `simulation` above — a substrate-outage scenario and the what-if stack are
+  // independent lenses on the same repo, and stacking a what-if should never clobber whichever
+  // scenario is currently shown in the graph/AvailabilityPanel (or vice versa).
+  async function runWhatIf(stack: WhatIfOverride[], withAssumptions: AvailabilityAssumptionsState) {
+    if (!analyzed.repoUrl) return
+    setIsLoadingWhatIf(true)
+    setWhatIfError(null)
+    try {
+      const result = await simulate({
+        repoUrl: analyzed.repoUrl,
+        costPerHourOfDowntime: withAssumptions.costPerHour,
+        vendorSlaOverrides: withAssumptions.vendorSlaOverrides,
+        substrateFailureProbabilities: withAssumptions.substrateRateOverrides,
+        overrides: stack,
+      })
+      setWhatIfResult(result.whatIf ?? null)
+      setRecommendedMoves(result.recommendedMoves ?? [])
+    } catch (err) {
+      setWhatIfError(apiErrorMessage(err, 'Could not compute this what-if.'))
+    } finally {
+      setIsLoadingWhatIf(false)
+    }
+  }
+
+  function handleAddWhatIf(override: WhatIfOverride) {
+    if (whatIfStack.length >= MAX_WHATIF_STACK) return
+    const next = [...whatIfStack, override]
+    setWhatIfStack(next)
+    void runWhatIf(next, assumptions)
+  }
+
+  function handleRemoveWhatIf(index: number) {
+    const next = whatIfStack.filter((_, i) => i !== index)
+    setWhatIfStack(next)
+    if (next.length > 0) void runWhatIf(next, assumptions)
+    else setWhatIfResult(null)
+  }
+
+  function handleResetWhatIf() {
+    setWhatIfStack([])
+    setWhatIfResult(null)
+    setWhatIfError(null)
+  }
+
+  function handlePreviewRecommendedMove(move: RecommendedMove) {
+    if (whatIfStack.length >= MAX_WHATIF_STACK) return
+    handleSelectVendor(move.vendorId)
+    setGraphMode('vendors')
+    setView('graph')
+    handleAddWhatIf({ vendorId: move.vendorId, substrate: move.substrate, failoverVendorId: move.failoverVendorId })
+  }
+
+  // --- Guided tour (src/tour/) -------------------------------------------------------------
+  // The tour always runs on a bundled example snapshot, so every action below is network-free:
+  // scenario simulation reuses the same pure exact-engine functions already computed client-side
+  // for the headline card (src/lib/offlineSimulate.ts), and the recommended-move step uses numbers
+  // precomputed at snapshot-generation time (tourTopMove/tourTopMoveWhatIf) rather than calling
+  // /simulate, which would 404 for a snapshot the server has never scanned.
+  function handleTourRunScenario(scenario: (typeof PRESET_SCENARIOS)[number]) {
+    const offline = buildOfflineSimulateResponse(analyzed.vendors, scenario, {
+      costPerHourOfDowntime: assumptions.costPerHour,
+      vendorSlaOverrides: assumptions.vendorSlaOverrides,
+      substrateOutageProbabilities: assumptions.substrateRateOverrides,
+    })
+    setActiveScenarioId(scenario.id)
+    setSingleVendorCascadeTarget(null)
+    setSimulation(offline)
+    setGraphMode('vendors')
+    setView('graph')
+    setSelectedVendorKey(null)
+  }
+
+  function handleTourApplyTopMove() {
+    const move = analyzed.tourTopMove
+    const moveWhatIf = analyzed.tourTopMoveWhatIf
+    if (!move || !moveWhatIf) return
+    setGraphMode('vendors')
+    setView('graph')
+    handleSelectVendor(move.vendorId)
+    setWhatIfStack([{ vendorId: move.vendorId, substrate: move.substrate, failoverVendorId: move.failoverVendorId }])
+    setWhatIfResult(moveWhatIf)
+    setWhatIfError(null)
+  }
+
+  function handleTourOpenRiskRegister() {
+    setView('overview')
+  }
+
+  const defaultScenario = PRESET_SCENARIOS.find((s) => s.id === defaultScenarioId) ?? PRESET_SCENARIOS[0]
+  // Not memoized: building these step objects is cheap (no engine enumeration, just object
+  // construction over already-computed values), and every input that should invalidate it —
+  // analyzed, assumptions, the client headline — already changes on essentially every render this
+  // component cares about, so a useMemo here would buy nothing but a stale-closure risk on the
+  // step actions below (which close over handlers that themselves change every render).
+  const tourSteps = (() => {
+    if (!hasVendorData || !defaultScenario) return []
+    const scenarioResult = simulateFailureScenario(analyzed.vendors, defaultScenario)
+    const entrypointSet = new Set(analyzed.criticality.entrypoints)
+    const affectedEntrypoints = new Set<string>()
+    for (const vendor of scenarioResult.affectedVendors) {
+      const vg = analyzed.vendorGraph.vendors.find((v) => v.key === vendor.key)
+      for (const f of vg?.affectedFiles ?? []) {
+        if (entrypointSet.has(f)) affectedEntrypoints.add(f)
+      }
+    }
+    return buildTourSteps({
+      vendorCount: analyzed.vendors.length,
+      substrateCount: analyzed.concentration.substrateCount,
+      hiddenSharePercentValue: hiddenSharePercent(clientHeadline, clientExactResult),
+      expectedLossPerYear: clientHeadline.expectedLossPerYear,
+      currency: assumptions.currency,
+      mostConcentratedSubstrate: analyzed.concentration.mostConcentrated?.substrate ?? null,
+      mostConcentratedVendorCount: analyzed.concentration.mostConcentrated?.vendorKeys.length ?? 0,
+      scenarioLabel: defaultScenario.label,
+      scenarioAffectedEntrypoints: affectedEntrypoints.size,
+      totalEntrypoints: analyzed.criticality.entrypoints.length,
+      topMove: analyzed.tourTopMove ?? null,
+      actions: {
+        runScenario: () => handleTourRunScenario(defaultScenario),
+        applyTopMove: handleTourApplyTopMove,
+        openRiskRegister: handleTourOpenRiskRegister,
+        goToInputAndFocus: onReset,
+      },
+    })
+  })()
+
+  useEffect(() => {
+    if (tourAutoStart && tour.status === 'idle' && tourSteps.length > 0) {
+      tour.start(tourSteps)
+      onTourAutoStartConsumed()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourAutoStart, tourSteps])
+
+  // A resize or an Esc mid-cascade must never leave the app broken — once the tour ends (however:
+  // Esc, Skip, or reaching the end card), drop back to a clean, fully explorable graph view rather
+  // than leaving a substrate-outage cascade or the risk register stuck on screen.
+  const prevTourStatusRef = useRef(tour.status)
+  useEffect(() => {
+    if (prevTourStatusRef.current !== 'idle' && tour.status === 'idle') {
+      setSimulation(null)
+      setActiveScenarioId(undefined)
+      setSingleVendorCascadeTarget(null)
+      setGraphMode('vendors')
+      setView('graph')
+    }
+    prevTourStatusRef.current = tour.status
+  }, [tour.status])
+
+  // The what-if stack's substrate moves, keyed by vendor — drives both the graph's node-into-island
+  // preview (VendorGraphView) and nothing else; a failover addition has no existing node to move.
+  const previewSubstrateByVendorKey = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const override of whatIfStack) {
+      if (override.substrate) map.set(override.vendorId, override.substrate)
+    }
+    return map
+  }, [whatIfStack])
+
   async function handleRefreshStatus() {
     if (!analyzed.repoUrl) return
     setIsLoadingStatus(true)
@@ -271,7 +482,10 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   // remounts per repo (App.tsx unmounts it between analyses), so an empty dependency array means
   // "once per repo", not "once ever".
   useEffect(() => {
-    if (hasVendorData && !isSnapshot) void handleRefreshStatus()
+    if (hasVendorData && !isSnapshot) {
+      void handleRefreshStatus()
+      void runWhatIf([], assumptions) // no overrides yet — this call's only job is to seed recommendedMoves
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -295,11 +509,32 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     setRunbookError(null)
     try {
       const scenarioLabel = simulation?.scenario?.scenario.label
-      setRunbook(await fetchRunbook(analyzed.repoUrl, selectedVendorKey, scenarioLabel))
+      setRunbook(await fetchRunbook(analyzed.repoUrl, selectedVendorKey, scenarioLabel, assumptions.costPerHour))
     } catch (err) {
       setRunbookError(apiErrorMessage(err, 'Could not generate a runbook.'))
     } finally {
       setIsLoadingRunbook(false)
+    }
+  }
+
+  async function handleAsk(question: string) {
+    if (!analyzed.repoUrl) return
+    setIsAsking(true)
+    setAskError(null)
+    try {
+      setAskResult(
+        await askBlastRadius({
+          repoUrl: analyzed.repoUrl,
+          question,
+          costPerHourOfDowntime: assumptions.costPerHour,
+          vendorSlaOverrides: assumptions.vendorSlaOverrides,
+          substrateFailureProbabilities: assumptions.substrateRateOverrides,
+        }),
+      )
+    } catch (err) {
+      setAskError(apiErrorMessage(err, 'Could not reach Ask Blast Radius.'))
+    } finally {
+      setIsAsking(false)
     }
   }
 
@@ -330,6 +565,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
         snapshotInfo={analyzed.snapshot}
         onAnalyzeLive={handleAnalyzeLive}
         isAnalyzingLive={isAnalyzingLive}
+        onPlayTour={onPlayTour}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
@@ -359,7 +595,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           )}
           {hasVendorData && (
             <div className="flex flex-wrap gap-3">
-              <StatTile label="Vendors" value={analyzed.vendors.length} />
+              <div data-tour="stat-vendors">
+                <StatTile label="Vendors" value={analyzed.vendors.length} />
+              </div>
               <StatTile label="Substrates" value={analyzed.concentration.substrateCount} />
               <StatTile
                 label="Correlated exposure"
@@ -449,6 +687,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                 costPerHour={assumptions.costPerHour}
                 vendorStatuses={statusResult?.vendorStatuses}
                 singleVendorTarget={singleVendorCascadeTarget}
+                previewSubstrateByVendorKey={previewSubstrateByVendorKey}
               />
             ) : (
               <GraphView
@@ -493,6 +732,14 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
               onViewFiles={handleViewAffectedFiles}
               onSimulateOutage={() => handleSimulateVendorOutage(selectedVendor.key)}
               onClear={() => handleSelectVendor(null)}
+              whatIfStack={whatIfStack}
+              vendorNameByKey={vendorNameByKey}
+              whatIfResult={whatIfResult}
+              isLoadingWhatIf={isLoadingWhatIf}
+              whatIfError={whatIfError}
+              onAddWhatIf={handleAddWhatIf}
+              onRemoveWhatIf={handleRemoveWhatIf}
+              onResetWhatIf={handleResetWhatIf}
             />
           ) : (
             <div className="panel-glass animate-rise-in rounded-xl p-4 text-sm text-[var(--text-muted)]">
@@ -537,6 +784,12 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                     currency={assumptions.currency}
                     onRun={handleRunBaseline}
                   />
+                  <RecommendedMovesPanel
+                    moves={recommendedMoves}
+                    currency={assumptions.currency}
+                    costPerHour={assumptions.costPerHour}
+                    onPreview={handlePreviewRecommendedMove}
+                  />
                   <LiveStatusPanel
                     vendorStatuses={statusResult?.vendorStatuses ?? null}
                     awsHealth={statusResult?.awsHealth ?? null}
@@ -551,6 +804,13 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                     isLoading={isLoadingRunbook}
                     error={runbookError}
                     onGenerate={handleGenerateRunbook}
+                  />
+                  <AskPanel
+                    bedrockAvailable={analyzed.bedrockAvailable}
+                    isLoading={isAsking}
+                    error={askError}
+                    result={askResult}
+                    onAsk={handleAsk}
                   />
                 </>
               )}

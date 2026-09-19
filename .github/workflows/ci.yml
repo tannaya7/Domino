@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Type-check, lint, then the full test suite (differential/robustness/fuzz tests included) —
+      # verify:all writes docs/VERIFICATION.md from these SAME real results and fails the build if
+      # any test failed, so a red check here means a claim in that file no longer holds.
+      - run: npm run verify:all
+
+      - name: Upload docs/VERIFICATION.md
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: docs/VERIFICATION.md

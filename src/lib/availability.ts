@@ -1,5 +1,6 @@
 import {
   buildCorrelatedModel,
+  correlatedAvailabilityWithRedundancy,
   correlatedSeriesAvailability,
   findRedundancyGroupCandidates,
   findWorstSingleEvent,
@@ -15,6 +16,7 @@ import {
 import type {
   AvailabilityAssumptions,
   AvailabilityHeadline,
+  ExactAvailabilityAssumptions,
   ExactAvailabilityResult,
   FailureScenario,
   FailureScenarioResult,
@@ -22,6 +24,9 @@ import type {
   SimulationResult,
   TailRiskPoint,
   Vendor,
+  WhatIfOverride,
+  WhatIfResult,
+  WhatIfSnapshot,
   WorstSingleEventSummary,
 } from './types'
 
@@ -287,4 +292,78 @@ export function buildAvailabilityHeadline(vendors: Vendor[], result: ExactAvaila
     redundancyGroups,
     expectedLossPerYear: result.expectedAnnualExposure.correlated,
   }
+}
+
+// --- What-if mitigation (Prompt 15: "move this vendor" / "add a failover") -------------------
+// Resolving a `failoverVendorId` against the curated vendor knowledge base (server/src/vendorMap.ts)
+// is server-only, so that lives in server/src/whatIf.ts — everything here is the pure, shared math:
+// given an already-resolved mitigated vendor list and redundancy groups, compute baseline vs.
+// mitigated with the exact engine and diff them. No sampling anywhere in this path, so the delta
+// between the two sides is exact, not noise.
+
+/** Below this floor, a delta is treated as "no meaningful change" rather than rendered as a
+ * precise-looking number the exact engine can produce even for a practically-irrelevant move
+ * (e.g. two vendors that already share every substrate they're each on). Financial-exposure floor
+ * is in whatever currency unit costPerHourOfDowntime was supplied in; the downtime floor (~36
+ * seconds/year) catches the case where costPerHourOfDowntime is 0 and exposure is always 0. */
+const MEANINGFUL_ANNUAL_EXPOSURE_FLOOR = 0.5
+const MEANINGFUL_DOWNTIME_HOURS_FLOOR = 0.01
+
+function computeWhatIfSnapshot(
+  vendors: Vendor[],
+  redundancyGroups: string[][],
+  assumptions: ExactAvailabilityAssumptions,
+): WhatIfSnapshot {
+  const model = buildCorrelatedModel(vendors, assumptions)
+  const correlatedAvailability = correlatedAvailabilityWithRedundancy(model, redundancyGroups)
+  const expectedDowntimeHoursPerYear = (1 - correlatedAvailability) * HOURS_PER_YEAR
+  return {
+    correlatedAvailability,
+    expectedDowntimeHoursPerYear,
+    expectedAnnualExposure: expectedDowntimeHoursPerYear * assumptions.costPerHourOfDowntime,
+  }
+}
+
+/**
+ * Baseline vs. mitigated, both computed by the exact engine under the IDENTICAL `assumptions` —
+ * the only difference between the two sides is `mitigatedVendors`/`redundancyGroups` themselves,
+ * so `delta` reflects only the override, never assumption drift or sampling noise.
+ */
+export function buildWhatIfResult(
+  baselineVendors: Vendor[],
+  mitigatedVendors: Vendor[],
+  redundancyGroups: string[][],
+  assumptions: ExactAvailabilityAssumptions,
+  meta: { appliedOverrides: WhatIfOverride[]; unresolvedFailovers: string[] },
+): WhatIfResult {
+  const baseline = computeWhatIfSnapshot(baselineVendors, [], assumptions)
+  const mitigated = computeWhatIfSnapshot(mitigatedVendors, redundancyGroups, assumptions)
+
+  const delta = {
+    correlatedAvailability: mitigated.correlatedAvailability - baseline.correlatedAvailability,
+    expectedDowntimeHoursPerYear: mitigated.expectedDowntimeHoursPerYear - baseline.expectedDowntimeHoursPerYear,
+    expectedAnnualExposure: mitigated.expectedAnnualExposure - baseline.expectedAnnualExposure,
+  }
+  const meaningfulChange =
+    Math.abs(delta.expectedAnnualExposure) >= MEANINGFUL_ANNUAL_EXPOSURE_FLOOR ||
+    Math.abs(delta.expectedDowntimeHoursPerYear) >= MEANINGFUL_DOWNTIME_HOURS_FLOOR
+
+  return {
+    baseline,
+    mitigated,
+    delta,
+    meaningfulChange,
+    appliedOverrides: meta.appliedOverrides,
+    unresolvedFailovers: meta.unresolvedFailovers,
+  }
+}
+
+/** Share of correlated downtime that comes from substrate risk a vendor's own SLA doesn't
+ * capture — clamped for display; a pathological override could otherwise push this outside [0,100].
+ * Shared by VendorHeadlineCard (the on-screen claim) and the guided tour (src/tour/steps.ts, which
+ * repeats the same claim in a caption) so the two can never drift apart. */
+export function hiddenSharePercent(headline: AvailabilityHeadline, result: ExactAvailabilityResult): number {
+  const correlatedHours = result.expectedDowntimeHoursPerYear.correlated
+  if (correlatedHours <= 0) return 0
+  return Math.max(0, Math.min(100, (headline.hiddenUpstreamHoursPerYear / correlatedHours) * 100))
 }

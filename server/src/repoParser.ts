@@ -13,6 +13,12 @@ const TRACKED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
 const EXCLUDED_DIR_SEGMENTS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage', '.next', 'out'])
 const MAX_FILES = 80
 const CONCURRENCY = 8
+// A legitimate source file is essentially never this big — this is a defensive cap (verified
+// empirically that the scanner regexes stay fast even at 10MB single-line/adversarial input, see
+// server/test/scannerFuzz.test.ts) against a pathological or generated file eating scan-budget
+// time better spent on the rest of the repo. Skipped, not silently dropped: still a graph node
+// (real edges can still point at it), just not scanned for its own imports/env vars — and counted.
+const MAX_SCANNABLE_FILE_LENGTH = 2_000_000
 
 const ENV_FILENAMES = new Set(['.env.example', '.env.sample', 'env.example'])
 // Bounds targeted fetches for vendor-discovery sources (manifests/env/IaC), kept separate from and
@@ -177,6 +183,9 @@ export interface BuildGraphResult {
   entrypoints: string[]
   /** Powers the "X% of internal imports resolved" data-quality badge. */
   importResolution: ImportResolutionStats
+  /** Files fetched but skipped from import/env/vendor scanning for being over
+   * MAX_SCANNABLE_FILE_LENGTH — reported, never silently dropped. Still real graph nodes. */
+  skippedOversizedFiles: number
 }
 
 export interface BuildGraphOptions {
@@ -232,12 +241,18 @@ export async function buildGraphFromSource(
   let fetchedCount = 0
   let internalImportsTotal = 0
   let internalImportsResolved = 0
+  let skippedOversizedFiles = 0
 
   filesToFetch.forEach((path, i) => {
     const content = contents[i]
     if (content === undefined) return // skipped — the scan budget ran out before reaching it
     fetchedCount++
     nodeIds.add(path)
+
+    if (content.length > MAX_SCANNABLE_FILE_LENGTH) {
+      skippedOversizedFiles++
+      return // still a real graph node — just not scanned for its own imports/env vars/vendors
+    }
 
     const specifiers = extractImportSpecifiers(content)
     const bareSpecifiers: string[] = []
@@ -300,6 +315,7 @@ export async function buildGraphFromSource(
     iacSubstrates,
     entrypoints,
     importResolution: { total: internalImportsTotal, resolved: internalImportsResolved },
+    skippedOversizedFiles,
   }
 }
 

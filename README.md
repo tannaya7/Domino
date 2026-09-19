@@ -2,6 +2,8 @@
 
 See what breaks before it breaks — map your system's file-level dependencies *and* its third-party vendor exposure, and understand the blast radius, concentration risk, and financial exposure of any failure.
 
+**This project is AI-assisted — see [docs/VERIFICATION.md](docs/VERIFICATION.md) for what's actually verified** (differential tests against brute-force reference implementations, iterative-traversal robustness at 100,000+ nodes, scanner fuzzing, a short security review, and real numbers from the last CI run — not hand-typed claims). AWS/Bedrock-specific integration status is in [docs/AWS_VERIFICATION.md](docs/AWS_VERIFICATION.md).
+
 ## What it does
 
 - Paste a GitHub repo URL (or upload/paste a dependency JSON file, or a GitHub PR URL).

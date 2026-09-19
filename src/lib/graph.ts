@@ -34,9 +34,14 @@ export function buildAdjacencyMap(nodes: GraphData['nodes'], edges: GraphData['e
 function traverse(nodeId: string, adjacency: Map<string, string[]>, exclude?: string): string[] {
   const visited = new Set<string>()
   const queue = [...(adjacency.get(nodeId) ?? [])].filter((n) => n !== exclude)
+  // A node can be pushed more than once (once per incoming edge from an already-queued neighbor)
+  // before it's first dequeued — `queue` can genuinely outgrow the graph's node count on a dense
+  // graph. `Array.shift()` is O(queue.length) per call, which turns that into O(edges^2) overall;
+  // an index cursor keeps dequeue O(1) amortized, the same total work as a proper queue.
+  let head = 0
 
-  while (queue.length > 0) {
-    const current = queue.shift()!
+  while (head < queue.length) {
+    const current = queue[head++]
     if (visited.has(current) || current === exclude) continue
     visited.add(current)
     for (const next of adjacency.get(current) ?? []) {

@@ -1,13 +1,20 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import InputScreen from './components/InputScreen'
 import Workspace, { type AnalyzedRepo } from './components/Workspace'
 import type { AnalyzePrResponse, AnalyzeRepoResponse } from './lib/api'
 import { analyzeConcentration } from './lib/concentration'
 import { analyzeCriticality } from './lib/criticality'
-import type { DemoSnapshot } from './lib/demoSnapshot'
+import { EXAMPLE_REPOS } from './data/exampleRepos'
+import { loadDemoSnapshot, type DemoSnapshot } from './lib/demoSnapshot'
 import { inferProjectEntrypoints } from './lib/entrypoints'
 import { buildAdjacencyMap, VENDOR_GRAPH_ROOT_ID } from './lib/graph'
 import type { GraphData } from './lib/types'
+import TourOverlay from './tour/TourOverlay'
+import { useTour } from './tour/useTour'
+
+const FIRST_EXAMPLE = EXAMPLE_REPOS[0]
+const FIRST_EXAMPLE_URL = FIRST_EXAMPLE ? `https://github.com/${FIRST_EXAMPLE.owner}/${FIRST_EXAMPLE.repo}` : null
+const TOUR_AUTOSTART_SESSION_KEY = 'blast-radius:tour-autostarted:v1'
 
 /** Builds the AnalyzedRepo shape for a file-graph-only source (manual JSON, sample data, or a PR
  * result) — no vendor data exists for these, but criticality is still real, computed client-side
@@ -27,6 +34,7 @@ function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
     meta: null,
     repoUrl: null,
     snapshot: null,
+    bedrockAvailable: false,
   }
 }
 
@@ -44,6 +52,7 @@ function App() {
       meta: result.meta,
       repoUrl,
       snapshot: null,
+      bedrockAvailable: result.bedrockAvailable,
     })
     setPrResult(null)
   }
@@ -58,6 +67,11 @@ function App() {
       meta: snapshot.meta,
       repoUrl: `https://github.com/${snapshot.owner}/${snapshot.repo}`,
       snapshot: { sha: snapshot.commitSha, generatedAt: snapshot.generatedAt },
+      tourTopMove: snapshot.topRecommendedMove,
+      tourTopMoveWhatIf: snapshot.topRecommendedMoveWhatIf,
+      // The server has never scanned a snapshot-loaded repo, so /ask would 404 regardless of
+      // whether Bedrock itself is configured — never claim it's available here.
+      bedrockAvailable: false,
     })
     setPrResult(null)
   }
@@ -77,6 +91,71 @@ function App() {
     setPrResult(null)
   }
 
+  // --- Guided tour bootstrapping (src/tour/) ---------------------------------------------------
+  // The tour engine (useTour) and its overlay live here, one level above the InputScreen<->Workspace
+  // switch, specifically so they SURVIVE that switch — the tour's own end card needs to reset back
+  // to InputScreen (to focus the repo URL input) without losing its play/pause state or keyboard
+  // listeners mid-transition.
+  const tour = useTour()
+  const [tourAutoStart, setTourAutoStart] = useState(false)
+  const [autoFocusRepoUrl, setAutoFocusRepoUrl] = useState(false)
+
+  async function handlePlayTour() {
+    if (!FIRST_EXAMPLE || !FIRST_EXAMPLE_URL) {
+      console.warn('[tour] no bundled example repos are configured — cannot start the tour.')
+      return
+    }
+    setAutoFocusRepoUrl(false)
+    // The tour always runs on the first bundled example snapshot — (re)load it whenever the
+    // workspace isn't already showing exactly that pinned snapshot (a live analysis of the same
+    // repoUrl doesn't count: it has none of the tour's precomputed data).
+    const alreadyShowingIt = analyzed?.repoUrl === FIRST_EXAMPLE_URL && analyzed?.snapshot !== null
+    if (!alreadyShowingIt) {
+      try {
+        const snapshot = await loadDemoSnapshot(FIRST_EXAMPLE.file)
+        handleSnapshotLoaded(snapshot)
+      } catch (err) {
+        console.warn('[tour] could not load the bundled example snapshot; tour cannot start.', err)
+        return
+      }
+    }
+    setTourAutoStart(true)
+  }
+
+  function handleTourAutoStartConsumed() {
+    setTourAutoStart(false)
+  }
+
+  // `?tour=1` autostarts the tour once per browser session (sessionStorage, not localStorage — a
+  // fresh tab/session should be able to see it again). No router in this app, so this reads
+  // location.search directly rather than through any URL-param library.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('tour') !== '1') return
+    let alreadyStarted = false
+    try {
+      alreadyStarted = sessionStorage.getItem(TOUR_AUTOSTART_SESSION_KEY) === '1'
+      if (!alreadyStarted) sessionStorage.setItem(TOUR_AUTOSTART_SESSION_KEY, '1')
+    } catch {
+      // Private browsing / storage disabled — fall through and autostart anyway rather than
+      // silently doing nothing; worst case it plays once instead of being skipped.
+    }
+    if (!alreadyStarted) void handlePlayTour()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // The end-card step's own run() (built in Workspace.tsx, wired to this same `onReset`) already
+  // resets back to InputScreen the moment the tour reaches it — this effect's only job is telling
+  // the fresh InputScreen to focus the repo URL input once it mounts, since that's the one thing
+  // only App.tsx can arrange (RepoInput doesn't know why it mounted).
+  useEffect(() => {
+    if (tour.status === 'idle') {
+      setAutoFocusRepoUrl(false)
+      return
+    }
+    if (tour.currentStep?.id === 'try-your-own') setAutoFocusRepoUrl(true)
+  }, [tour.status, tour.currentStep?.id])
+
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
       {!analyzed ? (
@@ -85,6 +164,8 @@ function App() {
           onManualLoad={handleManualLoad}
           onPrAnalyzed={handlePrAnalyzed}
           onSnapshotLoaded={handleSnapshotLoaded}
+          onPlayTour={() => void handlePlayTour()}
+          autoFocusRepoUrl={autoFocusRepoUrl}
         />
       ) : (
         <Workspace
@@ -93,8 +174,13 @@ function App() {
           onReset={handleReset}
           onClearPr={() => setPrResult(null)}
           onLiveAnalysisComplete={handleRepoAnalyzed}
+          onPlayTour={() => void handlePlayTour()}
+          tour={tour}
+          tourAutoStart={tourAutoStart}
+          onTourAutoStartConsumed={handleTourAutoStartConsumed}
         />
       )}
+      <TourOverlay tour={tour} />
     </div>
   )
 }

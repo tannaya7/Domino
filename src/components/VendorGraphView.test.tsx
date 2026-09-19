@@ -161,6 +161,8 @@ describe('VendorGraphView', () => {
       simulation: {} as never,
       presetScenarios: [],
       headline: { expectedLossPerYear: 0 } as never,
+      whatIf: null,
+      recommendedMoves: [],
     } satisfies SimulateResponse
 
     render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} simulation={simulation} />)
@@ -181,6 +183,8 @@ describe('VendorGraphView', () => {
       simulation: {} as never,
       presetScenarios: [],
       headline: { expectedLossPerYear: 12000 } as never,
+      whatIf: null,
+      recommendedMoves: [],
     } satisfies SimulateResponse
 
     render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([stripe])} simulation={simulation} />)

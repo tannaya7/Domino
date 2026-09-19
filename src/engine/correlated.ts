@@ -13,6 +13,10 @@ import type { Vendor } from '../lib/types'
  */
 export const UNSHAREABLE_SUBSTRATE_TAGS = new Set(['self', 'other', 'unknown', ''])
 
+/** Real, shareable substrate tags this tool knows how to color/cluster/validate — the "move to
+ * another substrate" what-if dropdown offers exactly these, never a free-text guess. */
+export const KNOWN_SHAREABLE_SUBSTRATES = ['aws', 'gcp', 'azure', 'cloudflare', 'vercel']
+
 /** Deliberately round and clearly illustrative — there is no independently measured per-substrate
  * outage rate to draw from. Editable per substrate in the Assumptions panel. */
 export const DEFAULT_SUBSTRATE_OUTAGE_PROBABILITY = 0.001
@@ -262,6 +266,75 @@ export function findRedundancyGroupCandidates(vendors: Vendor[]): string[][] {
     }
   }
   return groups
+}
+
+/**
+ * Exact overall "everything up" probability where each member set in `redundancyGroups` counts as
+ * up unless ALL of its members are down (conditional on the same substrate state) — a diversified
+ * vendor + failover pair backs one capability, not two independent points of failure. Every vendor
+ * NOT named in any group is treated exactly as `correlatedSeriesAvailability` treats it: a lone
+ * point of failure that needs to be up on its own. Passing `redundancyGroups: []` reduces this to
+ * `correlatedSeriesAvailability(model)` exactly (verified in correlated.test.ts) — this is that same
+ * function with one more unit type in the same per-state enumeration, not a rewrite of it.
+ *
+ * This still enumerates every 2^|S| substrate state (same MAX_SUBSTRATES cap as pmfNumberDown)
+ * because a diversified pair can still share a substrate with an unrelated singleton vendor —
+ * marginalizing the group's down-probability separately and multiplying it in would silently drop
+ * that correlation. See docs/availability-model.md.
+ */
+export function correlatedAvailabilityWithRedundancy(model: CorrelatedModel, redundancyGroups: string[][] = []): number {
+  const groupedKeys = new Set(redundancyGroups.flat())
+  const singletonVendors = model.vendors.filter((v) => !groupedKeys.has(v.key))
+  const groups = redundancyGroups.map((keys) => model.vendors.filter((v) => keys.includes(v.key)))
+
+  const substrateIds = Object.keys(model.substrateOutageProbabilities)
+  const stateCount = 1 << substrateIds.length
+  let total = 0
+  let compensation = 0
+
+  for (let mask = 0; mask < stateCount; mask++) {
+    const downSet = new Set<string>()
+    let stateProbability = 1
+    for (let i = 0; i < substrateIds.length; i++) {
+      const s = substrateIds[i]
+      const q = model.substrateOutageProbabilities[s]
+      if (mask & (1 << i)) {
+        downSet.add(s)
+        stateProbability *= q
+      } else {
+        stateProbability *= 1 - q
+      }
+    }
+    if (stateProbability === 0) continue
+
+    let allUpGivenState = 1
+    for (const v of singletonVendors) {
+      if (v.substrates.some((s) => downSet.has(s))) {
+        allUpGivenState = 0
+        break
+      }
+      allUpGivenState *= 1 - v.ownOutageProbability
+    }
+    if (allUpGivenState > 0) {
+      for (const members of groups) {
+        let groupDownGivenState = 1
+        for (const v of members) {
+          groupDownGivenState *= v.substrates.some((s) => downSet.has(s)) ? 1 : v.ownOutageProbability
+        }
+        allUpGivenState *= 1 - groupDownGivenState
+        if (allUpGivenState === 0) break
+      }
+    }
+    if (allUpGivenState === 0) continue
+
+    const term = stateProbability * allUpGivenState
+    const y = term - compensation
+    const t = total + y
+    compensation = t - total - y
+    total = t
+  }
+
+  return total
 }
 
 /** Exact P(every member of this group is down at once) — the capability the group backs is only

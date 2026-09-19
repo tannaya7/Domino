@@ -1,11 +1,29 @@
 import { getUpstream, type AdjacencyMap } from './graph'
 import type { CriticalityResult, NodeCriticality } from './types'
 
+/** One simulated stack frame of the recursive `dfs(u, parent)` below — `neighborIter` resumes
+ * exactly where the frame left off, and `pendingChild` is set right before "recursing" so the
+ * frame can finish that child's post-order work (the `low[u] = min(...)` / articulation check)
+ * the next time it's back on top of the stack, instead of on a language call-stack frame. */
+interface TarjanFrame {
+  node: string
+  parent: string | null
+  children: number
+  neighborIter: Iterator<string>
+  pendingChild: string | null
+}
+
 /**
  * Finds articulation points via Tarjan's algorithm on the graph's undirected skeleton (an edge's
  * direction doesn't matter for "does removing this node disconnect the graph" — a dependency
- * either connects two nodes or it doesn't). Recursive DFS is fine at the node counts this app
- * handles (repo file graphs capped at 80 files, vendor graphs typically under 30 nodes).
+ * either connects two nodes or it doesn't).
+ *
+ * Iterative by an explicit stack of TarjanFrame, not language recursion — a recursive DFS blows
+ * the call stack on a long dependency chain (verified: a 100,000-node chain crashes a recursive
+ * version; this one doesn't — see criticality.robustness.test.ts). This is mechanically the same
+ * algorithm as a recursive `dfs(u, parent)`, just with each call's local state (which neighbor it
+ * was iterating, whether it's mid-processing a child's result) held in a frame object instead of on
+ * the JS call stack.
  */
 export function findArticulationPoints(adjacencyMap: AdjacencyMap): Set<string> {
   const undirected = new Map<string, Set<string>>()
@@ -26,26 +44,49 @@ export function findArticulationPoints(adjacencyMap: AdjacencyMap): Set<string> 
   const result = new Set<string>()
   let timer = 0
 
-  function dfs(u: string, parent: string | null): void {
-    disc.set(u, ++timer)
-    low.set(u, timer)
-    let children = 0
-    for (const v of undirected.get(u) ?? []) {
-      if (v === parent) continue
-      if (disc.has(v)) {
-        low.set(u, Math.min(low.get(u)!, disc.get(v)!))
+  for (const root of undirected.keys()) {
+    if (disc.has(root)) continue
+
+    disc.set(root, ++timer)
+    low.set(root, timer)
+    const stack: TarjanFrame[] = [
+      { node: root, parent: null, children: 0, neighborIter: (undirected.get(root) ?? new Set()).values(), pendingChild: null },
+    ]
+
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]
+
+      // Resuming after "returning" from pendingChild — do the post-order work the recursive
+      // version does right after `dfs(v, u)` returns, before moving on to u's next neighbor.
+      if (frame.pendingChild !== null) {
+        const child = frame.pendingChild
+        frame.pendingChild = null
+        low.set(frame.node, Math.min(low.get(frame.node)!, low.get(child)!))
+        if (frame.parent !== null && low.get(child)! >= disc.get(frame.node)!) {
+          result.add(frame.node)
+        }
+      }
+
+      const next = frame.neighborIter.next()
+      if (next.done) {
+        if (frame.parent === null && frame.children > 1) result.add(frame.node)
+        stack.pop()
         continue
       }
-      children++
-      dfs(v, u)
-      low.set(u, Math.min(low.get(u)!, low.get(v)!))
-      if (parent !== null && low.get(v)! >= disc.get(u)!) result.add(u)
-    }
-    if (parent === null && children > 1) result.add(u)
-  }
 
-  for (const node of undirected.keys()) {
-    if (!disc.has(node)) dfs(node, null)
+      const v = next.value
+      if (v === frame.parent) continue
+      if (disc.has(v)) {
+        low.set(frame.node, Math.min(low.get(frame.node)!, disc.get(v)!))
+        continue
+      }
+
+      frame.children++
+      disc.set(v, ++timer)
+      low.set(v, timer)
+      frame.pendingChild = v
+      stack.push({ node: v, parent: frame.node, children: 0, neighborIter: (undirected.get(v) ?? new Set()).values(), pendingChild: null })
+    }
   }
 
   return result

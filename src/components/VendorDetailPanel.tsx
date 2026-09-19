@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { colorForSubstrate } from '../lib/colors'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
-import type { VendorWithBlastRadius } from '../lib/types'
+import type { VendorWithBlastRadius, WhatIfOverride, WhatIfResult } from '../lib/types'
 import Panel from './ui/Panel'
+import WhatIfPanel from './WhatIfPanel'
 
 interface VendorDetailPanelProps {
   vendor: VendorWithBlastRadius
@@ -15,6 +16,17 @@ interface VendorDetailPanelProps {
   /** Starts the graph's visual cascade for this one vendor — see VendorGraphView. */
   onSimulateOutage: () => void
   onClear: () => void
+  /** What-if mitigation preview (Prompt 15) — a stack can name a different vendor than this panel's.
+   * Optional so callers that don't wire it up (older tests) still get a working panel with no
+   * "What if?" controls — VendorGraphView's own preview naturally reduces to "no override". */
+  whatIfStack?: WhatIfOverride[]
+  vendorNameByKey?: Map<string, string>
+  whatIfResult?: WhatIfResult | null
+  isLoadingWhatIf?: boolean
+  whatIfError?: string | null
+  onAddWhatIf?: (override: WhatIfOverride) => void
+  onRemoveWhatIf?: (index: number) => void
+  onResetWhatIf?: () => void
 }
 
 function VendorDetailPanel({
@@ -25,6 +37,14 @@ function VendorDetailPanel({
   onViewFiles,
   onSimulateOutage,
   onClear,
+  whatIfStack = [],
+  vendorNameByKey = new Map(),
+  whatIfResult = null,
+  isLoadingWhatIf = false,
+  whatIfError = null,
+  onAddWhatIf = () => {},
+  onRemoveWhatIf = () => {},
+  onResetWhatIf = () => {},
 }: VendorDetailPanelProps) {
   const [simulated, setSimulated] = useState(false)
 
@@ -148,6 +168,19 @@ function VendorDetailPanel({
           )}
         </div>
       )}
+
+      <WhatIfPanel
+        vendor={vendor}
+        currency={currency}
+        stack={whatIfStack}
+        vendorNameByKey={vendorNameByKey}
+        result={whatIfResult}
+        isLoading={isLoadingWhatIf}
+        error={whatIfError}
+        onAdd={onAddWhatIf}
+        onRemove={onRemoveWhatIf}
+        onReset={onResetWhatIf}
+      />
     </Panel>
   )
 }

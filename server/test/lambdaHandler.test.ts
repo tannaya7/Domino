@@ -9,6 +9,7 @@ const fixtureResult: AnalyzeRepoResult = {
   iacSubstrates: [],
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
+  skippedOversizedFiles: 0,
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',
@@ -73,6 +74,40 @@ describe('lambda handler', () => {
     const { handler } = await import('../src/lambdaHandler')
     const result = await handler(event({ body: JSON.stringify({ repoUrl: 'not a url' }) }))
     expect(result.statusCode).toBe(400)
+  })
+
+  it('rejects an oversized plain-text body with 413 before parsing it as JSON', async () => {
+    const { handler } = await import('../src/lambdaHandler')
+    const oversized = JSON.stringify({ repoUrl: 'x', padding: 'a'.repeat(3 * 1024 * 1024) })
+    const result = await handler(event({ body: oversized }))
+    expect(result.statusCode).toBe(413)
+  })
+
+  it('rejects an oversized base64-encoded body by its DECODED length', async () => {
+    const { handler } = await import('../src/lambdaHandler')
+    const oversized = JSON.stringify({ repoUrl: 'x', padding: 'a'.repeat(3 * 1024 * 1024) })
+    const encoded = Buffer.from(oversized).toString('base64')
+    const result = await handler(event({ body: encoded, isBase64Encoded: true }))
+    expect(result.statusCode).toBe(413)
+  })
+
+  it('accepts a base64-encoded body whose DECODED size is under the limit, even though base64 inflates the encoded string past it', async () => {
+    // Base64 inflates size by ~33% — a decoded payload just under 2MB can encode to a string
+    // over 2MB. Checking the wrong (encoded) length would reject this; checking decoded length
+    // (what this handler does) correctly accepts it.
+    const { handler } = await import('../src/lambdaHandler')
+    const underLimit = JSON.stringify({ repoUrl: 'https://github.com/octocat/hello', padding: 'a'.repeat(1.7 * 1024 * 1024) })
+    const encoded = Buffer.from(underLimit).toString('base64')
+    expect(Buffer.byteLength(underLimit, 'utf-8')).toBeLessThan(2 * 1024 * 1024)
+    expect(encoded.length).toBeGreaterThan(2 * 1024 * 1024) // encoded form alone would look "too big"
+    const result = await handler(event({ body: encoded, isBase64Encoded: true }))
+    expect(result.statusCode).toBe(200)
+  })
+
+  it('accepts a body comfortably under the size limit', async () => {
+    const { handler } = await import('../src/lambdaHandler')
+    const result = await handler(event({ body: JSON.stringify({ repoUrl: 'https://github.com/octocat/hello' }) }))
+    expect(result.statusCode).toBe(200)
   })
 
   it('locks CORS to ALLOWED_ORIGIN when configured, instead of "*"', async () => {

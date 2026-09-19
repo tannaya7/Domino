@@ -11,7 +11,8 @@
     "test": "vitest run",
     "server:dev": "tsx watch server/src/localServer.ts",
     "deploy": "bash scripts/deploy.sh",
-    "verify:aws": "tsx scripts/verify-aws.ts"
+    "verify:aws": "tsx scripts/verify-aws.ts",
+    "verify:all": "tsc -b && oxlint && tsx scripts/verification-report.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1135.0",
@@ -20,6 +21,7 @@
     "@aws-sdk/client-sns": "^3.1135.0",
     "@aws-sdk/client-ssm": "^3.1135.0",
     "@aws-sdk/lib-dynamodb": "^3.1135.0",
+    "dotenv": "^18.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-force-graph-2d": "^1.29.1"

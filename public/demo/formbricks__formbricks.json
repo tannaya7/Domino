@@ -4315,5 +4315,38 @@
       "total": 291,
       "resolved": 280
     }
+  },
+  "topRecommendedMove": {
+    "vendorId": "stripe",
+    "vendorName": "Stripe",
+    "moveType": "failover",
+    "failoverVendorId": "Razorpay",
+    "description": "Add Razorpay as a failover for Stripe",
+    "annualSavings": 525.1932294276467
+  },
+  "topRecommendedMoveWhatIf": {
+    "baseline": {
+      "correlatedAvailability": 0.99680360837023,
+      "expectedDowntimeHoursPerYear": 28.000390676785504,
+      "expectedAnnualExposure": 16856.235187424874
+    },
+    "mitigated": {
+      "correlatedAvailability": 0.9969031990097701,
+      "expectedDowntimeHoursPerYear": 27.127976674414,
+      "expectedAnnualExposure": 16331.041957997228
+    },
+    "delta": {
+      "correlatedAvailability": 0.00009959063954012581,
+      "expectedDowntimeHoursPerYear": -0.872414002371503,
+      "expectedAnnualExposure": -525.1932294276467
+    },
+    "meaningfulChange": true,
+    "appliedOverrides": [
+      {
+        "vendorId": "stripe",
+        "failoverVendorId": "Razorpay"
+      }
+    ],
+    "unresolvedFailovers": []
   }
 }
