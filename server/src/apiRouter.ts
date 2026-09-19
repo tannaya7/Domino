@@ -2,8 +2,10 @@ import { analyzeConcentration } from '../../src/lib/concentration'
 import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS, simulateFailureScenario } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
-import type { FailureScenario } from '../../src/lib/types'
+import type { ExactAvailabilityAssumptions, FailureScenario, WhatIfOverride, WhatIfResult } from '../../src/lib/types'
+import { askQuestion } from './ask'
 import { getAwsHealthStatus } from './awsHealth'
+import { isBedrockConfigured } from './bedrock'
 import { getCachedGraph, setCachedGraph } from './cache'
 import { GithubApiError, parseRepoUrl } from './github'
 import { analyzePr } from './prAnalyzer'
@@ -12,6 +14,7 @@ import { getRiskSummary } from './riskSummary'
 import { generateRunbook } from './runbook'
 import { setVendorsToWatch, startStatusPolling } from './scheduler'
 import { fetchAllVendorStatuses } from './statusPoll'
+import { computeWhatIf, MAX_WHATIF_OVERRIDES, rankRecommendedMoves } from './whatIf'
 
 // Transport-agnostic API core: takes a path and an already-parsed JSON body, returns a status +
 // response body. Both the local Node http server (requestHandler.ts) and a real Lambda deployment
@@ -59,6 +62,24 @@ function sanitizeProbabilityMap(value: unknown): Record<string, number> | undefi
     if (typeof v !== 'number' || !Number.isFinite(v)) continue
     result[key] = Math.max(0, Math.min(1, v))
     count++
+  }
+  return result
+}
+
+/** A user-supplied what-if list from the vendor detail panel — bounded to MAX_WHATIF_OVERRIDES
+ * entries (the UI caps stacked what-ifs at 3); malformed entries are dropped rather than rejecting
+ * the whole request, since a missing vendorId just means that entry does nothing. */
+function sanitizeWhatIfOverrides(value: unknown): WhatIfOverride[] {
+  if (!Array.isArray(value)) return []
+  const result: WhatIfOverride[] = []
+  for (const raw of value.slice(0, MAX_WHATIF_OVERRIDES)) {
+    if (typeof raw !== 'object' || raw === null) continue
+    const record = raw as Record<string, unknown>
+    const vendorId = asTrimmedString(record.vendorId)
+    if (!vendorId) continue
+    const substrate = asTrimmedString(record.substrate) || undefined
+    const failoverVendorId = asTrimmedString(record.failoverVendorId) || undefined
+    result.push({ vendorId, substrate, failoverVendorId })
   }
   return result
 }
@@ -122,6 +143,9 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
           // "X% of internal imports resolved" data-quality badge.
           importResolution: result.importResolution,
         },
+        // Ask Blast Radius (POST /ask) — the UI shows its free-text input only when this is true;
+        // the 3 suggested-question chips work either way (deterministic, no Bedrock needed).
+        bedrockAvailable: isBedrockConfigured(),
       },
     }
   }
@@ -165,6 +189,17 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     })
     const headline = buildAvailabilityHeadline(vendors, simulation)
 
+    // What-if mitigation preview (Prompt 15): baseline and mitigated are computed under the SAME
+    // simulation.assumptions object (the fully-resolved assumptions computeExactAvailability just
+    // used) — the override is the only thing that differs, so `delta` is exact, not noise. []
+    // overrides -> no whatIf in the response at all, not a zeroed-out one.
+    const whatIfOverrides = sanitizeWhatIfOverrides(body.overrides)
+    let whatIf: WhatIfResult | null = null
+    if (whatIfOverrides.length > 0) {
+      whatIf = computeWhatIf(vendors, whatIfOverrides, simulation.assumptions)
+    }
+    const recommendedMoves = rankRecommendedMoves(vendors, simulation.assumptions)
+
     // Enrich worstSingleEvent with real entrypoints-affected, using the cached repo's file graph —
     // the pure engine has no graph access, so this is the one place that can honestly fill it in.
     if (headline.worstSingleEvent) {
@@ -185,7 +220,10 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
       headline.worstSingleEvent = { ...headline.worstSingleEvent, entrypointsAffected: [...affectedEntrypoints] }
     }
 
-    return { status: 200, body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS, headline } }
+    return {
+      status: 200,
+      body: { scenario: scenarioResult, simulation, presetScenarios: PRESET_SCENARIOS, headline, whatIf, recommendedMoves },
+    }
   }
 
   if (path === '/status') {
@@ -218,8 +256,34 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const affectedFileCount = vendorGraph.vendors[0]?.affectedFiles.length ?? 0
     const scenario = asTrimmedString(body.scenarioLabel) || undefined
 
-    const runbook = await generateRunbook({ vendor, affectedFileCount, scenario })
+    // Same deterministic ranking /simulate exposes, fed to the runbook as CONTEXT only — it never
+    // changes generatedBy ('bedrock' | 'deterministic'), it just gives whichever path produces the
+    // narrative something concrete to reference instead of generic advice.
+    const costPerHourOfDowntime = sanitizeCost(body.costPerHourOfDowntime) ?? 0
+    const recommendedMoves = rankRecommendedMoves(cached.vendors, {
+      costPerHourOfDowntime,
+      vendorSlaOverrides: {},
+      substrateOutageProbabilities: {},
+    }).filter((m) => m.vendorId === vendor.key)
+
+    const runbook = await generateRunbook({ vendor, affectedFileCount, scenario, recommendedMoves })
     return { status: 200, body: runbook }
+  }
+
+  if (path === '/ask') {
+    const repoUrl = asTrimmedString(body.repoUrl)
+    const question = asTrimmedString(body.question)
+    if (!question) throw new HttpError(400, 'A question is required.')
+    const cached = await requireCachedAnalysis(repoUrl)
+
+    const assumptions: ExactAvailabilityAssumptions = {
+      costPerHourOfDowntime: sanitizeCost(body.costPerHourOfDowntime) ?? 0,
+      vendorSlaOverrides: sanitizeProbabilityMap(body.vendorSlaOverrides) ?? {},
+      substrateOutageProbabilities: sanitizeProbabilityMap(body.substrateFailureProbabilities) ?? {},
+    }
+
+    const result = await askQuestion({ cached, question, assumptions })
+    return { status: 200, body: result }
   }
 
   return { status: 404, body: { error: 'Not found' } }

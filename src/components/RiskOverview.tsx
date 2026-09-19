@@ -39,7 +39,7 @@ function RiskOverview({
   const [subTab, setSubTab] = useState<SubTab>(vendors.length > 0 ? 'vendors' : 'files')
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden" data-tour="risk-register">
       <div className="flex shrink-0 gap-1 border-b border-[var(--border-subtle)] px-4 pt-3">
         <button
           type="button"

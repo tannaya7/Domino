@@ -163,6 +163,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
     },
     repoUrl: 'https://github.com/octocat/hello',
     snapshot: null,
+    bedrockAvailable: false,
     ...overrides,
   }
 }
@@ -348,7 +349,7 @@ describe('Workspace — runbook', () => {
     const runbookPanel = screen.getByText('Runbook').closest('section')!
     await user.click(within(runbookPanel).getByRole('button', { name: /generate/i }))
 
-    await waitFor(() => expect(fetchRunbookMock).toHaveBeenCalledWith('https://github.com/octocat/hello', 'stripe', undefined))
+    await waitFor(() => expect(fetchRunbookMock).toHaveBeenCalledWith('https://github.com/octocat/hello', 'stripe', undefined, 602))
     expect(await within(runbookPanel).findByText('Stripe failing affects 1 file.')).toBeInTheDocument()
     expect(within(runbookPanel).getByText('Deterministic')).toBeInTheDocument()
   })

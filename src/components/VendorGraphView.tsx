@@ -70,6 +70,11 @@ interface VendorGraphViewProps {
   /** Vendor key to run a single-vendor cascade for (from VendorDetailPanel's "Simulate this
    * vendor's outage", or the status banner's "Show blast radius") — independent of `simulation`. */
   singleVendorTarget: string | null
+  /** From the What-if panel's stacked substrate-move overrides — overrides a vendor's node.substrate
+   * for layout/clustering purposes only (never the underlying vendor data). Reheating the cluster
+   * force on change is what makes the node visibly glide into its new substrate island; this is the
+   * SAME physics used for the rest of the graph, not a bespoke tween. */
+  previewSubstrateByVendorKey?: Map<string, string>
 }
 
 function primaryShareableSubstrate(substrates: string[]): string | null {
@@ -90,6 +95,7 @@ function VendorGraphView({
   vendorStatuses,
   isSnapshot,
   singleVendorTarget,
+  previewSubstrateByVendorKey,
 }: VendorGraphViewProps) {
   const [containerRef, size] = useElementSize<HTMLDivElement>()
   const graphRef = useRef<ForceGraphMethods<GraphNodeDatum> | undefined>(undefined)
@@ -114,14 +120,22 @@ function VendorGraphView({
       id: v.key,
       kind: 'vendor',
       vendor: v,
-      substrate: primaryShareableSubstrate(v.substrate),
+      substrate: previewSubstrateByVendorKey?.get(v.key) ?? primaryShareableSubstrate(v.substrate),
       weight: v.affectedFiles.length,
       entrypointsAffectedCount: v.affectedFiles.filter((f) => entrypointSet.has(f)).length,
     }))
     const nodes: GraphNodeDatum[] = [hub, ...vendors]
     const links = vendors.map((v) => ({ source: ROOT_ID, target: v.id }))
     return { nodes, links }
-  }, [vendorGraph, repoLabel, entrypointSet])
+  }, [vendorGraph, repoLabel, entrypointSet, previewSubstrateByVendorKey])
+
+  // A preview move changes which anchor a node's cluster force targets — reheating here is what
+  // makes it visibly glide into the new island instead of jumping there on the next unrelated tick.
+  const previewKey = previewSubstrateByVendorKey ? [...previewSubstrateByVendorKey.entries()].sort().join(',') : ''
+  useEffect(() => {
+    if (previewKey) graphRef.current?.d3ReheatSimulation()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewKey])
 
   const vendorNodes = useMemo(
     () => forceGraphData.nodes.filter((n): n is VendorNodeDatum => n.kind === 'vendor'),
@@ -413,7 +427,7 @@ function VendorGraphView({
   }
 
   return (
-    <div ref={containerRef} className="relative h-full w-full" data-testid="vendor-graph-view">
+    <div ref={containerRef} className="relative h-full w-full" data-testid="vendor-graph-view" data-tour="vendor-graph">
       <ForceGraph2D
         ref={graphRef as never}
         graphData={forceGraphData as never}
@@ -457,7 +471,10 @@ function VendorGraphView({
       />
 
       {(scenario || singleVendorTarget) && (
-        <div className="pointer-events-none absolute top-3 left-3 max-w-xs rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/90 p-3 text-xs">
+        <div
+          className="pointer-events-none absolute top-3 left-3 max-w-xs rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/90 p-3 text-xs"
+          data-tour="scenario-cascade"
+        >
           {affectedVendorKeys.length === 0 && scenario ? (
             <p className="flex items-center gap-1.5 font-medium text-amber-300">
               <span aria-hidden="true">⚠</span>

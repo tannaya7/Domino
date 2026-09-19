@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import sampleData from '../data/sample.json'
 import { EXAMPLE_REPOS } from '../data/exampleRepos'
 import { analyzeRepo, ApiError, type AnalyzeRepoResponse } from '../lib/api'
@@ -9,10 +9,17 @@ interface RepoInputProps {
   onAnalyzed: (result: AnalyzeRepoResponse, repoUrl: string) => void
   onLoadSample: (data: GraphData) => void
   onSnapshotLoaded: (snapshot: DemoSnapshot) => void
+  /** The guided tour's end card focuses this input as its final action — see App.tsx. */
+  autoFocus?: boolean
 }
 
-function RepoInput({ onAnalyzed, onLoadSample, onSnapshotLoaded }: RepoInputProps) {
+function RepoInput({ onAnalyzed, onLoadSample, onSnapshotLoaded, autoFocus }: RepoInputProps) {
   const [repoUrl, setRepoUrl] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (autoFocus) inputRef.current?.focus()
+  }, [autoFocus])
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadingExample, setLoadingExample] = useState<string | null>(null)
@@ -70,6 +77,7 @@ function RepoInput({ onAnalyzed, onLoadSample, onSnapshotLoaded }: RepoInputProp
         </label>
         <div className="flex gap-2">
           <input
+            ref={inputRef}
             id="repo-url"
             type="text"
             value={repoUrl}

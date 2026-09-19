@@ -236,6 +236,56 @@ export interface AvailabilityHeadline {
   expectedLossPerYear: number
 }
 
+/** One what-if adjustment to preview against the exact engine: move a vendor to a different
+ * substrate, and/or pair it with a curated same-category failover vendor (server/src/vendorMap.ts
+ * `fallbacks`) that may or may not already be detected in this repo. Both fields are optional and
+ * independent — a single override can carry either, or both at once. */
+export interface WhatIfOverride {
+  vendorId: string
+  substrate?: string
+  /** A Vendor.fallbacks entry (curated display name), e.g. "Razorpay" — not necessarily detected. */
+  failoverVendorId?: string
+}
+
+/** One point-in-time reading of the exact engine, used for both the baseline and mitigated side of
+ * a what-if comparison — same shape so the two are directly diffable. */
+export interface WhatIfSnapshot {
+  correlatedAvailability: number
+  expectedDowntimeHoursPerYear: number
+  expectedAnnualExposure: number
+}
+
+/**
+ * Baseline vs. mitigated, computed by the SAME exact engine under the SAME assumptions — the only
+ * difference between the two is the override itself, so `delta` is not noise (see
+ * src/engine/correlated.ts; there is no Monte Carlo sampling in this path).
+ */
+export interface WhatIfResult {
+  baseline: WhatIfSnapshot
+  mitigated: WhatIfSnapshot
+  /** mitigated - baseline: positive availability, or negative downtime/exposure, both mean "better". */
+  delta: { correlatedAvailability: number; expectedDowntimeHoursPerYear: number; expectedAnnualExposure: number }
+  /** False when the delta is below this tool's own display-rounding floor — the UI should say "no
+   * meaningful change" rather than render a fabricated-looking sliver of a number. */
+  meaningfulChange: boolean
+  appliedOverrides: WhatIfOverride[]
+  /** failoverVendorId values that named a fallback with no resolvable curated VENDOR_MAP entry —
+   * reported so the UI can say so, never silently dropped or counted as if it changed anything. */
+  unresolvedFailovers: string[]
+}
+
+/** One deterministically-ranked mitigation candidate — no LLM involved in picking or ordering these. */
+export interface RecommendedMove {
+  vendorId: string
+  vendorName: string
+  moveType: 'substrate' | 'failover'
+  substrate?: string
+  failoverVendorId?: string
+  description: string
+  /** baseline.expectedAnnualExposure - mitigated.expectedAnnualExposure for this move alone, >= 0. */
+  annualSavings: number
+}
+
 /** A structured remediation runbook for one vendor's failure. */
 export interface Runbook {
   summary: string
@@ -273,4 +323,24 @@ export interface IacSubstrateSignal {
   provider: IacProvider
   resourceType?: string
   source: string
+}
+
+/** One engine tool call the answer below is grounded in — the UI renders these as a
+ * "Grounded in: toolName(args) -> resultSummary" footnote per call, never paraphrased. */
+export interface AskToolCall {
+  name: string
+  input: Record<string, unknown>
+  /** Short, numbers-only human summary of this call's result, e.g. "17/74 entrypoints". */
+  resultSummary: string
+}
+
+/** "Ask Blast Radius" (server/src/ask.ts) — a Bedrock-tool-use answer, or the deterministic
+ * fallback for one of the 3 suggested questions when Bedrock isn't configured/reachable. Every
+ * number in `numbers` came from a real tool call in `toolsUsed`, never from the model itself. */
+export interface AskResult {
+  answer: string
+  toolsUsed: AskToolCall[]
+  /** Flat numeric facts the answer is grounded in, merged from every tool call's own result. */
+  numbers: Record<string, number>
+  generatedBy: 'bedrock' | 'deterministic'
 }

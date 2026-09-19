@@ -1,4 +1,5 @@
-import { errorMessage, routeApi } from './apiRouter'
+import { errorMessage, HttpError, routeApi } from './apiRouter'
+import { MAX_BODY_BYTES } from './limits'
 
 // Real Lambda entry point for the API Gateway HTTP API (payload format 2.0) integration. Not a
 // dependency on @types/aws-lambda — the two shapes below are the minimal documented subset of the
@@ -37,9 +38,20 @@ function json(statusCode: number, body: unknown): ApiGatewayV2Result {
   return { statusCode, headers: corsHeaders(), body: JSON.stringify(body) }
 }
 
+/** API Gateway hands this whole thing over already-buffered (unlike the local http server, there's
+ * no stream to abort mid-flight) — so the size check runs on the decoded byte length BEFORE
+ * JSON.parse, not during accumulation. A base64 body's decoded length is checked, not the
+ * (shorter) encoded string length, so this can't be bypassed by base64-encoding a payload that
+ * decodes to something larger than MAX_BODY_BYTES. */
 function decodeBody(event: ApiGatewayV2Event): string {
   if (!event.body) return ''
-  return event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf-8') : event.body
+  if (event.isBase64Encoded) {
+    const decoded = Buffer.from(event.body, 'base64')
+    if (decoded.byteLength > MAX_BODY_BYTES) throw new HttpError(413, 'Request body too large.')
+    return decoded.toString('utf-8')
+  }
+  if (Buffer.byteLength(event.body, 'utf-8') > MAX_BODY_BYTES) throw new HttpError(413, 'Request body too large.')
+  return event.body
 }
 
 export async function handler(event: ApiGatewayV2Event): Promise<ApiGatewayV2Result> {
@@ -51,7 +63,8 @@ export async function handler(event: ApiGatewayV2Event): Promise<ApiGatewayV2Res
   try {
     const raw = decodeBody(event)
     body = raw ? JSON.parse(raw) : {}
-  } catch {
+  } catch (err) {
+    if (err instanceof HttpError) return json(err.status, { error: err.message })
     return json(400, { error: 'Malformed JSON body.' })
   }
 

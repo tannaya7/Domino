@@ -1,7 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { errorMessage, HttpError, routeApi } from './apiRouter'
-
-const MAX_BODY_BYTES = 2 * 1024 * 1024 // 2MB — generous for this API's JSON bodies, bounds memory use
+import { MAX_BODY_BYTES } from './limits'
 
 function setCors(res: ServerResponse) {
   // '*' is the local-dev default; set ALLOWED_ORIGIN to lock this down (the deployed Lambda always does).

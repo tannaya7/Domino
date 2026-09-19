@@ -1,3 +1,4 @@
+import { hiddenSharePercent } from '../lib/availability'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { AvailabilityHeadline, ExactAvailabilityResult } from '../lib/types'
@@ -8,14 +9,6 @@ interface VendorHeadlineCardProps {
   currency: Currency
 }
 
-/** Share of correlated downtime that comes from substrate risk a vendor's own SLA doesn't
- * capture — clamped for display; a pathological override could otherwise push this outside [0,100]. */
-function hiddenSharePercent(headline: AvailabilityHeadline, result: ExactAvailabilityResult): number {
-  const correlatedHours = result.expectedDowntimeHoursPerYear.correlated
-  if (correlatedHours <= 0) return 0
-  return Math.max(0, Math.min(100, (headline.hiddenUpstreamHoursPerYear / correlatedHours) * 100))
-}
-
 function VendorHeadlineCard({ headline, result, currency }: VendorHeadlineCardProps) {
   if (headline.vendors === 0) return null
 
@@ -23,7 +16,7 @@ function VendorHeadlineCard({ headline, result, currency }: VendorHeadlineCardPr
   const substrateName = headline.worstSingleEvent?.substrate
 
   return (
-    <div className="panel-glass animate-rise-in rounded-xl px-4 py-3" role="status">
+    <div className="panel-glass animate-rise-in rounded-xl px-4 py-3" role="status" data-tour="headline-card">
       {graceful ? (
         <p className="text-sm text-[var(--text-secondary)]">
           {headline.vendors} vendor on {headline.substrates} substrate{headline.substrates === 1 ? '' : 's'}

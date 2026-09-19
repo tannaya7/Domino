@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildAvailabilityHeadline,
+  buildWhatIfResult,
   calculateNaiveAvailability,
   computeExactAvailability,
   PRESET_SCENARIOS,
   runMonteCarloAvailability,
   simulateFailureScenario,
 } from './availability'
-import type { Vendor } from './types'
+import type { ExactAvailabilityAssumptions, Vendor } from './types'
 
 function vendor(overrides: Partial<Vendor>): Vendor {
   return {
@@ -298,5 +299,73 @@ describe('buildAvailabilityHeadline (exact)', () => {
       expect(Number.isFinite(point.multiplier)).toBe(true)
       expect(point.multiplier).toBeLessThanOrEqual(1000)
     }
+  })
+})
+
+describe('buildWhatIfResult', () => {
+  const assumptions: ExactAvailabilityAssumptions = {
+    costPerHourOfDowntime: 1000,
+    vendorSlaOverrides: {},
+    substrateOutageProbabilities: {},
+  }
+
+  it('is deterministic — repeated calls with identical inputs return byte-identical numbers', () => {
+    const vendors = [
+      vendor({ key: 'stripe', sla: 0.999, substrate: ['aws'] }),
+      vendor({ key: 'other', sla: 0.999, substrate: ['aws'] }),
+    ]
+    const mitigatedVendors = [...vendors, vendor({ key: 'razorpay', sla: 0.999, substrate: ['gcp'] })]
+    const groups = [['stripe', 'razorpay']]
+
+    const first = buildWhatIfResult(vendors, mitigatedVendors, groups, assumptions, { appliedOverrides: [], unresolvedFailovers: [] })
+    const second = buildWhatIfResult(vendors, mitigatedVendors, groups, assumptions, { appliedOverrides: [], unresolvedFailovers: [] })
+    expect(second).toEqual(first)
+  })
+
+  it('baseline is unaffected by the override — it never sees mitigatedVendors/groups', () => {
+    const vendors = [vendor({ key: 'stripe', sla: 0.999, substrate: ['aws'] })]
+    const withoutFailover = buildWhatIfResult(vendors, vendors, [], assumptions, { appliedOverrides: [], unresolvedFailovers: [] })
+    const withFailover = buildWhatIfResult(
+      vendors,
+      [...vendors, vendor({ key: 'razorpay', sla: 0.999, substrate: ['gcp'] })],
+      [['stripe', 'razorpay']],
+      assumptions,
+      { appliedOverrides: [], unresolvedFailovers: [] },
+    )
+    expect(withFailover.baseline).toEqual(withoutFailover.baseline)
+  })
+
+  it('a genuinely diversifying failover has a positive availability delta and negative downtime/exposure delta', () => {
+    const vendors = [
+      vendor({ key: 'stripe', sla: 0.999, substrate: ['aws'] }),
+      vendor({ key: 'other', sla: 0.999, substrate: ['gcp'] }),
+    ]
+    const mitigatedVendors = [...vendors, vendor({ key: 'razorpay', sla: 0.999, substrate: ['gcp'] })]
+    const result = buildWhatIfResult(vendors, mitigatedVendors, [['stripe', 'razorpay']], assumptions, {
+      appliedOverrides: [{ vendorId: 'stripe', failoverVendorId: 'Razorpay' }],
+      unresolvedFailovers: [],
+    })
+
+    expect(result.delta.correlatedAvailability).toBeGreaterThan(0)
+    expect(result.delta.expectedDowntimeHoursPerYear).toBeLessThan(0)
+    expect(result.delta.expectedAnnualExposure).toBeLessThan(0)
+    expect(result.meaningfulChange).toBe(true)
+  })
+
+  it('a no-op override (identical mitigated vendors, no groups) reports no meaningful change', () => {
+    const vendors = [vendor({ key: 'stripe', sla: 0.999, substrate: ['aws'] })]
+    const result = buildWhatIfResult(vendors, vendors, [], assumptions, { appliedOverrides: [], unresolvedFailovers: [] })
+    expect(result.delta.correlatedAvailability).toBe(0)
+    expect(result.meaningfulChange).toBe(false)
+  })
+
+  it('an unresolved failover is reported, not silently absorbed into the numbers', () => {
+    const vendors = [vendor({ key: 'stripe', sla: 0.999, substrate: ['aws'] })]
+    const result = buildWhatIfResult(vendors, vendors, [], assumptions, {
+      appliedOverrides: [{ vendorId: 'stripe', failoverVendorId: 'Adyen' }],
+      unresolvedFailovers: ['Adyen'],
+    })
+    expect(result.unresolvedFailovers).toEqual(['Adyen'])
+    expect(result.meaningfulChange).toBe(false)
   })
 })

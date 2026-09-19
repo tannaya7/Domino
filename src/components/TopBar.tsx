@@ -22,6 +22,9 @@ interface TopBarProps {
   snapshotInfo: { sha: string; generatedAt: string } | null
   onAnalyzeLive: () => void
   isAnalyzingLive: boolean
+  /** Optional (no-op default) so existing tests/callers that don't care about the tour don't need
+   * to wire it up. */
+  onPlayTour?: () => void
 }
 
 function TopBar({
@@ -36,6 +39,7 @@ function TopBar({
   snapshotInfo,
   onAnalyzeLive,
   isAnalyzingLive,
+  onPlayTour = () => {},
 }: TopBarProps) {
   // Initializer only, deliberately — Workspace (and TopBar with it) fully unmounts and remounts
   // per repo (App.tsx only renders it once `analyzed` is set, and "Load different repo" clears
@@ -112,6 +116,14 @@ function TopBar({
             </button>
           </>
         )}
+        <button
+          type="button"
+          onClick={onPlayTour}
+          data-tour="play-tour-topbar"
+          className="rounded-md border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--accent-strong)] hover:bg-[var(--accent)]/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+        >
+          ▶ Play 45-second tour
+        </button>
         <button
           type="button"
           onClick={onReset}

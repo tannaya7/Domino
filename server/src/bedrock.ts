@@ -100,3 +100,99 @@ export function extractJson<T>(raw: string): T | null {
     return null
   }
 }
+
+// --- Converse with tool use (server/src/ask.ts) -------------------------------------------------
+// A second, separate entry point from invokeBedrock() above: "Ask Blast Radius" needs a real
+// multi-turn tool-use loop (model asks for a tool, we run it, we hand back the result, repeat),
+// which invokeBedrock's single-prompt/single-response shape can't express. This function is
+// intentionally just the Bedrock plumbing for ONE Converse call — the loop itself (how many tool
+// calls to allow, executing them, deciding when to stop) lives in ask.ts, since only it knows how
+// to run these specific tools.
+
+export interface BedrockTool {
+  name: string
+  description: string
+  /** A JSON Schema object (type: 'object', properties, required) — passed through to Converse's
+   * toolSpec.inputSchema.json verbatim. */
+  inputSchema: Record<string, unknown>
+}
+
+export interface BedrockToolUse {
+  toolUseId: string
+  name: string
+  input: Record<string, unknown>
+}
+
+export type BedrockConverseRole = 'user' | 'assistant'
+
+/** A minimal, Converse-content-block-shaped message — only the block kinds ask.ts actually needs
+ * (text, toolUse, toolResult), not the full SDK union. */
+export interface BedrockConverseMessage {
+  role: BedrockConverseRole
+  content: Array<
+    | { text: string }
+    | { toolUse: { toolUseId: string; name: string; input: Record<string, unknown> } }
+    | { toolResult: { toolUseId: string; content: Array<{ json: unknown }>; status?: 'success' | 'error' } }
+  >
+}
+
+export interface BedrockConverseTurn {
+  /** Text the model produced this turn, if any (usually present only on the FINAL turn, once it's
+   * done calling tools). */
+  text: string | null
+  toolUses: BedrockToolUse[]
+}
+
+interface ConverseWithToolsResponseShape {
+  output?: {
+    message?: {
+      content?: Array<{ text?: string; toolUse?: { toolUseId: string; name: string; input: Record<string, unknown> } }>
+    }
+  }
+}
+
+/**
+ * One Converse call with toolConfig attached. Returns null — never throws — exactly like
+ * invokeBedrock: not configured, no credentials/access, a timeout, or a malformed response all
+ * collapse to null so the caller (ask.ts) always has a deterministic fallback to reach for.
+ */
+export async function converseWithTools(
+  messages: BedrockConverseMessage[],
+  systemPrompt: string,
+  tools: BedrockTool[],
+  options: { maxOutputTokens?: number; timeoutMs?: number } = {},
+): Promise<BedrockConverseTurn | null> {
+  const modelId = getModelId()
+  if (!modelId) return null
+
+  try {
+    const { ConverseCommand } = await import('@aws-sdk/client-bedrock-runtime')
+    const client = await getClient()
+
+    const response = (await withTimeout(
+      client.send(
+        new ConverseCommand({
+          modelId,
+          system: [{ text: systemPrompt }],
+          messages: messages as never,
+          toolConfig: {
+            tools: tools.map((t) => ({ toolSpec: { name: t.name, description: t.description, inputSchema: { json: t.inputSchema } } })) as never,
+          },
+          inferenceConfig: { maxTokens: options.maxOutputTokens ?? 400, temperature: 0.2 },
+        }),
+      ),
+      options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      'Bedrock Converse (tools)',
+    )) as ConverseWithToolsResponseShape
+
+    const content = response.output?.message?.content ?? []
+    const textBlock = content.find((block): block is { text: string } => typeof block.text === 'string')
+    const toolUses = content
+      .filter((block): block is { toolUse: BedrockToolUse } => block.toolUse !== undefined)
+      .map((block) => block.toolUse)
+
+    return { text: textBlock?.text ?? null, toolUses }
+  } catch {
+    return null
+  }
+}

@@ -1,4 +1,5 @@
 import type {
+  AskResult,
   AvailabilityHeadline,
   AwsHealthStatus,
   ConcentrationResult,
@@ -6,10 +7,13 @@ import type {
   ExactAvailabilityResult,
   FailureScenarioResult,
   GraphData,
+  RecommendedMove,
   Runbook,
   Vendor,
   VendorGraph,
   VendorStatus,
+  WhatIfOverride,
+  WhatIfResult,
 } from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8787'
@@ -55,6 +59,9 @@ export interface AnalyzeRepoResponse extends GraphData {
     /** Powers the "X% of internal imports resolved" data-quality badge. */
     importResolution: { total: number; resolved: number }
   }
+  /** Ask Blast Radius's free-text input only shows when this is true — the 3 suggested-question
+   * chips work either way (deterministic, no Bedrock needed). */
+  bedrockAvailable: boolean
 }
 
 export async function analyzeRepo(repoUrl: string): Promise<AnalyzeRepoResponse> {
@@ -73,6 +80,8 @@ export interface SimulateRequest {
   vendorSlaOverrides?: Record<string, number>
   /** Per-substrate failure-rate overrides keyed by substrate name, from the Assumptions panel. */
   substrateFailureProbabilities?: Record<string, number>
+  /** Up to 3 stacked mitigation what-ifs (WhatIfPanel) — [] or omitted means no whatIf in the response. */
+  overrides?: WhatIfOverride[]
 }
 
 export interface SimulateResponse {
@@ -81,6 +90,10 @@ export interface SimulateResponse {
   presetScenarios: Array<{ id: string; label: string; downSubstrates: string[]; description?: string }>
   /** Compact summary for the UI headline — see AvailabilityHeadline. */
   headline: AvailabilityHeadline
+  /** null when no `overrides` were sent — never a zeroed-out placeholder result. */
+  whatIf: WhatIfResult | null
+  /** Deterministic top-3 mitigation ranking (no LLM) under the current assumptions. */
+  recommendedMoves: RecommendedMove[]
 }
 
 export async function simulate(input: SimulateRequest): Promise<SimulateResponse> {
@@ -96,8 +109,13 @@ export async function fetchStatus(repoUrl: string): Promise<StatusResponse> {
   return postJson<StatusResponse>('/status', { repoUrl })
 }
 
-export async function fetchRunbook(repoUrl: string, vendorKey: string, scenarioLabel?: string): Promise<Runbook> {
-  return postJson<Runbook>('/runbook', { repoUrl, vendorKey, scenarioLabel })
+export async function fetchRunbook(
+  repoUrl: string,
+  vendorKey: string,
+  scenarioLabel?: string,
+  costPerHourOfDowntime?: number,
+): Promise<Runbook> {
+  return postJson<Runbook>('/runbook', { repoUrl, vendorKey, scenarioLabel, costPerHourOfDowntime })
 }
 
 export interface ChangedNode {
@@ -133,4 +151,16 @@ export interface RiskSummaryRequest {
 export async function getRiskSummary(input: RiskSummaryRequest): Promise<string> {
   const { summary } = await postJson<{ summary: string }>('/risk-summary', input)
   return summary
+}
+
+export interface AskRequest {
+  repoUrl: string
+  question: string
+  costPerHourOfDowntime?: number
+  vendorSlaOverrides?: Record<string, number>
+  substrateFailureProbabilities?: Record<string, number>
+}
+
+export async function askBlastRadius(input: AskRequest): Promise<AskResult> {
+  return postJson<AskResult>('/ask', input)
 }

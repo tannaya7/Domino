@@ -29,6 +29,7 @@ const fixtureResult: AnalyzeRepoResult = {
   iacSubstrates: [],
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
+  skippedOversizedFiles: 0,
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',
@@ -156,6 +157,85 @@ describe('POST /simulate', () => {
       expect(p as number).toBeGreaterThanOrEqual(0)
       expect(p as number).toBeLessThanOrEqual(1)
     }
+  })
+
+  it('omits whatIf entirely when no overrides are given', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { json } = await post('/simulate', { repoUrl: 'https://github.com/octocat/hello' })
+    expect(json.whatIf).toBeNull()
+    expect(Array.isArray(json.recommendedMoves)).toBe(true)
+  })
+
+  it('returns baseline/mitigated/delta for a substrate-move override', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      costPerHourOfDowntime: 1000,
+      overrides: [{ vendorId: 'stripe', substrate: 'gcp' }],
+    })
+    expect(status).toBe(200)
+    expect(json.whatIf.baseline).toBeDefined()
+    expect(json.whatIf.mitigated).toBeDefined()
+    expect(json.whatIf.delta).toBeDefined()
+    expect(json.whatIf.appliedOverrides).toEqual([{ vendorId: 'stripe', substrate: 'gcp' }])
+  })
+
+  it('resolves a curated failover vendor not yet detected in this repo into a redundancy pairing', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      costPerHourOfDowntime: 1000,
+      overrides: [{ vendorId: 'stripe', failoverVendorId: 'Razorpay' }],
+    })
+    expect(status).toBe(200)
+    expect(json.whatIf.unresolvedFailovers).toEqual([])
+    expect(json.whatIf.mitigated.correlatedAvailability).toBeGreaterThan(json.whatIf.baseline.correlatedAvailability)
+  })
+
+  it('reports an unresolvable curated failover name instead of fabricating an effect', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      costPerHourOfDowntime: 1000,
+      overrides: [{ vendorId: 'stripe', failoverVendorId: 'Adyen' }],
+    })
+    expect(status).toBe(200)
+    expect(json.whatIf.unresolvedFailovers).toEqual(['Adyen'])
+    expect(json.whatIf.delta.correlatedAvailability).toBe(0)
+  })
+
+  it('rejects an override naming a vendor absent from this analysis with a 400', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      overrides: [{ vendorId: 'not-a-real-vendor', substrate: 'gcp' }],
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/unknown vendorid/i)
+  })
+
+  it('rejects an override naming an unknown substrate with a 400', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status, json } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      overrides: [{ vendorId: 'stripe', substrate: 'not-a-real-substrate' }],
+    })
+    expect(status).toBe(400)
+    expect(json.error).toMatch(/unknown substrate/i)
+  })
+
+  it('caps stacked what-ifs at MAX_WHATIF_OVERRIDES entries rather than rejecting the request', async () => {
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    const { status } = await post('/simulate', {
+      repoUrl: 'https://github.com/octocat/hello',
+      overrides: [
+        { vendorId: 'stripe', substrate: 'gcp' },
+        { vendorId: 'stripe', substrate: 'azure' },
+        { vendorId: 'stripe', substrate: 'cloudflare' },
+        { vendorId: 'stripe', substrate: 'vercel' },
+      ],
+    })
+    expect(status).toBe(200)
   })
 })
 
