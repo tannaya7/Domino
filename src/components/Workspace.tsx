@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { AnalyzePrResponse, SimulateResponse, StatusResponse } from '../lib/api'
-import { ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
+import type { AnalyzePrResponse, AnalyzeRepoResponse, SimulateResponse, StatusResponse } from '../lib/api'
+import { analyzeRepo, ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
 import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { computeStatusChip } from '../lib/statusChip'
@@ -16,7 +16,7 @@ import SidePanel from './SidePanel'
 import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
 import StatusBanner from './StatusBanner'
-import SystemOverview from './SystemOverview'
+import RiskOverview from './RiskOverview'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
@@ -41,6 +41,10 @@ export interface AnalyzedRepo {
   } | null
   /** Only set for a real repo scan — required to call /simulate, /status, /runbook. */
   repoUrl: string | null
+  /** Set when this came from a pre-generated demo snapshot rather than a live /analyze-repo call.
+   * The server has never cached this repo, so /simulate, /status, and /runbook would all 404 —
+   * those panels are replaced with an "Analyze live" prompt instead of letting them fail. */
+  snapshot: { sha: string; generatedAt: string } | null
 }
 
 interface WorkspaceProps {
@@ -48,6 +52,9 @@ interface WorkspaceProps {
   prResult: AnalyzePrResponse | null
   onReset: () => void
   onClearPr: () => void
+  /** Called after a successful "Analyze live" — same signature as App.tsx's own repo-analyzed
+   * handler, so a live analysis replaces the snapshot exactly like a fresh analysis would. */
+  onLiveAnalysisComplete: (result: AnalyzeRepoResponse, repoUrl: string) => void
 }
 
 type View = 'graph' | 'overview'
@@ -57,8 +64,9 @@ function apiErrorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiError ? err.message : fallback
 }
 
-function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
+function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisComplete }: WorkspaceProps) {
   const hasVendorData = analyzed.repoUrl !== null
+  const isSnapshot = analyzed.snapshot !== null
   const [view, setView] = useState<View>('graph')
   const [graphMode, setGraphMode] = useState<GraphMode>(hasVendorData ? 'vendors' : 'files')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -72,11 +80,14 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   const [isSimulating, setIsSimulating] = useState(false)
   const [simulationError, setSimulationError] = useState<string | null>(null)
   const [activeScenarioId, setActiveScenarioId] = useState<string | undefined>(undefined)
+  const [isAnalyzingLive, setIsAnalyzingLive] = useState(false)
+  const [analyzeLiveError, setAnalyzeLiveError] = useState<string | null>(null)
   // Debounced edits re-run whichever scenario (or baseline) is currently active, so tweaking an
-  // assumption updates the view you're looking at instead of silently resetting it.
-  const { assumptions, setAssumptions } = useAvailabilityAssumptions(analyzed.repoUrl, (next) =>
-    runSimulation(activeScenarioId, next),
-  )
+  // assumption updates the view you're looking at instead of silently resetting it — except in
+  // snapshot mode, where the server has never analyzed this repo and /simulate would just 404.
+  const { assumptions, setAssumptions } = useAvailabilityAssumptions(analyzed.repoUrl, (next) => {
+    if (!isSnapshot) runSimulation(activeScenarioId, next)
+  })
 
   const [statusResult, setStatusResult] = useState<StatusResponse | null>(null)
   const [isLoadingStatus, setIsLoadingStatus] = useState(false)
@@ -202,6 +213,12 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
     setView('graph')
   }
 
+  function handleSelectVendorFromRegister(key: string) {
+    handleSelectVendor(key)
+    setGraphMode('vendors')
+    setView('graph')
+  }
+
   async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
     if (!analyzed.repoUrl) return
     setActiveScenarioId(scenarioId)
@@ -254,9 +271,23 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
   // remounts per repo (App.tsx unmounts it between analyses), so an empty dependency array means
   // "once per repo", not "once ever".
   useEffect(() => {
-    if (hasVendorData) void handleRefreshStatus()
+    if (hasVendorData && !isSnapshot) void handleRefreshStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function handleAnalyzeLive() {
+    if (!analyzed.repoUrl) return
+    setIsAnalyzingLive(true)
+    setAnalyzeLiveError(null)
+    try {
+      const result = await analyzeRepo(analyzed.repoUrl)
+      onLiveAnalysisComplete(result, analyzed.repoUrl)
+    } catch (err) {
+      setAnalyzeLiveError(apiErrorMessage(err, 'Could not analyze this repo live.'))
+    } finally {
+      setIsAnalyzingLive(false)
+    }
+  }
 
   async function handleGenerateRunbook() {
     if (!analyzed.repoUrl || !selectedVendorKey) return
@@ -290,12 +321,15 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
       <TopBar
         repoLabel={repoLabel}
         branch={analyzed.meta?.branch ?? null}
-        hasVendorData={hasVendorData}
+        hasVendorData={hasVendorData && !isSnapshot}
         statusChip={statusChip}
         isSimulating={isSimulating}
         defaultScenarioId={defaultScenarioId}
         onSimulate={handleSimulateScenario}
         onReset={onReset}
+        snapshotInfo={analyzed.snapshot}
+        onAnalyzeLive={handleAnalyzeLive}
+        isAnalyzingLive={isAnalyzingLive}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
@@ -371,7 +405,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
               onClick={() => setView('overview')}
               className={`rounded-md border px-2.5 py-1 font-medium ${view === 'overview' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
             >
-              System overview
+              Risk register
             </button>
             {graphMode === 'files' && view === 'graph' && importResolutionBadge && (
               <span
@@ -390,7 +424,18 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
             {view === 'overview' ? (
-              <SystemOverview graphData={analyzed.graph} adjacencyMap={adjacencyMap} onSelectNode={handleSelectFromOverview} />
+              <RiskOverview
+                vendors={analyzed.vendorGraph.vendors}
+                entrypoints={analyzed.criticality.entrypoints}
+                naiveDowntimeHoursPerYear={clientExactResult.expectedDowntimeHoursPerYear.naive}
+                costPerHour={assumptions.costPerHour}
+                currency={assumptions.currency}
+                vendorStatuses={statusResult?.vendorStatuses ?? null}
+                onSelectVendor={handleSelectVendorFromRegister}
+                graphData={analyzed.graph}
+                adjacencyMap={adjacencyMap}
+                onSelectNode={handleSelectFromOverview}
+              />
             ) : graphMode === 'vendors' ? (
               <VendorGraphView
                 vendorGraph={analyzed.vendorGraph}
@@ -463,28 +508,52 @@ function Workspace({ analyzed, prResult, onReset, onClearPr }: WorkspaceProps) {
           {hasVendorData && (
             <>
               <AssumptionsPanel vendors={analyzed.vendors} assumptions={assumptions} onChange={setAssumptions} />
-              <AvailabilityPanel
-                simulation={simulation}
-                isLoading={isSimulating}
-                error={simulationError}
-                currency={assumptions.currency}
-                onRun={handleRunBaseline}
-              />
-              <LiveStatusPanel
-                vendorStatuses={statusResult?.vendorStatuses ?? null}
-                awsHealth={statusResult?.awsHealth ?? null}
-                isLoading={isLoadingStatus}
-                error={statusError}
-                onRefresh={handleRefreshStatus}
-                vendorNameByKey={vendorNameByKey}
-              />
-              <RunbookPanel
-                vendorName={selectedVendor?.vendor ?? null}
-                runbook={runbook}
-                isLoading={isLoadingRunbook}
-                error={runbookError}
-                onGenerate={handleGenerateRunbook}
-              />
+              {isSnapshot ? (
+                <div className="panel-glass animate-rise-in rounded-xl p-4 text-sm text-[var(--text-secondary)]">
+                  <p className="mb-2">
+                    Availability simulation, live status, and runbooks need a live analysis — this is a pre-generated
+                    snapshot, so the server has never scanned this repo.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeLive}
+                    disabled={isAnalyzingLive}
+                    className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-[#0a0b0e] hover:bg-[var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:opacity-50"
+                  >
+                    {isAnalyzingLive ? 'Analyzing…' : 'Analyze live'}
+                  </button>
+                  {analyzeLiveError && (
+                    <p className="mt-2 text-red-300" role="alert">
+                      {analyzeLiveError}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <AvailabilityPanel
+                    simulation={simulation}
+                    isLoading={isSimulating}
+                    error={simulationError}
+                    currency={assumptions.currency}
+                    onRun={handleRunBaseline}
+                  />
+                  <LiveStatusPanel
+                    vendorStatuses={statusResult?.vendorStatuses ?? null}
+                    awsHealth={statusResult?.awsHealth ?? null}
+                    isLoading={isLoadingStatus}
+                    error={statusError}
+                    onRefresh={handleRefreshStatus}
+                    vendorNameByKey={vendorNameByKey}
+                  />
+                  <RunbookPanel
+                    vendorName={selectedVendor?.vendor ?? null}
+                    runbook={runbook}
+                    isLoading={isLoadingRunbook}
+                    error={runbookError}
+                    onGenerate={handleGenerateRunbook}
+                  />
+                </>
+              )}
             </>
           )}
         </aside>

@@ -21,6 +21,9 @@ describe('TopBar', () => {
         defaultScenarioId="gcp-outage"
         onSimulate={vi.fn()}
         onReset={vi.fn()}
+        snapshotInfo={null}
+        onAnalyzeLive={vi.fn()}
+        isAnalyzingLive={false}
       />,
     )
     expect(screen.getByLabelText('Failure scenario')).toHaveValue('gcp-outage')
@@ -39,6 +42,9 @@ describe('TopBar', () => {
         defaultScenarioId="aws-outage"
         onSimulate={onSimulate}
         onReset={vi.fn()}
+        snapshotInfo={null}
+        onAnalyzeLive={vi.fn()}
+        isAnalyzingLive={false}
       />,
     )
     await user.selectOptions(screen.getByLabelText('Failure scenario'), 'cloudflare-outage')
@@ -57,6 +63,9 @@ describe('TopBar', () => {
         defaultScenarioId="aws-outage"
         onSimulate={vi.fn()}
         onReset={vi.fn()}
+        snapshotInfo={null}
+        onAnalyzeLive={vi.fn()}
+        isAnalyzingLive={false}
       />,
     )
     expect(screen.getByText('Status unknown')).toBeInTheDocument()
@@ -73,8 +82,54 @@ describe('TopBar', () => {
         defaultScenarioId="aws-outage"
         onSimulate={vi.fn()}
         onReset={vi.fn()}
+        snapshotInfo={null}
+        onAnalyzeLive={vi.fn()}
+        isAnalyzingLive={false}
       />,
     )
     expect(screen.queryByRole('button', { name: /simulate/i })).not.toBeInTheDocument()
+  })
+
+  it('shows a "snapshot @ sha on date" badge and an Analyze live button instead of the status chip', () => {
+    render(
+      <TopBar
+        repoLabel="documenso/documenso"
+        branch="main"
+        hasVendorData={false}
+        statusChip={okChip}
+        isSimulating={false}
+        defaultScenarioId="aws-outage"
+        onSimulate={vi.fn()}
+        onReset={vi.fn()}
+        snapshotInfo={{ sha: 'e658cc5abcdef', generatedAt: '2026-09-19T03:43:37.001Z' }}
+        onAnalyzeLive={vi.fn()}
+        isAnalyzingLive={false}
+      />,
+    )
+    expect(screen.getByText(/snapshot @ e658cc5 on/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /analyze live/i })).toBeInTheDocument()
+    expect(screen.queryByText('2/2 operational')).not.toBeInTheDocument()
+  })
+
+  it('calls onAnalyzeLive when the button is clicked', async () => {
+    const onAnalyzeLive = vi.fn()
+    const user = userEvent.setup()
+    render(
+      <TopBar
+        repoLabel="documenso/documenso"
+        branch="main"
+        hasVendorData={false}
+        statusChip={okChip}
+        isSimulating={false}
+        defaultScenarioId="aws-outage"
+        onSimulate={vi.fn()}
+        onReset={vi.fn()}
+        snapshotInfo={{ sha: 'e658cc5abcdef', generatedAt: '2026-09-19T03:43:37.001Z' }}
+        onAnalyzeLive={onAnalyzeLive}
+        isAnalyzingLive={false}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: /analyze live/i }))
+    expect(onAnalyzeLive).toHaveBeenCalled()
   })
 })

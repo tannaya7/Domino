@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import InputScreen from './components/InputScreen'
-import LandingPage from './components/LandingPage'
 import Workspace, { type AnalyzedRepo } from './components/Workspace'
 import type { AnalyzePrResponse, AnalyzeRepoResponse } from './lib/api'
 import { analyzeConcentration } from './lib/concentration'
 import { analyzeCriticality } from './lib/criticality'
+import type { DemoSnapshot } from './lib/demoSnapshot'
 import { inferProjectEntrypoints } from './lib/entrypoints'
 import { buildAdjacencyMap, VENDOR_GRAPH_ROOT_ID } from './lib/graph'
 import type { GraphData } from './lib/types'
@@ -26,11 +26,11 @@ function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
     criticality: analyzeCriticality(adjacency, nodeIds, entrypoints.length > 0 ? entrypoints : undefined),
     meta: null,
     repoUrl: null,
+    snapshot: null,
   }
 }
 
 function App() {
-  const [showLanding, setShowLanding] = useState(true)
   const [analyzed, setAnalyzed] = useState<AnalyzedRepo | null>(null)
   const [prResult, setPrResult] = useState<AnalyzePrResponse | null>(null)
 
@@ -43,6 +43,21 @@ function App() {
       criticality: result.criticality,
       meta: result.meta,
       repoUrl,
+      snapshot: null,
+    })
+    setPrResult(null)
+  }
+
+  function handleSnapshotLoaded(snapshot: DemoSnapshot) {
+    setAnalyzed({
+      graph: { nodes: snapshot.nodes, edges: snapshot.edges },
+      vendors: snapshot.vendors,
+      vendorGraph: snapshot.vendorGraph,
+      concentration: snapshot.concentration,
+      criticality: snapshot.criticality,
+      meta: snapshot.meta,
+      repoUrl: `https://github.com/${snapshot.owner}/${snapshot.repo}`,
+      snapshot: { sha: snapshot.commitSha, generatedAt: snapshot.generatedAt },
     })
     setPrResult(null)
   }
@@ -62,10 +77,6 @@ function App() {
     setPrResult(null)
   }
 
-  if (showLanding) {
-    return <LandingPage onGetStarted={() => setShowLanding(false)} />
-  }
-
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
       {!analyzed ? (
@@ -73,9 +84,16 @@ function App() {
           onRepoAnalyzed={handleRepoAnalyzed}
           onManualLoad={handleManualLoad}
           onPrAnalyzed={handlePrAnalyzed}
+          onSnapshotLoaded={handleSnapshotLoaded}
         />
       ) : (
-        <Workspace analyzed={analyzed} prResult={prResult} onReset={handleReset} onClearPr={() => setPrResult(null)} />
+        <Workspace
+          analyzed={analyzed}
+          prResult={prResult}
+          onReset={handleReset}
+          onClearPr={() => setPrResult(null)}
+          onLiveAnalysisComplete={handleRepoAnalyzed}
+        />
       )}
     </div>
   )

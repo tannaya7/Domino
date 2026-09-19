@@ -162,6 +162,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
       importResolution: { total: 2, resolved: 2 },
     },
     repoUrl: 'https://github.com/octocat/hello',
+    snapshot: null,
     ...overrides,
   }
 }
@@ -178,7 +179,7 @@ afterEach(() => {
 
 describe('Workspace — vendor graph and selection', () => {
   it('shows the vendor graph by default and summary stat tiles', () => {
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
     expect(screen.getByTestId('node-stripe')).toBeInTheDocument()
     expect(screen.getByTestId('node-__app__')).toBeInTheDocument()
     expect(screen.getAllByText('Vendors').length).toBeGreaterThan(0)
@@ -186,7 +187,7 @@ describe('Workspace — vendor graph and selection', () => {
 
   it('selecting a vendor shows its detail panel', async () => {
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByTestId('node-stripe'))
 
@@ -198,7 +199,7 @@ describe('Workspace — vendor graph and selection', () => {
 
   it('drilling into affected files switches to the file graph and highlights them', async () => {
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByTestId('node-stripe'))
     await user.click(screen.getByRole('button', { name: /view affected files/i }))
@@ -209,7 +210,7 @@ describe('Workspace — vendor graph and selection', () => {
 
   it('clicking a file node shows its blast radius in the side panel', async () => {
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: /file graph/i }))
     await user.click(screen.getByTestId('node-src/index.ts'))
@@ -256,7 +257,7 @@ describe('Workspace — simulation', () => {
     })
 
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: /^simulate$/i }))
 
@@ -279,7 +280,7 @@ describe('Workspace — simulation', () => {
   it('shows a simulation error instead of a stuck loading state', async () => {
     simulateMock.mockRejectedValue(new Error('network down'))
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByRole('button', { name: /^simulate$/i }))
 
@@ -293,7 +294,7 @@ describe('Workspace — live status', () => {
       vendorStatuses: [{ vendorKey: 'stripe', indicator: 'unknown', checkedAt: '2026-01-01', stale: true }],
       awsHealth: { source: 'unknown', indicator: 'unknown', checkedAt: '2026-01-01' },
     })
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     // No click needed — item 5's whole point is that this fires automatically on load.
     await waitFor(() => expect(fetchStatusMock).toHaveBeenCalledWith('https://github.com/octocat/hello'))
@@ -304,7 +305,7 @@ describe('Workspace — live status', () => {
 
   it('shows per-vendor skeleton rows while the auto-fetch is in flight', () => {
     fetchStatusMock.mockReturnValue(new Promise(() => {})) // never resolves — asserts the loading state
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     const statusPanel = screen.getByText('Live status').closest('section')!
     expect(within(statusPanel).getByRole('list', { name: /loading vendor status/i })).toBeInTheDocument()
@@ -313,7 +314,7 @@ describe('Workspace — live status', () => {
 
   it('shows a status error instead of a stuck loading state', async () => {
     fetchStatusMock.mockRejectedValue(new Error('boom'))
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     const statusPanel = screen.getByText('Live status').closest('section')!
     expect(await within(statusPanel).findByText('Could not fetch live status.')).toBeInTheDocument()
@@ -322,7 +323,7 @@ describe('Workspace — live status', () => {
   it('re-fetches when Refresh is clicked after the initial auto-fetch resolves', async () => {
     fetchStatusMock.mockResolvedValue({ vendorStatuses: [], awsHealth: null })
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await waitFor(() => expect(fetchStatusMock).toHaveBeenCalledTimes(1))
     const statusPanel = screen.getByText('Live status').closest('section')!
@@ -341,7 +342,7 @@ describe('Workspace — runbook', () => {
       generatedBy: 'deterministic',
     })
     const user = userEvent.setup()
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
 
     await user.click(screen.getByTestId('node-stripe'))
     const runbookPanel = screen.getByText('Runbook').closest('section')!
@@ -371,6 +372,7 @@ describe('Workspace — data-quality badge', () => {
         prResult={null}
         onReset={vi.fn()}
         onClearPr={vi.fn()}
+        onLiveAnalysisComplete={vi.fn()}
       />,
     )
     await user.click(screen.getByRole('button', { name: /file graph/i }))
@@ -385,6 +387,7 @@ describe('Workspace — data-quality badge', () => {
         prResult={null}
         onReset={vi.fn()}
         onClearPr={vi.fn()}
+        onLiveAnalysisComplete={vi.fn()}
       />,
     )
     await user.click(screen.getByRole('button', { name: /file graph/i }))
@@ -409,6 +412,7 @@ describe('Workspace — truncated scan banner', () => {
         prResult={null}
         onReset={vi.fn()}
         onClearPr={vi.fn()}
+        onLiveAnalysisComplete={vi.fn()}
       />,
     )
     expect(screen.getByText(/scan stopped early/i)).toBeInTheDocument()
@@ -416,7 +420,7 @@ describe('Workspace — truncated scan banner', () => {
   })
 
   it('shows no banner when the scan completed fully', () => {
-    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} />)
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
     expect(screen.queryByText(/scan stopped early/i)).not.toBeInTheDocument()
   })
 })
@@ -429,6 +433,7 @@ describe('Workspace — manual/PR data (no vendor data)', () => {
         prResult={null}
         onReset={vi.fn()}
         onClearPr={vi.fn()}
+        onLiveAnalysisComplete={vi.fn()}
       />,
     )
     expect(screen.queryByText('Live status')).not.toBeInTheDocument()
@@ -453,6 +458,7 @@ describe('Workspace — manual/PR data (no vendor data)', () => {
         prResult={prResult}
         onReset={vi.fn()}
         onClearPr={vi.fn()}
+        onLiveAnalysisComplete={vi.fn()}
       />,
     )
     expect(screen.getByText('octocat/hello #42')).toBeInTheDocument()

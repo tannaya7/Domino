@@ -95,10 +95,16 @@ export interface ParsedRepoUrl {
   repo: string
 }
 
+/**
+ * Accepts the shapes people actually paste: a bare `.git` clone URL, a trailing slash, a
+ * `/tree/<branch>` (or `/blob/<branch>/...`) suffix, and stray query/hash fragments. Only the
+ * owner/repo is extracted here — a `/tree/<branch>` suffix is normalized away, not resolved to
+ * that specific branch (analyzeRepo still uses the repo's default branch).
+ */
 export function parseRepoUrl(url: string): ParsedRepoUrl {
   const match = url
     .trim()
-    .match(/github\.com[/:]([^/]+)\/([^/#?]+?)(?:\.git)?\/?(?:[?#].*)?$/)
+    .match(/github\.com[/:]([^/]+)\/([^/#?]+?)(?:\.git)?\/?(?:(?:tree|blob)\/[^?#]*)?(?:[?#].*)?$/)
   if (!match) {
     throw new Error('That does not look like a GitHub repo URL (expected github.com/owner/repo).')
   }
@@ -121,6 +127,13 @@ export async function getDefaultBranch(owner: string, repo: string): Promise<str
   const res = await githubFetch(`/repos/${owner}/${repo}`)
   const data = (await res.json()) as { default_branch: string }
   return data.default_branch
+}
+
+/** The commit SHA a branch currently points at — pinned into demo snapshots so "snapshot @ <sha>" is real. */
+export async function getBranchSha(owner: string, repo: string, branch: string): Promise<string> {
+  const res = await githubFetch(`/repos/${owner}/${repo}/branches/${branch}`)
+  const data = (await res.json()) as { commit: { sha: string } }
+  return data.commit.sha
 }
 
 export interface RepoTreeEntry {

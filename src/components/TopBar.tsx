@@ -18,9 +18,25 @@ interface TopBarProps {
   defaultScenarioId: string
   onSimulate: (scenarioId: string) => void
   onReset: () => void
+  /** Set when this workspace came from a pre-generated demo snapshot, not a live analysis. */
+  snapshotInfo: { sha: string; generatedAt: string } | null
+  onAnalyzeLive: () => void
+  isAnalyzingLive: boolean
 }
 
-function TopBar({ repoLabel, branch, hasVendorData, statusChip, isSimulating, defaultScenarioId, onSimulate, onReset }: TopBarProps) {
+function TopBar({
+  repoLabel,
+  branch,
+  hasVendorData,
+  statusChip,
+  isSimulating,
+  defaultScenarioId,
+  onSimulate,
+  onReset,
+  snapshotInfo,
+  onAnalyzeLive,
+  isAnalyzingLive,
+}: TopBarProps) {
   // Initializer only, deliberately — Workspace (and TopBar with it) fully unmounts and remounts
   // per repo (App.tsx only renders it once `analyzed` is set, and "Load different repo" clears
   // that first), so defaultScenarioId is already correct at mount for every repo; no effect needed
@@ -39,14 +55,33 @@ function TopBar({ repoLabel, branch, hasVendorData, statusChip, isSimulating, de
             {branch && <span className="text-[var(--text-muted)]"> @ {branch}</span>}
           </span>
         )}
-        <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-          <span
-            className={`h-2 w-2 rounded-full ${statusChip.pulsing ? 'animate-pulse-dot' : ''}`}
-            style={{ backgroundColor: statusChip.color }}
-            aria-hidden="true"
-          />
-          {statusChip.label}
-        </span>
+        {snapshotInfo ? (
+          <>
+            <span
+              className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent-strong)]"
+              title="This data was pre-generated and pinned to a commit — not a live scan."
+            >
+              snapshot @ {snapshotInfo.sha.slice(0, 7)} on {new Date(snapshotInfo.generatedAt).toLocaleDateString()}
+            </span>
+            <button
+              type="button"
+              onClick={onAnalyzeLive}
+              disabled={isAnalyzingLive}
+              className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] disabled:opacity-50"
+            >
+              {isAnalyzingLive ? 'Analyzing…' : 'Analyze live'}
+            </button>
+          </>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+            <span
+              className={`h-2 w-2 rounded-full ${statusChip.pulsing ? 'animate-pulse-dot' : ''}`}
+              style={{ backgroundColor: statusChip.color }}
+              aria-hidden="true"
+            />
+            {statusChip.label}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

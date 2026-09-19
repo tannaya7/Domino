@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { parseRepoUrl } from '../src/github'
 
 const ssmSendMock = vi.fn()
 
@@ -106,5 +107,60 @@ describe('getGithubToken (via getDefaultBranch)', () => {
     await getDefaultBranch('octocat', 'other-repo')
 
     expect(ssmSendMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('parseRepoUrl', () => {
+  it('parses a plain repo URL', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a trailing slash', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo/')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a .git suffix', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo.git')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes an SSH clone URL', () => {
+    expect(parseRepoUrl('git@github.com:owner/repo.git')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a /tree/<branch> suffix', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo/tree/main')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a /tree/<branch>/<path> suffix', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo/tree/main/src/lib')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a /blob/<branch>/<file> suffix', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo/blob/main/README.md')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('normalizes a query string', () => {
+    expect(parseRepoUrl('https://github.com/owner/repo?tab=readme-ov-file')).toEqual({ owner: 'owner', repo: 'repo' })
+  })
+
+  it('rejects a non-GitHub URL', () => {
+    expect(() => parseRepoUrl('https://gitlab.com/owner/repo')).toThrow(/does not look like a github repo url/i)
+  })
+})
+
+describe('getBranchSha', () => {
+  afterEach(() => {
+    global.fetch = originalFetch
+  })
+
+  it('returns the branch head commit sha', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ commit: { sha: 'abc123def' } }),
+      headers: new Headers(),
+    }) as unknown as typeof fetch
+
+    const { getBranchSha } = await importFreshGithub()
+    expect(await getBranchSha('octocat', 'hello', 'main')).toBe('abc123def')
   })
 })

@@ -25,7 +25,7 @@ function SystemOverview({ graphData, adjacencyMap, onSelectNode }: SystemOvervie
 
   return (
     <div className="h-full overflow-auto p-6">
-      <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">System Overview</h2>
+      <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Files</h2>
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-[var(--border-subtle)] text-[var(--text-muted)]">

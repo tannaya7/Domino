@@ -1,0 +1,4319 @@
+{
+  "owner": "formbricks",
+  "repo": "formbricks",
+  "branch": "main",
+  "commitSha": "357c7a25cf98a70d16d1042633deaad8831804ce",
+  "generatedAt": "2026-09-19T03:43:48.579Z",
+  "nodes": [
+    {
+      "id": "apps/storybook/.storybook/main.ts",
+      "label": "apps/storybook/.storybook/main.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authorization/index.ts",
+      "label": "apps/web/lib/authorization/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/errors.ts",
+      "label": "packages/types/errors.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authorization/context.ts",
+      "label": "apps/web/lib/authorization/context.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authorization/contract.ts",
+      "label": "apps/web/lib/authorization/contract.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authorization/coordinator.ts",
+      "label": "apps/web/lib/authorization/coordinator.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authorization/evaluator.ts",
+      "label": "apps/web/lib/authorization/evaluator.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authzed/index.ts",
+      "label": "apps/web/lib/authzed/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authzed/client.ts",
+      "label": "apps/web/lib/authzed/client.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authzed/config.ts",
+      "label": "apps/web/lib/authzed/config.ts",
+      "type": "config"
+    },
+    {
+      "id": "apps/web/lib/authzed/errors.ts",
+      "label": "apps/web/lib/authzed/errors.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authzed/health.ts",
+      "label": "apps/web/lib/authzed/health.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/authzed/schema.ts",
+      "label": "apps/web/lib/authzed/schema.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/cache/index.ts",
+      "label": "apps/web/lib/cache/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/posthog/index.ts",
+      "label": "apps/web/lib/posthog/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/posthog/capture.ts",
+      "label": "apps/web/lib/posthog/capture.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/posthog/get-feature-flag.ts",
+      "label": "apps/web/lib/posthog/get-feature-flag.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/posthog/types.ts",
+      "label": "apps/web/lib/posthog/types.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/utils/action-client/index.ts",
+      "label": "apps/web/lib/utils/action-client/index.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/lib/constants.ts",
+      "label": "apps/web/lib/constants.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/user/service.ts",
+      "label": "apps/web/lib/user/service.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/utils/client-ip.ts",
+      "label": "apps/web/lib/utils/client-ip.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/auth/lib/session.ts",
+      "label": "apps/web/modules/auth/lib/session.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ee/audit-logs/types/audit-log.ts",
+      "label": "apps/web/modules/ee/audit-logs/types/audit-log.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/utils/action-client/types/context.ts",
+      "label": "apps/web/lib/utils/action-client/types/context.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "label": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/organizations.ts",
+      "label": "packages/types/organizations.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/user.ts",
+      "label": "packages/types/user.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/utils/helper.ts",
+      "label": "apps/web/lib/utils/helper.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/account/constants.ts",
+      "label": "apps/web/modules/account/constants.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/auth/hooks/use-sign-out.ts",
+      "label": "apps/web/modules/auth/hooks/use-sign-out.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/auth/lib/auth-client.ts",
+      "label": "apps/web/modules/auth/lib/auth-client.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/alert/index.tsx",
+      "label": "apps/web/modules/ui/components/alert/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/delete-dialog/index.tsx",
+      "label": "apps/web/modules/ui/components/delete-dialog/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/input/index.tsx",
+      "label": "apps/web/modules/ui/components/input/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/password-input/index.tsx",
+      "label": "apps/web/modules/ui/components/password-input/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/account/components/DeleteAccountModal/actions.ts",
+      "label": "apps/web/modules/account/components/DeleteAccountModal/actions.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "label": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/app/(app)/workspaces/[workspaceId]/context/workspace-context.tsx",
+      "label": "apps/web/app/(app)/workspaces/[workspaceId]/context/workspace-context.tsx",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/ai/availability.ts",
+      "label": "apps/web/lib/ai/availability.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/ai/service.ts",
+      "label": "apps/web/lib/ai/service.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/RatingSmiley/index.tsx",
+      "label": "apps/web/modules/analysis/components/RatingSmiley/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "label": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/surveys/types.ts",
+      "label": "packages/types/surveys/types.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/survey/hooks/useSingleUseId.tsx",
+      "label": "apps/web/modules/survey/hooks/useSingleUseId.tsx",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/button/index.tsx",
+      "label": "apps/web/modules/ui/components/button/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/utils.tsx",
+      "label": "apps/web/modules/analysis/utils.tsx",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/ShareSurveyLink/components/LanguageDropdown.tsx",
+      "label": "apps/web/modules/analysis/components/ShareSurveyLink/components/LanguageDropdown.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/ShareSurveyLink/components/SurveyLinkDisplay.tsx",
+      "label": "apps/web/modules/analysis/components/ShareSurveyLink/components/SurveyLinkDisplay.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/responses.ts",
+      "label": "packages/types/responses.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/tags.ts",
+      "label": "packages/types/tags.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/survey/lib/client-utils.ts",
+      "label": "apps/web/modules/survey/lib/client-utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/decrement-quotas-checkbox/index.tsx",
+      "label": "apps/web/modules/ui/components/decrement-quotas-checkbox/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/actions.ts",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/actions.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/components/ResponseTagsWrapper.tsx",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/components/ResponseTagsWrapper.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardBody.tsx",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardBody.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardHeader.tsx",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardHeader.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/analysis/components/SingleResponseCard/util.ts",
+      "label": "apps/web/modules/analysis/components/SingleResponseCard/util.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/email/index.tsx",
+      "label": "apps/web/modules/email/index.tsx",
+      "type": "file"
+    },
+    {
+      "id": "packages/email/src/types/email.ts",
+      "label": "packages/email/src/types/email.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/email.ts",
+      "label": "packages/types/email.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/surveys/elements.ts",
+      "label": "packages/types/surveys/elements.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/getPublicUrl.ts",
+      "label": "apps/web/lib/getPublicUrl.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/jwt.ts",
+      "label": "apps/web/lib/jwt.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/organization/service.ts",
+      "label": "apps/web/lib/organization/service.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/responses.ts",
+      "label": "apps/web/lib/responses.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lingodotdev/server.ts",
+      "label": "apps/web/lingodotdev/server.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/auth/lib/verification-links.ts",
+      "label": "apps/web/modules/auth/lib/verification-links.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/email/lib/verified-link-survey-url.ts",
+      "label": "apps/web/modules/email/lib/verified-link-survey-url.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/storage/utils.ts",
+      "label": "apps/web/modules/storage/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/hub/index.ts",
+      "label": "apps/web/modules/hub/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/hub/hub-client.ts",
+      "label": "apps/web/modules/hub/hub-client.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/hub/service.ts",
+      "label": "apps/web/modules/hub/service.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/hub/types.ts",
+      "label": "apps/web/modules/hub/types.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "label": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/organization/actions.ts",
+      "label": "apps/web/modules/organization/actions.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/dialog/index.tsx",
+      "label": "apps/web/modules/ui/components/dialog/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/label/index.tsx",
+      "label": "apps/web/modules/ui/components/label/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/organization/settings/teams/components/edit-memberships/index.ts",
+      "label": "apps/web/modules/organization/settings/teams/components/edit-memberships/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/organization/settings/teams/components/edit-memberships/edit-memberships.tsx",
+      "label": "apps/web/modules/organization/settings/teams/components/edit-memberships/edit-memberships.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/edit-public-survey-alert-dialog/index.tsx",
+      "label": "apps/web/modules/survey/components/edit-public-survey-alert-dialog/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "label": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/i18n.ts",
+      "label": "packages/types/i18n.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/storage.ts",
+      "label": "packages/types/storage.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/i18n/utils.ts",
+      "label": "apps/web/lib/i18n/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/lib/utils/debounce.ts",
+      "label": "apps/web/lib/utils/debounce.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/lib/utils/hooks/useSyncScroll.ts",
+      "label": "apps/web/lib/utils/hooks/useSyncScroll.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/lib/utils/recall.ts",
+      "label": "apps/web/lib/utils/recall.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/survey/components/element-form-input/components/recall-wrapper.tsx",
+      "label": "apps/web/modules/survey/components/element-form-input/components/recall-wrapper.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/multi-language-surveys/components/localized-editor.tsx",
+      "label": "apps/web/modules/survey/multi-language-surveys/components/localized-editor.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-input/index.tsx",
+      "label": "apps/web/modules/ui/components/file-input/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/switch/index.tsx",
+      "label": "apps/web/modules/ui/components/switch/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/tooltip/index.tsx",
+      "label": "apps/web/modules/ui/components/tooltip/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/element-form-input/utils.ts",
+      "label": "apps/web/modules/survey/components/element-form-input/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/index.tsx",
+      "label": "apps/web/modules/survey/components/template-list/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/templates.ts",
+      "label": "packages/types/templates.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/workspace.ts",
+      "label": "packages/types/workspace.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/app/lib/templates.ts",
+      "label": "apps/web/app/lib/templates.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/lib/env-client.ts",
+      "label": "apps/web/lib/env-client.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/api/lib/v3-client.ts",
+      "label": "apps/web/modules/api/lib/v3-client.ts",
+      "type": "api"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/components/create-with-ai-template.tsx",
+      "label": "apps/web/modules/survey/components/template-list/components/create-with-ai-template.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/components/start-from-scratch-template.tsx",
+      "label": "apps/web/modules/survey/components/template-list/components/start-from-scratch-template.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/components/template.tsx",
+      "label": "apps/web/modules/survey/components/template-list/components/template.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/components/template-filters.tsx",
+      "label": "apps/web/modules/survey/components/template-list/components/template-filters.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/survey/components/template-list/hooks/use-create-survey-from-template.ts",
+      "label": "apps/web/modules/survey/components/template-list/hooks/use-create-survey-from-template.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "label": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "packages/types/surveys/validation.ts",
+      "label": "packages/types/surveys/validation.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/survey/link/lib/prefill/transformers.ts",
+      "label": "apps/web/modules/survey/link/lib/prefill/transformers.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/survey/link/lib/prefill/validators.ts",
+      "label": "apps/web/modules/survey/link/lib/prefill/validators.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/action-class-info/index.tsx",
+      "label": "apps/web/modules/ui/components/action-class-info/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/action-classes.ts",
+      "label": "packages/types/action-classes.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "label": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/form/index.tsx",
+      "label": "apps/web/modules/ui/components/form/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/additional-integration-settings/index.tsx",
+      "label": "apps/web/modules/ui/components/additional-integration-settings/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/checkbox/index.tsx",
+      "label": "apps/web/modules/ui/components/checkbox/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+      "label": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/lib/cn.ts",
+      "label": "apps/web/lib/cn.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/ai/index.tsx",
+      "label": "apps/web/modules/ui/components/ai/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/ai/components/ai-activity-bar.tsx",
+      "label": "apps/web/modules/ui/components/ai/components/ai-activity-bar.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/ai/components/ai-icon.tsx",
+      "label": "apps/web/modules/ui/components/ai/components/ai-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/ai/components/ai-status-line.tsx",
+      "label": "apps/web/modules/ui/components/ai/components/ai-status-line.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/ai/lib/status-line.ts",
+      "label": "apps/web/modules/ui/components/ai/lib/status-line.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/alert-dialog/index.tsx",
+      "label": "apps/web/modules/ui/components/alert-dialog/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/array-response/index.tsx",
+      "label": "apps/web/modules/ui/components/array-response/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/avatars/index.tsx",
+      "label": "apps/web/modules/ui/components/avatars/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "label": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/background-styling-card/survey-bg-selector-tab.tsx",
+      "label": "apps/web/modules/ui/components/background-styling-card/survey-bg-selector-tab.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/badge/index.tsx",
+      "label": "apps/web/modules/ui/components/badge/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/color-picker/index.tsx",
+      "label": "apps/web/modules/ui/components/color-picker/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/slider/index.tsx",
+      "label": "apps/web/modules/ui/components/slider/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/breadcrumb/index.tsx",
+      "label": "apps/web/modules/ui/components/breadcrumb/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/lib/utils.ts",
+      "label": "apps/web/modules/ui/lib/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/calendar/index.tsx",
+      "label": "apps/web/modules/ui/components/calendar/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/lib/utils/datetime.ts",
+      "label": "apps/web/lib/utils/datetime.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "label": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/styling.ts",
+      "label": "packages/types/styling.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/casual-card-arrangement-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/casual-card-arrangement-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/simple-card-arrangement-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/simple-card-arrangement-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/straight-card-arrangement-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/straight-card-arrangement-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/styling-tabs/index.tsx",
+      "label": "apps/web/modules/ui/components/styling-tabs/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "label": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/lib/styling/constants.ts",
+      "label": "apps/web/lib/styling/constants.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/card-width-tabs/index.tsx",
+      "label": "apps/web/modules/ui/components/card-width-tabs/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/styling-fields/index.tsx",
+      "label": "apps/web/modules/ui/components/styling-fields/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/card-table/index.tsx",
+      "label": "apps/web/modules/ui/components/card-table/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/card/index.tsx",
+      "label": "apps/web/modules/ui/components/card/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/cardless-preview-logo/index.tsx",
+      "label": "apps/web/modules/ui/components/cardless-preview-logo/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/client-logo/index.tsx",
+      "label": "apps/web/modules/ui/components/client-logo/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/chart/index.tsx",
+      "label": "apps/web/modules/ui/components/chart/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/lib/image-hosts.ts",
+      "label": "apps/web/lib/image-hosts.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/client-logout/index.tsx",
+      "label": "apps/web/modules/ui/components/client-logout/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/code-action-form/index.tsx",
+      "label": "apps/web/modules/ui/components/code-action-form/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/code-block/index.tsx",
+      "label": "apps/web/modules/ui/components/code-block/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/color-picker/components/popover-picker.tsx",
+      "label": "apps/web/modules/ui/components/color-picker/components/popover-picker.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/command/index.tsx",
+      "label": "apps/web/modules/ui/components/command/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "label": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/quota.ts",
+      "label": "packages/types/quota.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/conditions-editor/lib/utils.ts",
+      "label": "apps/web/modules/ui/components/conditions-editor/lib/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/dropdown-menu/index.tsx",
+      "label": "apps/web/modules/ui/components/dropdown-menu/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "label": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/select/index.tsx",
+      "label": "apps/web/modules/ui/components/select/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/conditions-editor/types.ts",
+      "label": "apps/web/modules/ui/components/conditions-editor/types.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/confetti/index.tsx",
+      "label": "apps/web/modules/ui/components/confetti/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "label": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ee/contacts/segments/components/segment-activity-utils.ts",
+      "label": "apps/web/modules/ee/contacts/segments/components/segment-activity-utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/confirmation-modal/index.tsx",
+      "label": "apps/web/modules/ui/components/confirmation-modal/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "label": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "packages/types/integration/index.ts",
+      "label": "packages/types/integration/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/formbricks-logo/index.tsx",
+      "label": "apps/web/modules/ui/components/formbricks-logo/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/connect-integration/lib/utils.ts",
+      "label": "apps/web/modules/ui/components/connect-integration/lib/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/csv-table/index.tsx",
+      "label": "apps/web/modules/ui/components/csv-table/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/data-table/index.tsx",
+      "label": "apps/web/modules/ui/components/data-table/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/data-table/components/data-table-header.tsx",
+      "label": "apps/web/modules/ui/components/data-table/components/data-table-header.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/data-table/components/data-table-settings-modal.tsx",
+      "label": "apps/web/modules/ui/components/data-table/components/data-table-settings-modal.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/data-table/components/data-table-toolbar.tsx",
+      "label": "apps/web/modules/ui/components/data-table/components/data-table-toolbar.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/data-table/components/selection-column.tsx",
+      "label": "apps/web/modules/ui/components/data-table/components/selection-column.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "label": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/popover/index.tsx",
+      "label": "apps/web/modules/ui/components/popover/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/date-picker/lib/range.ts",
+      "label": "apps/web/modules/ui/components/date-picker/lib/range.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/default-tag/index.tsx",
+      "label": "apps/web/modules/ui/components/default-tag/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/kbd/index.tsx",
+      "label": "apps/web/modules/ui/components/kbd/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/dropdown-selector/index.tsx",
+      "label": "apps/web/modules/ui/components/dropdown-selector/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/editor/index.ts",
+      "label": "apps/web/modules/ui/components/editor/index.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/editor/components/editor.tsx",
+      "label": "apps/web/modules/ui/components/editor/components/editor.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/editor/components/add-variables-dropdown.tsx",
+      "label": "apps/web/modules/ui/components/editor/components/add-variables-dropdown.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "label": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/empty-state/index.tsx",
+      "label": "apps/web/modules/ui/components/empty-state/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/error-component/index.tsx",
+      "label": "apps/web/modules/ui/components/error-component/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-drop-zone/index.tsx",
+      "label": "apps/web/modules/ui/components/file-drop-zone/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/loading-spinner/index.tsx",
+      "label": "apps/web/modules/ui/components/loading-spinner/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/storage/file-upload.ts",
+      "label": "apps/web/modules/storage/file-upload.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/storage/file-upload-error.tsx",
+      "label": "apps/web/modules/storage/file-upload-error.tsx",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/options-switch/index.tsx",
+      "label": "apps/web/modules/ui/components/options-switch/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/storage-not-configured-toast/lib/utils.tsx",
+      "label": "apps/web/modules/ui/components/storage-not-configured-toast/lib/utils.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-input/components/uploader.tsx",
+      "label": "apps/web/modules/ui/components/file-input/components/uploader.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-input/components/video-settings.tsx",
+      "label": "apps/web/modules/ui/components/file-input/components/video-settings.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-input/lib/utils.ts",
+      "label": "apps/web/modules/ui/components/file-input/lib/utils.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/file-upload-response/index.tsx",
+      "label": "apps/web/modules/ui/components/file-upload-response/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/storage/url-helpers.ts",
+      "label": "apps/web/modules/storage/url-helpers.ts",
+      "type": "util"
+    },
+    {
+      "id": "apps/web/modules/ui/components/filter-dropdown/index.tsx",
+      "label": "apps/web/modules/ui/components/filter-dropdown/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/go-back-button/index.tsx",
+      "label": "apps/web/modules/ui/components/go-back-button/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/header/index.tsx",
+      "label": "apps/web/modules/ui/components/header/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/highlighted-text/index.tsx",
+      "label": "apps/web/modules/ui/components/highlighted-text/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "label": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/index.tsx",
+      "label": "apps/web/modules/ui/components/icons/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/android-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/android-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/flutter-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/flutter-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/github-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/github-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/google-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/google-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/google-tag-manager-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/google-tag-manager-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/html5-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/html5-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/microsoft-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/microsoft-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/net-promoter-score-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/net-promoter-score-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/nextjs-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/nextjs-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/npm-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/npm-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/react-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/react-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/slack-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/slack-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/swift-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/swift-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/vue-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/vue-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/icons/wordpress-icon.tsx",
+      "label": "apps/web/modules/ui/components/icons/wordpress-icon.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/id-badge/index.tsx",
+      "label": "apps/web/modules/ui/components/id-badge/index.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/id-badge/components/badge-content.tsx",
+      "label": "apps/web/modules/ui/components/id-badge/components/badge-content.tsx",
+      "type": "component"
+    },
+    {
+      "id": "apps/web/modules/ui/components/input-combo-box/lib/search.ts",
+      "label": "apps/web/modules/ui/components/input-combo-box/lib/search.ts",
+      "type": "file"
+    },
+    {
+      "id": "apps/web/modules/ui/components/integration-card/index.tsx",
+      "label": "apps/web/modules/ui/components/integration-card/index.tsx",
+      "type": "component"
+    }
+  ],
+  "edges": [
+    {
+      "from": "apps/web/lib/authorization/index.ts",
+      "to": "packages/types/errors.ts"
+    },
+    {
+      "from": "apps/web/lib/authorization/index.ts",
+      "to": "apps/web/lib/authorization/context.ts"
+    },
+    {
+      "from": "apps/web/lib/authorization/index.ts",
+      "to": "apps/web/lib/authorization/contract.ts"
+    },
+    {
+      "from": "apps/web/lib/authorization/index.ts",
+      "to": "apps/web/lib/authorization/coordinator.ts"
+    },
+    {
+      "from": "apps/web/lib/authorization/index.ts",
+      "to": "apps/web/lib/authorization/evaluator.ts"
+    },
+    {
+      "from": "apps/web/lib/authzed/index.ts",
+      "to": "apps/web/lib/authzed/client.ts"
+    },
+    {
+      "from": "apps/web/lib/authzed/index.ts",
+      "to": "apps/web/lib/authzed/config.ts"
+    },
+    {
+      "from": "apps/web/lib/authzed/index.ts",
+      "to": "apps/web/lib/authzed/errors.ts"
+    },
+    {
+      "from": "apps/web/lib/authzed/index.ts",
+      "to": "apps/web/lib/authzed/health.ts"
+    },
+    {
+      "from": "apps/web/lib/authzed/index.ts",
+      "to": "apps/web/lib/authzed/schema.ts"
+    },
+    {
+      "from": "apps/web/lib/posthog/index.ts",
+      "to": "apps/web/lib/posthog/capture.ts"
+    },
+    {
+      "from": "apps/web/lib/posthog/index.ts",
+      "to": "apps/web/lib/posthog/get-feature-flag.ts"
+    },
+    {
+      "from": "apps/web/lib/posthog/index.ts",
+      "to": "apps/web/lib/posthog/types.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "packages/types/errors.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/lib/authorization/context.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/lib/constants.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/lib/user/service.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/lib/utils/client-ip.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/modules/auth/lib/session.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/modules/ee/audit-logs/types/audit-log.ts"
+    },
+    {
+      "from": "apps/web/lib/utils/action-client/index.ts",
+      "to": "apps/web/lib/utils/action-client/types/context.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "packages/types/organizations.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/lib/utils/helper.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/account/constants.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/auth/hooks/use-sign-out.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/auth/lib/auth-client.ts"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/ui/components/alert/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/ui/components/delete-dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/ui/components/password-input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "to": "apps/web/modules/account/components/DeleteAccountModal/actions.ts"
+    },
+    {
+      "from": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "to": "apps/web/app/(app)/workspaces/[workspaceId]/context/workspace-context.tsx"
+    },
+    {
+      "from": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "to": "apps/web/lib/ai/availability.ts"
+    },
+    {
+      "from": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "to": "apps/web/lib/ai/service.ts"
+    },
+    {
+      "from": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "to": "apps/web/modules/ui/components/alert/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "apps/web/modules/survey/hooks/useSingleUseId.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "apps/web/modules/analysis/utils.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "apps/web/modules/analysis/components/ShareSurveyLink/components/LanguageDropdown.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "to": "apps/web/modules/analysis/components/ShareSurveyLink/components/SurveyLinkDisplay.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "packages/types/responses.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "packages/types/tags.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/lib/utils/helper.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/survey/lib/client-utils.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/ui/components/decrement-quotas-checkbox/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/ui/components/delete-dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/analysis/components/SingleResponseCard/actions.ts"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/analysis/components/SingleResponseCard/components/ResponseTagsWrapper.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardBody.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardHeader.tsx"
+    },
+    {
+      "from": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "to": "apps/web/modules/analysis/components/SingleResponseCard/util.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/email/src/types/email.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/email.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/errors.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/responses.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/surveys/elements.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lib/constants.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lib/getPublicUrl.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lib/jwt.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lib/organization/service.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lib/responses.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/lingodotdev/server.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/modules/auth/lib/verification-links.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/modules/email/lib/verified-link-survey-url.ts"
+    },
+    {
+      "from": "apps/web/modules/email/index.tsx",
+      "to": "apps/web/modules/storage/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/hub/index.ts",
+      "to": "apps/web/modules/hub/hub-client.ts"
+    },
+    {
+      "from": "apps/web/modules/hub/index.ts",
+      "to": "apps/web/modules/hub/service.ts"
+    },
+    {
+      "from": "apps/web/modules/hub/index.ts",
+      "to": "apps/web/modules/hub/types.ts"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/lib/utils/helper.ts"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/modules/organization/actions.ts"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/organization/settings/teams/components/edit-memberships/index.ts",
+      "to": "apps/web/modules/organization/settings/teams/components/edit-memberships/edit-memberships.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/edit-public-survey-alert-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/edit-public-survey-alert-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "packages/types/i18n.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "packages/types/storage.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "packages/types/surveys/elements.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/lib/i18n/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/lib/utils/debounce.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/lib/utils/hooks/useSyncScroll.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/lib/utils/recall.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/survey/components/element-form-input/components/recall-wrapper.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/survey/lib/client-utils.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/survey/multi-language-surveys/components/localized-editor.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/file-input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/switch/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/ui/components/tooltip/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "to": "apps/web/modules/survey/components/element-form-input/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "packages/types/templates.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "packages/types/workspace.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/app/lib/templates.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/lib/ai/service.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/lib/env-client.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/api/lib/v3-client.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/survey/components/template-list/components/create-with-ai-template.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/survey/components/template-list/components/start-from-scratch-template.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/survey/components/template-list/components/template.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/survey/components/template-list/components/template-filters.tsx"
+    },
+    {
+      "from": "apps/web/modules/survey/components/template-list/index.tsx",
+      "to": "apps/web/modules/survey/components/template-list/hooks/use-create-survey-from-template.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "packages/types/responses.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "packages/types/surveys/validation.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "apps/web/modules/survey/lib/client-utils.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "apps/web/modules/survey/link/lib/prefill/transformers.ts"
+    },
+    {
+      "from": "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "to": "apps/web/modules/survey/link/lib/prefill/validators.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/action-class-info/index.tsx",
+      "to": "packages/types/action-classes.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "to": "packages/types/action-classes.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "to": "apps/web/modules/ui/components/form/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/additional-integration-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/checkbox/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/additional-integration-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+      "to": "apps/web/modules/ui/components/switch/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/ai/index.tsx",
+      "to": "apps/web/modules/ui/components/ai/components/ai-activity-bar.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/ai/index.tsx",
+      "to": "apps/web/modules/ui/components/ai/components/ai-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/ai/index.tsx",
+      "to": "apps/web/modules/ui/components/ai/components/ai-status-line.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/ai/index.tsx",
+      "to": "apps/web/modules/ui/components/ai/lib/status-line.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/alert-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/alert-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/alert/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/alert/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "packages/types/workspace.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/modules/ui/components/background-styling-card/survey-bg-selector-tab.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/modules/ui/components/badge/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/modules/ui/components/color-picker/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/modules/ui/components/form/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "to": "apps/web/modules/ui/components/slider/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/badge/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/breadcrumb/index.tsx",
+      "to": "apps/web/modules/ui/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/button/index.tsx",
+      "to": "apps/web/modules/ui/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/calendar/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/calendar/index.tsx",
+      "to": "apps/web/lib/utils/datetime.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/calendar/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "packages/types/styling.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/casual-card-arrangement-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/simple-card-arrangement-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/straight-card-arrangement-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "to": "apps/web/modules/ui/components/styling-tabs/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "packages/types/workspace.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/lib/styling/constants.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/card-width-tabs/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/color-picker/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/form/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/styling-fields/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "to": "apps/web/modules/ui/components/switch/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-table/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-width-tabs/index.tsx",
+      "to": "packages/types/styling.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card-width-tabs/index.tsx",
+      "to": "apps/web/modules/ui/components/styling-tabs/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/card/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/cardless-preview-logo/index.tsx",
+      "to": "packages/types/styling.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/cardless-preview-logo/index.tsx",
+      "to": "apps/web/modules/ui/components/client-logo/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/chart/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/checkbox/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/client-logo/index.tsx",
+      "to": "packages/types/styling.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/client-logo/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/client-logo/index.tsx",
+      "to": "apps/web/lib/image-hosts.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/client-logout/index.tsx",
+      "to": "apps/web/modules/auth/hooks/use-sign-out.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/code-action-form/index.tsx",
+      "to": "apps/web/modules/ui/components/alert/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/code-action-form/index.tsx",
+      "to": "apps/web/modules/ui/components/form/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/code-action-form/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/code-block/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/color-picker/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/color-picker/index.tsx",
+      "to": "apps/web/modules/ui/components/color-picker/components/popover-picker.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/command/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/command/index.tsx",
+      "to": "apps/web/modules/ui/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "packages/types/quota.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/conditions-editor/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/dropdown-menu/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/input-combo-box/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/select/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "to": "apps/web/modules/ui/components/conditions-editor/types.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "to": "apps/web/modules/ee/contacts/segments/components/segment-activity-utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/confirmation-modal/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/confirmation-modal/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "to": "packages/types/integration/index.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "to": "apps/web/lib/image-hosts.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "to": "apps/web/modules/ui/components/formbricks-logo/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "to": "apps/web/modules/ui/components/connect-integration/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/data-table/index.tsx",
+      "to": "apps/web/modules/ui/components/data-table/components/data-table-header.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/data-table/index.tsx",
+      "to": "apps/web/modules/ui/components/data-table/components/data-table-settings-modal.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/data-table/index.tsx",
+      "to": "apps/web/modules/ui/components/data-table/components/data-table-toolbar.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/data-table/index.tsx",
+      "to": "apps/web/modules/ui/components/data-table/components/selection-column.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/lib/utils/datetime.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/modules/ui/components/calendar/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/modules/ui/components/popover/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/date-picker/index.tsx",
+      "to": "apps/web/modules/ui/components/date-picker/lib/range.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/decrement-quotas-checkbox/index.tsx",
+      "to": "apps/web/modules/ui/components/checkbox/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/delete-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/delete-dialog/index.tsx",
+      "to": "apps/web/modules/ui/components/dialog/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/dialog/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/dropdown-menu/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/dropdown-menu/index.tsx",
+      "to": "apps/web/modules/ui/components/kbd/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/dropdown-selector/index.tsx",
+      "to": "apps/web/modules/ui/components/dropdown-menu/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/dropdown-selector/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/editor/index.ts",
+      "to": "apps/web/modules/ui/components/editor/components/editor.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/editor/index.ts",
+      "to": "apps/web/modules/ui/components/editor/components/add-variables-dropdown.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "packages/types/i18n.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "packages/types/surveys/elements.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "packages/types/surveys/types.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "packages/types/user.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "apps/web/modules/survey/components/element-form-input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+      "to": "apps/web/modules/ui/components/switch/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-drop-zone/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-drop-zone/index.tsx",
+      "to": "apps/web/modules/ui/components/loading-spinner/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "packages/types/storage.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/lib/image-hosts.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/storage/file-upload.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/storage/file-upload-error.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/loading-spinner/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/options-switch/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/storage-not-configured-toast/lib/utils.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/file-input/components/uploader.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/file-input/components/video-settings.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-input/index.tsx",
+      "to": "apps/web/modules/ui/components/file-input/lib/utils.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/file-upload-response/index.tsx",
+      "to": "apps/web/modules/storage/url-helpers.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/filter-dropdown/index.tsx",
+      "to": "apps/web/modules/ui/components/checkbox/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/filter-dropdown/index.tsx",
+      "to": "apps/web/modules/ui/components/dropdown-menu/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/form/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/form/index.tsx",
+      "to": "apps/web/modules/ui/components/label/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/go-back-button/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "to": "apps/web/modules/ui/components/kbd/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "to": "apps/web/modules/ui/components/tooltip/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/iconbar/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/android-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/flutter-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/github-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/google-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/google-tag-manager-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/html5-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/microsoft-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/net-promoter-score-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/nextjs-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/npm-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/react-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/slack-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/swift-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/vue-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/icons/index.tsx",
+      "to": "apps/web/modules/ui/components/icons/wordpress-icon.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/id-badge/index.tsx",
+      "to": "apps/web/modules/ui/components/id-badge/components/badge-content.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/lib/image-hosts.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/modules/ui/components/command/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/modules/ui/components/dropdown-menu/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/modules/ui/components/input/index.tsx"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "to": "apps/web/modules/ui/components/input-combo-box/lib/search.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/input/index.tsx",
+      "to": "apps/web/lib/cn.ts"
+    },
+    {
+      "from": "apps/web/modules/ui/components/integration-card/index.tsx",
+      "to": "apps/web/modules/ui/components/button/index.tsx"
+    }
+  ],
+  "vendors": [
+    {
+      "vendor": "Amazon S3",
+      "tier": "storage",
+      "substrate": [
+        "aws"
+      ],
+      "sla": 0.9999,
+      "key": "@aws-sdk/client-s3",
+      "detectedVia": [
+        "manifest:npm:@aws-sdk/client-s3"
+      ],
+      "detectedInFiles": [
+        "packages/storage/package.json"
+      ]
+    },
+    {
+      "vendor": "NextAuth.js",
+      "tier": "auth",
+      "substrate": [
+        "self"
+      ],
+      "sla": 0.999,
+      "key": "next-auth",
+      "detectedVia": [
+        "env:NEXTAUTH_SECRET"
+      ],
+      "detectedInFiles": [
+        ".env.example"
+      ]
+    },
+    {
+      "vendor": "PostHog",
+      "tier": "analytics",
+      "substrate": [
+        "aws"
+      ],
+      "sla": 0.999,
+      "key": "posthog-js",
+      "detectedVia": [
+        "import:posthog-js",
+        "manifest:npm:posthog-js"
+      ],
+      "detectedInFiles": [
+        "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+        "apps/web/package.json"
+      ]
+    },
+    {
+      "vendor": "Stripe",
+      "tier": "payments",
+      "substrate": [
+        "aws"
+      ],
+      "sla": 0.9999,
+      "statusUrl": "https://status.stripe.com/api/v2/status.json",
+      "fallbacks": [
+        "Razorpay",
+        "Adyen"
+      ],
+      "key": "stripe",
+      "detectedVia": [
+        "manifest:npm:stripe",
+        "env:STRIPE_PUBLISHABLE_KEY",
+        "env:STRIPE_SECRET_KEY"
+      ],
+      "detectedInFiles": [
+        "apps/web/package.json",
+        ".env.example"
+      ]
+    }
+  ],
+  "vendorGraph": {
+    "rootId": "__app__",
+    "vendors": [
+      {
+        "vendor": "Amazon S3",
+        "tier": "storage",
+        "substrate": [
+          "aws"
+        ],
+        "sla": 0.9999,
+        "key": "@aws-sdk/client-s3",
+        "detectedVia": [
+          "manifest:npm:@aws-sdk/client-s3"
+        ],
+        "detectedInFiles": [
+          "packages/storage/package.json"
+        ],
+        "directFiles": [],
+        "affectedFiles": []
+      },
+      {
+        "vendor": "NextAuth.js",
+        "tier": "auth",
+        "substrate": [
+          "self"
+        ],
+        "sla": 0.999,
+        "key": "next-auth",
+        "detectedVia": [
+          "env:NEXTAUTH_SECRET"
+        ],
+        "detectedInFiles": [
+          ".env.example"
+        ],
+        "directFiles": [],
+        "affectedFiles": []
+      },
+      {
+        "vendor": "PostHog",
+        "tier": "analytics",
+        "substrate": [
+          "aws"
+        ],
+        "sla": 0.999,
+        "key": "posthog-js",
+        "detectedVia": [
+          "import:posthog-js",
+          "manifest:npm:posthog-js"
+        ],
+        "detectedInFiles": [
+          "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+          "apps/web/package.json"
+        ],
+        "directFiles": [
+          "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx"
+        ],
+        "affectedFiles": [
+          "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx"
+        ]
+      },
+      {
+        "vendor": "Stripe",
+        "tier": "payments",
+        "substrate": [
+          "aws"
+        ],
+        "sla": 0.9999,
+        "statusUrl": "https://status.stripe.com/api/v2/status.json",
+        "fallbacks": [
+          "Razorpay",
+          "Adyen"
+        ],
+        "key": "stripe",
+        "detectedVia": [
+          "manifest:npm:stripe",
+          "env:STRIPE_PUBLISHABLE_KEY",
+          "env:STRIPE_SECRET_KEY"
+        ],
+        "detectedInFiles": [
+          "apps/web/package.json",
+          ".env.example"
+        ],
+        "directFiles": [],
+        "affectedFiles": []
+      }
+    ]
+  },
+  "concentration": {
+    "vendorCount": 4,
+    "substrateCount": 2,
+    "bySubstrate": [
+      {
+        "substrate": "aws",
+        "vendorKeys": [
+          "@aws-sdk/client-s3",
+          "posthog-js",
+          "stripe"
+        ],
+        "vendorNames": [
+          "Amazon S3",
+          "PostHog",
+          "Stripe"
+        ],
+        "share": 0.75
+      },
+      {
+        "substrate": "self",
+        "vendorKeys": [
+          "next-auth"
+        ],
+        "vendorNames": [
+          "NextAuth.js"
+        ],
+        "share": 0.25
+      }
+    ],
+    "mostConcentrated": {
+      "substrate": "aws",
+      "vendorKeys": [
+        "@aws-sdk/client-s3",
+        "posthog-js",
+        "stripe"
+      ],
+      "vendorNames": [
+        "Amazon S3",
+        "PostHog",
+        "Stripe"
+      ],
+      "share": 0.75
+    }
+  },
+  "criticality": {
+    "entrypoints": [
+      "packages/email/src/index.ts"
+    ],
+    "articulationPoints": [
+      "apps/web/modules/email/index.tsx",
+      "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+      "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+      "packages/types/action-classes.ts",
+      "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+      "apps/web/modules/survey/components/template-list/index.tsx",
+      "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+      "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+      "apps/web/modules/ui/components/file-input/index.tsx",
+      "apps/web/modules/ui/components/conditions-editor/index.tsx",
+      "apps/web/modules/ui/lib/utils.ts",
+      "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+      "apps/web/modules/ui/components/input-combo-box/index.tsx",
+      "apps/web/modules/ui/components/connect-integration/index.tsx",
+      "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+      "apps/web/modules/ui/components/color-picker/index.tsx",
+      "apps/web/modules/ui/components/background-styling-card/index.tsx",
+      "apps/web/modules/survey/components/element-form-input/index.tsx",
+      "apps/web/modules/survey/link/lib/prefill/index.ts",
+      "apps/web/modules/ui/components/date-picker/index.tsx",
+      "apps/web/lib/cn.ts",
+      "apps/web/modules/ui/components/button/index.tsx",
+      "apps/web/modules/auth/hooks/use-sign-out.ts",
+      "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+      "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+      "apps/web/lib/utils/action-client/index.ts",
+      "apps/web/lib/authorization/index.ts",
+      "apps/web/lib/authzed/index.ts",
+      "apps/web/lib/posthog/index.ts",
+      "apps/web/modules/hub/index.ts",
+      "apps/web/modules/ui/components/ai/index.tsx",
+      "apps/web/modules/ui/components/data-table/index.tsx",
+      "apps/web/modules/ui/components/editor/index.ts",
+      "apps/web/modules/ui/components/icons/index.tsx"
+    ],
+    "byNode": [
+      {
+        "nodeId": "apps/storybook/.storybook/main.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authorization/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/errors.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authorization/context.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authorization/contract.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authorization/coordinator.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authorization/evaluator.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/client.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/config.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/errors.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/health.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/authzed/schema.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/cache/index.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/posthog/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/posthog/capture.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/posthog/get-feature-flag.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/posthog/types.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/action-client/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/constants.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/user/service.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/client-ip.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/auth/lib/session.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ee/audit-logs/types/audit-log.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/action-client/types/context.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/account/components/DeleteAccountModal/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/organizations.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/user.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/helper.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/account/constants.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/auth/hooks/use-sign-out.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/auth/lib/auth-client.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/alert/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/delete-dialog/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/input/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/password-input/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/account/components/DeleteAccountModal/actions.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ai/components/ai-unavailable-alert/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/app/(app)/workspaces/[workspaceId]/context/workspace-context.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/ai/availability.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/ai/service.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/RatingSmiley/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/ShareSurveyLink/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/surveys/types.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/hooks/useSingleUseId.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/button/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/utils.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/ShareSurveyLink/components/LanguageDropdown.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/ShareSurveyLink/components/SurveyLinkDisplay.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/responses.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/tags.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/lib/client-utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/decrement-quotas-checkbox/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/actions.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/components/ResponseTagsWrapper.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardBody.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/components/SingleResponseCardHeader.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/analysis/components/SingleResponseCard/util.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/email/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/email/src/types/email.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/email.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/surveys/elements.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/getPublicUrl.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/jwt.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/organization/service.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/responses.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lingodotdev/server.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/auth/lib/verification-links.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/email/lib/verified-link-survey-url.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/storage/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/hub/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/hub/hub-client.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/hub/service.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/hub/types.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/organization/components/CreateOrganizationModal/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/organization/actions.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/dialog/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/label/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/organization/settings/teams/components/edit-memberships/index.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/organization/settings/teams/components/edit-memberships/edit-memberships.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/edit-public-survey-alert-dialog/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/element-form-input/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/i18n.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/storage.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/i18n/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/debounce.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/hooks/useSyncScroll.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/recall.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/element-form-input/components/recall-wrapper.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/multi-language-surveys/components/localized-editor.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-input/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/switch/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/tooltip/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/element-form-input/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/templates.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/workspace.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/app/lib/templates.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/env-client.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/api/lib/v3-client.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/components/create-with-ai-template.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/components/start-from-scratch-template.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/components/template.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/components/template-filters.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/components/template-list/hooks/use-create-survey-from-template.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/link/lib/prefill/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/surveys/validation.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/link/lib/prefill/transformers.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/survey/link/lib/prefill/validators.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/action-class-info/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/action-classes.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/action-name-description-fields/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/form/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/additional-integration-settings/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/checkbox/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/advanced-option-toggle/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/cn.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/ai/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/ai/components/ai-activity-bar.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/ai/components/ai-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/ai/components/ai-status-line.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/ai/lib/status-line.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/alert-dialog/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/array-response/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/avatars/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/background-styling-card/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/background-styling-card/survey-bg-selector-tab.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/badge/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/color-picker/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/slider/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/breadcrumb/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/lib/utils.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/calendar/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/utils/datetime.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/card-arrangement-tabs/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/styling.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/casual-card-arrangement-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/simple-card-arrangement-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/straight-card-arrangement-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/styling-tabs/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/card-styling-settings/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/styling/constants.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/card-width-tabs/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/styling-fields/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/card-table/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/card/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/cardless-preview-logo/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/client-logo/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/chart/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/lib/image-hosts.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/client-logout/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/code-action-form/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/code-block/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/color-picker/components/popover-picker.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/command/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/conditions-editor/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/quota.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/conditions-editor/lib/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/dropdown-menu/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/input-combo-box/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/select/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/conditions-editor/types.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/confetti/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/confirm-delete-segment-modal/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ee/contacts/segments/components/segment-activity-utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/confirmation-modal/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/connect-integration/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "packages/types/integration/index.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/formbricks-logo/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/connect-integration/lib/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/csv-table/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/data-table/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/data-table/components/data-table-header.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/data-table/components/data-table-settings-modal.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/data-table/components/data-table-toolbar.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/data-table/components/selection-column.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/date-picker/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/popover/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/date-picker/lib/range.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/default-tag/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/kbd/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/dropdown-selector/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/editor/index.ts",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/editor/components/editor.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/editor/components/add-variables-dropdown.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/element-toggle-table/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/empty-state/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/error-component/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-drop-zone/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/loading-spinner/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/storage/file-upload.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/storage/file-upload-error.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/options-switch/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/storage-not-configured-toast/lib/utils.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-input/components/uploader.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-input/components/video-settings.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-input/lib/utils.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/file-upload-response/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/storage/url-helpers.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/filter-dropdown/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/go-back-button/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/header/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/highlighted-text/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/iconbar/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/index.tsx",
+        "isArticulationPoint": true,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/android-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/flutter-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/github-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/google-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/google-tag-manager-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/html5-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/microsoft-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/net-promoter-score-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/nextjs-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/npm-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/react-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/slack-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/swift-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/vue-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/icons/wordpress-icon.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/id-badge/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/id-badge/components/badge-content.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/input-combo-box/lib/search.ts",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      },
+      {
+        "nodeId": "apps/web/modules/ui/components/integration-card/index.tsx",
+        "isArticulationPoint": false,
+        "affectedEntrypoints": [],
+        "orphanedNodes": [],
+        "entrypointCount": 1,
+        "reachabilityLossRatio": 0
+      }
+    ]
+  },
+  "riskSummary": {
+    "subject": "vendor:PostHog",
+    "text": "PostHog (analytics) is Low-risk — 1 component would be affected by a change here. If it fails, apps/web/modules/ai/components/ai-unavailable-alert/index.tsx would break. Standard review should be sufficient before merging changes here."
+  },
+  "meta": {
+    "owner": "formbricks",
+    "repo": "formbricks",
+    "branch": "main",
+    "filesScanned": 80,
+    "truncated": true,
+    "elapsedMs": 5548,
+    "cached": false,
+    "importResolution": {
+      "total": 291,
+      "resolved": 280
+    }
+  }
+}

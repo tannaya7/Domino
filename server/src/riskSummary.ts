@@ -40,7 +40,9 @@ export async function getRiskSummary(input: RiskSummaryInput): Promise<string> {
   return generateDeterministicSummary(input)
 }
 
-function generateDeterministicSummary(input: RiskSummaryInput): string {
+/** Exported for callers that need a guaranteed-reproducible summary without ever touching Bedrock
+ * — e.g. scripts/snapshot-repo.ts, where a demo snapshot must be byte-identical on every run. */
+export function generateDeterministicSummary(input: RiskSummaryInput): string {
   const { name, type, downstream, upstream } = input
   const totalCount = downstream.length + upstream.length
   const risk = getRiskLevel(totalCount)

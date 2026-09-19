@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import DataInput from './DataInput'
+import HeroAnimation from './HeroAnimation'
 import PrInput from './PrInput'
 import RepoInput from './RepoInput'
 import type { AnalyzePrResponse, AnalyzeRepoResponse } from '../lib/api'
+import type { DemoSnapshot } from '../lib/demoSnapshot'
 import type { GraphData } from '../lib/types'
 
 interface InputScreenProps {
   onRepoAnalyzed: (result: AnalyzeRepoResponse, repoUrl: string) => void
   onManualLoad: (data: GraphData) => void
   onPrAnalyzed: (result: AnalyzePrResponse) => void
+  onSnapshotLoaded: (snapshot: DemoSnapshot) => void
 }
 
 type Tab = 'repo' | 'pr' | 'json'
@@ -19,12 +22,39 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'json', label: 'Paste JSON / Sample Data' },
 ]
 
-function InputScreen({ onRepoAnalyzed, onManualLoad, onPrAnalyzed }: InputScreenProps) {
+const CHIPS = ['Vendors are not independent', 'Correlated risk quantified', 'AWS-native: Lambda · DynamoDB · Bedrock']
+
+function InputScreen({ onRepoAnalyzed, onManualLoad, onPrAnalyzed, onSnapshotLoaded }: InputScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>('repo')
 
   return (
     <div className="flex h-full w-full items-start justify-center overflow-y-auto p-6">
       <div className="w-full max-w-2xl">
+        <div className="mb-8 flex flex-col items-center gap-4 text-center">
+          <span className="rounded-full border border-[var(--border-subtle)] px-3 py-1 text-xs font-medium tracking-wide text-[var(--text-muted)] uppercase">
+            Dependency risk intelligence
+          </span>
+          <h1 className="text-3xl font-semibold text-[var(--text-primary)] sm:text-4xl">Blast Radius Mapper</h1>
+          <p className="max-w-xl text-sm text-[var(--text-secondary)]">
+            See what breaks before it breaks. Map your repo's third-party vendors, find where they secretly share
+            infrastructure, and quantify the correlated risk in downtime and cost — not just a pretty dependency
+            graph.
+          </p>
+          <div className="w-full max-w-xs">
+            <HeroAnimation />
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {CHIPS.map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-3 py-1 text-xs text-[var(--text-secondary)]"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <div className="mx-auto mb-6 flex max-w-xl gap-1 border-b border-[var(--border-subtle)]">
           {TABS.map((tab) => (
             <button
@@ -41,7 +71,9 @@ function InputScreen({ onRepoAnalyzed, onManualLoad, onPrAnalyzed }: InputScreen
           ))}
         </div>
 
-        {activeTab === 'repo' && <RepoInput onAnalyzed={onRepoAnalyzed} onLoadSample={onManualLoad} />}
+        {activeTab === 'repo' && (
+          <RepoInput onAnalyzed={onRepoAnalyzed} onLoadSample={onManualLoad} onSnapshotLoaded={onSnapshotLoaded} />
+        )}
         {activeTab === 'pr' && <PrInput onAnalyzed={onPrAnalyzed} />}
         {activeTab === 'json' && <DataInput onLoad={onManualLoad} />}
       </div>
