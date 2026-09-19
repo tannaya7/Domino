@@ -1,4 +1,4 @@
-import { errorMessage, HttpError, routeApi } from './apiRouter'
+import { errorMessage, healthCheck, HttpError, routeApi } from './apiRouter'
 import { MAX_BODY_BYTES } from './limits'
 
 // Real Lambda entry point for the API Gateway HTTP API (payload format 2.0) integration. Not a
@@ -57,6 +57,10 @@ function decodeBody(event: ApiGatewayV2Event): string {
 export async function handler(event: ApiGatewayV2Event): Promise<ApiGatewayV2Result> {
   const method = event.requestContext?.http?.method ?? 'GET'
   if (method === 'OPTIONS') return { statusCode: 204, headers: corsHeaders(), body: '' }
+  if (method === 'GET' && event.rawPath === '/health') {
+    const { status, body } = healthCheck()
+    return json(status, body)
+  }
   if (method !== 'POST') return json(404, { error: 'Not found' })
 
   let body: Record<string, unknown> = {}

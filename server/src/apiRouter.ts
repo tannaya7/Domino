@@ -10,9 +10,9 @@ import { analyzeCriticality } from '../../src/lib/criticality'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { ExactAvailabilityAssumptions, FailureScenario, WhatIfOverride, WhatIfResult } from '../../src/lib/types'
 import { askQuestion } from './ask'
-import { getAwsHealthStatus } from './awsHealth'
+import { getAwsHealthStatus, isAwsHealthApiEnabled } from './awsHealth'
 import { isBedrockConfigured } from './bedrock'
-import { getCachedGraph, setCachedGraph } from './cache'
+import { getCachedGraph, isDynamoConfigured, setCachedGraph } from './cache'
 import { GithubApiError, parseRepoUrl } from './github'
 import { analyzePr } from './prAnalyzer'
 import { analyzeRepo, type AnalyzeRepoResult } from './repoParser'
@@ -20,6 +20,7 @@ import { runPrGate } from './prGate'
 import { getRiskSummary } from './riskSummary'
 import { generateRunbook } from './runbook'
 import { setVendorsToWatch, startStatusPolling } from './scheduler'
+import { isSnsConfigured } from './sns'
 import { fetchAllVendorStatuses } from './statusPoll'
 import { computeWhatIf, MAX_WHATIF_OVERRIDES, rankRecommendedMoves } from './whatIf'
 
@@ -102,6 +103,28 @@ async function requireCachedAnalysis(repoUrl: string): Promise<AnalyzeRepoResult
 export interface ApiResponse {
   status: number
   body: unknown
+}
+
+/** GET /health — no auth, no side effects, deliberately outside routeApi's POST-only contract so
+ * both entry points (requestHandler.ts, lambdaHandler.ts) can serve it on a plain GET before the
+ * POST/OPTIONS-only gate below. Reports which AWS integrations are actually configured in THIS
+ * running process — never whether they've been verified live (see docs/AWS_VERIFICATION.md for
+ * that distinct claim) — so a judge/monitor can tell "backend is up" from "backend is up but
+ * running every fallback" without guessing from behavior. */
+export function healthCheck(): ApiResponse {
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      timestamp: new Date().toISOString(),
+      integrations: {
+        bedrock: isBedrockConfigured(),
+        dynamodb: isDynamoConfigured(),
+        awsHealth: isAwsHealthApiEnabled(),
+        sns: isSnsConfigured(),
+      },
+    },
+  }
 }
 
 /** Routes one POST request. Callers are expected to have already rejected non-POST/OPTIONS methods. */

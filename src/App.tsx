@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ApiHealthBanner from './components/ApiHealthBanner'
 import InputScreen from './components/InputScreen'
 import Workspace, { type AnalyzedRepo } from './components/Workspace'
 import type { AnalyzePrResponse, AnalyzeRepoResponse, GateResponse } from './lib/api'
@@ -170,6 +171,7 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-[var(--bg-base)] text-[var(--text-primary)]">
+      <ApiHealthBanner />
       {!analyzed ? (
         <InputScreen
           onRepoAnalyzed={handleRepoAnalyzed}

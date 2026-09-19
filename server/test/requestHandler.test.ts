@@ -50,7 +50,10 @@ vi.mock('../src/repoParser', async (importOriginal) => {
   return { ...actual, analyzeRepo: analyzeRepoMock }
 })
 vi.mock('../src/statusPoll', () => ({ fetchAllVendorStatuses: fetchAllVendorStatusesMock }))
-vi.mock('../src/awsHealth', () => ({ getAwsHealthStatus: getAwsHealthStatusMock }))
+vi.mock('../src/awsHealth', () => ({
+  getAwsHealthStatus: getAwsHealthStatusMock,
+  isAwsHealthApiEnabled: () => false,
+}))
 
 let server: Server
 let baseUrl: string
@@ -304,5 +307,26 @@ describe('unknown routes and malformed input', () => {
       body: '{not json',
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /health', () => {
+  it('returns ok:true with an integrations map, on a plain GET, without a body', async () => {
+    const res = await fetch(`${baseUrl}/health`)
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as any
+    expect(json.ok).toBe(true)
+    expect(typeof json.timestamp).toBe('string')
+    expect(json.integrations).toEqual({
+      bedrock: false,
+      dynamodb: false,
+      awsHealth: false,
+      sns: false,
+    })
+  })
+
+  it('still 404s a GET to any other path', async () => {
+    const res = await fetch(`${baseUrl}/not-health`)
+    expect(res.status).toBe(404)
   })
 })

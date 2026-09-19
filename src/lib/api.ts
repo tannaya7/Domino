@@ -20,6 +20,23 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8787
 
 export class ApiError extends Error {}
 
+/** Backs the "API unreachable: example snapshots still work" banner (see useApiHealth.ts) — a
+ * plain GET with its own short timeout, deliberately not reusing postJson (no body, no retry
+ * policy shared with real analysis calls, and this must resolve fast even when the backend is
+ * completely dark rather than hang on the browser's default fetch timeout). */
+export async function checkApiHealth(timeoutMs = 4000): Promise<boolean> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal })
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function postJson<T>(path: string, payload: unknown): Promise<T> {
   let res: Response
   try {

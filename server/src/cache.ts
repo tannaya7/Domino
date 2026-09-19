@@ -24,7 +24,7 @@ function getRegion(): string {
   return process.env.AWS_REGION ?? 'us-east-1'
 }
 
-function isDynamoConfigured(): boolean {
+export function isDynamoConfigured(): boolean {
   return Boolean(getTableName())
 }
 
