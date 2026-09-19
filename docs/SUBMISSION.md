@@ -54,7 +54,7 @@ constraint, what a user-facing claim is honestly allowed to say).
 - **5 third-party vendors, but only 2 independent substrates** — 80% of vendors in [`documenso/documenso`](https://github.com/documenso/documenso) (`Amazon S3, PostHog, Resend, Stripe`) share one substrate (`aws`) — an outage there takes all of them down together, something no per-vendor dependency list shows.
 - **80 files scanned, 207/216 internal imports resolved (95.8%)** — the import-graph resolver's own real coverage on this repo, not a claimed number.
 - **One ranked mitigation, quantified**: "Add Razorpay as a failover for Stripe" is modeled to cut expected annual exposure by $525/yr against a $22,113/yr baseline (2.4%) — under explicit, editable assumptions, never presented as a guarantee.
-- **684 tests across 68 files — ✅ 684/684 passed**, real Monte Carlo/differential/fuzz coverage — see [docs/VERIFICATION.md](docs/VERIFICATION.md).
+- **690 tests across 68 files — ✅ 690/690 passed**, real Monte Carlo/differential/fuzz coverage — see [docs/VERIFICATION.md](docs/VERIFICATION.md).
 <!-- readme-numbers:end -->
 
 - A GitHub Action that actually fails real PRs on real policy violations and passes real harmless
