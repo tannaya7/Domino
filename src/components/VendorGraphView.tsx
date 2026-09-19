@@ -106,6 +106,56 @@ function VendorGraphView({
   const entrypointsCounterRef = useRef<HTMLSpanElement>(null)
   const lossCounterRef = useRef<HTMLSpanElement>(null)
 
+  // force-graph's own render loop reschedules itself via requestAnimationFrame unconditionally,
+  // forever (see node_modules/force-graph's `_animationCycle`) — it never goes idle on its own,
+  // even once physics has settled and nothing on screen is changing. Each frame is cheap (it skips
+  // the actual canvas redraw when nothing needs one), but a canvas that's ALWAYS mid-animation-
+  // frame is exactly what made automated screenshot capture of this view flaky during development
+  // — a genuinely idle canvas the browser can composite calmly is a real, separate goal from "the
+  // simulation reads settled." Every interaction below that needs the loop alive (a reheat, a
+  // cascade, hover/pan/zoom, resize, an explicit zoomToFit) calls resumeAndScheduleIdlePause();
+  // nothing is ever paused mid-animation, only after IDLE_PAUSE_MS of no further activity, and the
+  // check reschedules itself instead of giving up if a cascade is still running when it fires. One
+  // accepted edge case: a hover tooltip that's already showing when the pause fires without the
+  // pointer having moved again in the meantime keeps showing its last content until the next
+  // pointermove — never wrong, just not live for that one narrow window.
+  const IDLE_PAUSE_MS = 600
+  const idlePauseTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const idlePauseFrameRef = useRef<number | undefined>(undefined)
+  const cascadeStateRef = useRef(cascadeState)
+  cascadeStateRef.current = cascadeState
+  const checkIdleAndMaybePauseRef = useRef(() => {
+    if (cascadeStateRef.current === 'propagating') {
+      idlePauseTimerRef.current = setTimeout(() => checkIdleAndMaybePauseRef.current(), IDLE_PAUSE_MS)
+      return
+    }
+    // Defer the actual pause by one more real animation frame rather than cancelling right here.
+    // A state change committed just before this setTimeout fired (e.g. the last vendor reveal in a
+    // cascade) may have already scheduled its OWN redraw for the browser's next frame; cancelling
+    // the loop synchronously at this exact moment can discard that frame before it ever paints —
+    // confirmed by reproduction: without this, a cascade's final reveal sometimes never painted
+    // (the hub stayed its pre-cascade color) specifically because this timer's callback landed in
+    // that narrow window. Waiting one more frame lets anything already pending land first.
+    idlePauseFrameRef.current = requestAnimationFrame(() => {
+      graphRef.current?.pauseAnimation()
+    })
+  })
+  const resumeAndScheduleIdlePause = useCallback(() => {
+    if (idlePauseTimerRef.current) clearTimeout(idlePauseTimerRef.current)
+    if (idlePauseFrameRef.current !== undefined) cancelAnimationFrame(idlePauseFrameRef.current)
+    graphRef.current?.resumeAnimation()
+    idlePauseTimerRef.current = setTimeout(() => checkIdleAndMaybePauseRef.current(), IDLE_PAUSE_MS)
+  }, [])
+  useEffect(() => () => {
+    if (idlePauseTimerRef.current) clearTimeout(idlePauseTimerRef.current)
+    if (idlePauseFrameRef.current !== undefined) cancelAnimationFrame(idlePauseFrameRef.current)
+  }, [])
+  // A resize can clear the canvas (changing its width/height DOM attributes does that as a side
+  // effect) — without this, resizing while idle-paused would leave it blank until next interaction.
+  useEffect(() => {
+    resumeAndScheduleIdlePause()
+  }, [size.width, size.height, resumeAndScheduleIdlePause])
+
   const statusByVendorKey = useMemo(() => new Map((vendorStatuses ?? []).map((s) => [s.vendorKey, s])), [vendorStatuses])
   const mostRecentStatusCheckedAt = useMemo(() => {
     if (!vendorStatuses || vendorStatuses.length === 0) return null
@@ -133,7 +183,10 @@ function VendorGraphView({
   // makes it visibly glide into the new island instead of jumping there on the next unrelated tick.
   const previewKey = previewSubstrateByVendorKey ? [...previewSubstrateByVendorKey.entries()].sort().join(',') : ''
   useEffect(() => {
-    if (previewKey) graphRef.current?.d3ReheatSimulation()
+    if (previewKey) {
+      resumeAndScheduleIdlePause()
+      graphRef.current?.d3ReheatSimulation()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewKey])
 
@@ -179,19 +232,26 @@ function VendorGraphView({
     const fg = graphRef.current
     if (!fg) return
     fg.d3Force('cluster', groupBySubstrate ? clusterForce : null)
+    resumeAndScheduleIdlePause()
     fg.d3ReheatSimulation()
-  }, [groupBySubstrate, clusterForce])
+  }, [groupBySubstrate, clusterForce, resumeAndScheduleIdlePause])
 
   // Pause the physics/render loop entirely while the tab isn't visible — the #1 way to blow a
-  // frame-rate budget you're not even being watched for.
+  // frame-rate budget you're not even being watched for. Routed through the same
+  // resumeAndScheduleIdlePause on the way back so a tab that regains visibility doesn't just run
+  // forever again for lack of anything else re-scheduling the idle check.
   useEffect(() => {
     function handleVisibility() {
-      if (document.hidden) graphRef.current?.pauseAnimation()
-      else graphRef.current?.resumeAnimation()
+      if (document.hidden) {
+        if (idlePauseTimerRef.current) clearTimeout(idlePauseTimerRef.current)
+        graphRef.current?.pauseAnimation()
+      } else {
+        resumeAndScheduleIdlePause()
+      }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [])
+  }, [resumeAndScheduleIdlePause])
 
   const scenario = singleVendorTarget ? null : (simulation?.scenario ?? null)
   const vendorGraphByKey = useMemo(() => new Map(vendorGraph.vendors.map((v) => [v.key, v])), [vendorGraph])
@@ -232,6 +292,7 @@ function VendorGraphView({
     // Every setRevealedVendors call is scheduled from a timer (even the t=0 / reset ones) so none
     // fire synchronously within the effect body itself.
     const timers: ReturnType<typeof setTimeout>[] = []
+    resumeAndScheduleIdlePause() // the reveal/reset below always needs a live canvas to draw into
 
     if (affectedVendorKeys.length === 0) {
       timers.push(setTimeout(() => setRevealedVendors(new Set()), 0))
@@ -277,7 +338,7 @@ function VendorGraphView({
       timers.forEach(clearTimeout)
       cancelAnimationFrame(frame)
     }
-  }, [affectedVendorKeys, affectedEntrypointsCount, cascadeLossTarget, entrypoints.length, currency, replayTick])
+  }, [affectedVendorKeys, affectedEntrypointsCount, cascadeLossTarget, entrypoints.length, currency, replayTick, resumeAndScheduleIdlePause])
 
   const nodeFillColor = useCallback(
     (node: GraphNodeDatum): string => {
@@ -359,6 +420,14 @@ function VendorGraphView({
     [criticalVendorKeys, weightRanks, nodeFillColor, statusByVendorKey],
   )
 
+  // drawNode's own dependency array already names every piece of state that changes what a node
+  // looks like (selection, cascade reveal, criticality ring, live status marker, label ranking) —
+  // watching its identity here, instead of re-listing those dependencies a second time, means this
+  // can't quietly drift out of sync with what drawNode actually draws.
+  useEffect(() => {
+    resumeAndScheduleIdlePause()
+  }, [drawNode, resumeAndScheduleIdlePause])
+
   const drawHulls = useCallback(
     (ctx: CanvasRenderingContext2D) => {
       if (!groupBySubstrate) return
@@ -407,10 +476,12 @@ function VendorGraphView({
   )
 
   function handleResetView() {
+    resumeAndScheduleIdlePause() // zoomToFit's own tween needs the loop alive to animate, not jump
     graphRef.current?.zoomToFit(400, 60)
   }
 
   function handleReplay() {
+    resumeAndScheduleIdlePause()
     setReplayTick((t) => t + 1)
   }
 
@@ -427,7 +498,17 @@ function VendorGraphView({
   }
 
   return (
-    <div ref={containerRef} className="relative h-full w-full" data-testid="vendor-graph-view" data-tour="vendor-graph">
+    <div
+      ref={containerRef}
+      className="relative h-full w-full"
+      data-testid="vendor-graph-view"
+      data-tour="vendor-graph"
+      // Hover/click/pan/zoom all depend on force-graph's render loop being alive (it's what keeps
+      // the hovered-node/tooltip state fresh) — resume the moment the pointer arrives rather than
+      // waiting for the library's own first redraw to (not) happen.
+      onPointerEnter={resumeAndScheduleIdlePause}
+      onPointerMove={resumeAndScheduleIdlePause}
+    >
       <ForceGraph2D
         ref={graphRef as never}
         graphData={forceGraphData as never}
@@ -467,7 +548,10 @@ function VendorGraphView({
         }}
         onBackgroundClick={() => onSelectVendor(null)}
         cooldownTicks={80}
-        onEngineStop={() => graphRef.current?.zoomToFit(400, 60)}
+        onEngineStop={() => {
+          graphRef.current?.zoomToFit(400, 60)
+          resumeAndScheduleIdlePause() // keep the loop alive long enough for that zoom to animate
+        }}
       />
 
       {(scenario || singleVendorTarget) && (

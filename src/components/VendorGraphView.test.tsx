@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import { forwardRef, useImperativeHandle } from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SimulateResponse } from '../lib/api'
@@ -16,6 +16,8 @@ vi.stubGlobal('ResizeObserver', ResizeObserverStub)
 vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
 
 const d3ForceMock = vi.fn()
+const pauseAnimationMock = vi.fn()
+const resumeAnimationMock = vi.fn()
 
 function fakeCanvasContext() {
   let fillStyle = ''
@@ -47,13 +49,14 @@ vi.mock('react-force-graph-2d', () => ({
       zoom: vi.fn(),
       d3Force: d3ForceMock,
       d3ReheatSimulation: vi.fn(),
-      pauseAnimation: vi.fn(),
-      resumeAnimation: vi.fn(),
+      pauseAnimation: pauseAnimationMock,
+      resumeAnimation: resumeAnimationMock,
     }))
     const graphData = props.graphData as { nodes: Array<Record<string, unknown>> }
     const nodeCanvasObject = props.nodeCanvasObject as ((n: unknown, ctx: CanvasRenderingContext2D, scale: number) => void) | undefined
     const nodeLabel = props.nodeLabel as ((n: unknown) => string) | undefined
     const onNodeClick = props.onNodeClick as ((n: unknown) => void) | undefined
+    const onEngineStop = props.onEngineStop as (() => void) | undefined
 
     function labelFor(n: Record<string, unknown>): string {
       if (typeof n.label === 'string') return n.label
@@ -63,6 +66,9 @@ vi.mock('react-force-graph-2d', () => ({
 
     return (
       <div data-testid="mock-graph">
+        <button data-testid="trigger-engine-stop" onClick={() => onEngineStop?.()}>
+          trigger engine stop
+        </button>
         {graphData.nodes.map((n) => {
           nodeCanvasObject?.(n, fakeCanvasContext(), 1)
           return (
@@ -79,7 +85,11 @@ vi.mock('react-force-graph-2d', () => ({
 // eslint-disable-next-line import/first
 import VendorGraphView from './VendorGraphView'
 
-beforeEach(() => d3ForceMock.mockClear())
+beforeEach(() => {
+  d3ForceMock.mockClear()
+  pauseAnimationMock.mockClear()
+  resumeAnimationMock.mockClear()
+})
 afterEach(() => cleanup())
 
 function fixtureVendor(overrides: Partial<VendorWithBlastRadius> = {}): VendorWithBlastRadius {
@@ -214,5 +224,78 @@ describe('VendorGraphView', () => {
     expect(screen.getByText(/\(snapshot\)/i)).toBeInTheDocument()
     expect(screen.getByText(/as of/i)).toBeInTheDocument()
     expect(screen.getByTestId('vendor-graph-view').textContent?.toLowerCase()).not.toContain('live')
+  })
+})
+
+// force-graph's own render loop reschedules itself via requestAnimationFrame forever, with no
+// built-in idle state — see VendorGraphView.tsx's resumeAndScheduleIdlePause for why and what it
+// does about it. These tests exercise that debounce logic against the mocked pauseAnimation/
+// resumeAnimation calls above, not the real force-graph library.
+describe('VendorGraphView idle-pause', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('does not pause immediately once the physics engine settles — leaves room for the zoom-to-fit tween', () => {
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} />)
+    fireEvent.click(screen.getByTestId('trigger-engine-stop'))
+    vi.advanceTimersByTime(300)
+    expect(pauseAnimationMock).not.toHaveBeenCalled()
+  })
+
+  it('pauses after IDLE_PAUSE_MS of no further activity following engine-stop', () => {
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} />)
+    fireEvent.click(screen.getByTestId('trigger-engine-stop'))
+    vi.advanceTimersByTime(650)
+    expect(pauseAnimationMock).toHaveBeenCalled()
+  })
+
+  it('resumes when the pointer enters the canvas', () => {
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} />)
+    resumeAnimationMock.mockClear() // drop whatever mount-time resume already fired
+    fireEvent.pointerEnter(screen.getByTestId('vendor-graph-view'))
+    expect(resumeAnimationMock).toHaveBeenCalled()
+  })
+
+  it('resumes when "Group by substrate" is toggled — a reheat needs the loop alive to tick', () => {
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} />)
+    resumeAnimationMock.mockClear()
+    fireEvent.click(screen.getByLabelText(/group by substrate/i))
+    expect(resumeAnimationMock).toHaveBeenCalled()
+  })
+
+  it('resumes on Replay', () => {
+    const stripe = fixtureVendor()
+    const simulation = {
+      scenario: {
+        scenario: { id: 'aws-outage', label: 'AWS regional outage', downSubstrates: ['aws'] },
+        affectedVendors: [stripe as Vendor],
+        unaffectedVendors: [],
+        affectedCount: 1,
+        totalCount: 1,
+        affectedShare: 1,
+      },
+      simulation: {} as never,
+      presetScenarios: [],
+      headline: { expectedLossPerYear: 12000 } as never,
+      whatIf: null,
+      recommendedMoves: [],
+    } satisfies SimulateResponse
+
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([stripe])} simulation={simulation} />)
+    resumeAnimationMock.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: /replay/i }))
+    expect(resumeAnimationMock).toHaveBeenCalled()
+  })
+
+  it('pauses when the tab is hidden and resumes (re-scheduling the idle check) when it becomes visible again', () => {
+    render(<VendorGraphView {...noopProps} vendorGraph={fixtureVendorGraph([fixtureVendor()])} />)
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(pauseAnimationMock).toHaveBeenCalled()
+
+    resumeAnimationMock.mockClear()
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(resumeAnimationMock).toHaveBeenCalled()
   })
 })
