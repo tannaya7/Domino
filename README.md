@@ -144,6 +144,10 @@ CloudWatch alarms already wired to SNS (see [docs/WELL_ARCHITECTED.md](docs/WELL
 
 A composite GitHub Action (bash + curl + jq + gh only — no Node runtime, no build step) that comments on every PR with the new shared-fate vendor risk it introduces, and can fail the check against a policy file you own. Proof of it running on real PRs (one that fails, one that passes) is in [docs/proof/PROOF.md](docs/proof/PROOF.md).
 
+| A PR that fails the gate | A PR that passes it |
+|---|---|
+| ![Failing gate check with policy violation](docs/media/pr-gate-fail.jpg) | ![Passing gate check, within policy](docs/media/pr-gate-pass.jpg) |
+
 ### Add it in 30 seconds
 
 1. Copy [`examples/workflow.yml`](examples/workflow.yml) to `.github/workflows/blast-radius.yml` and set `api-url` to a running Blast Radius Mapper API (the live demo's backend above works for a quick trial).

@@ -64,6 +64,10 @@ constraint, what a user-facing claim is honestly allowed to say).
   ([docs/AWS_VERIFICATION.md](AWS_VERIFICATION.md), [README's Honest by design](../README.md#honest-by-design)) —
   including this submission doc's own numbers coming from a script, not memory.
 
+| Concentration, at a glance | A simulated outage's actual blast radius |
+|---|---|
+| ![Vendor graph grouped by substrate, with concentration and exposure highlighted](media/vendor-graph.jpg) | ![Failure simulation result: entrypoints down, loss per hour, cascading highlight](media/simulate-outage.jpg) |
+
 ## What's next
 
 - A local CLI for private repos, reusing `repoParser.ts`/`vendorResolver.ts` against a local
