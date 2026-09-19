@@ -7,6 +7,7 @@ import type {
   FailureScenarioResult,
   GraphData,
   Runbook,
+  UnclassifiedSummary,
   Vendor,
   VendorGraph,
   VendorStatus,
@@ -44,6 +45,9 @@ export interface AnalyzeRepoResponse extends GraphData {
   concentration: ConcentrationResult
   /** Graph-theory criticality of the file graph (articulation points, reachability loss). */
   criticality: CriticalityResult
+  /** External dependencies found but not in the curated vendor knowledge base — never merged into
+   * vendors/concentration/availability math. */
+  unclassified: UnclassifiedSummary
   meta: {
     owner: string
     repo: string

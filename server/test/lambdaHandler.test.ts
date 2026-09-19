@@ -9,6 +9,7 @@ const fixtureResult: AnalyzeRepoResult = {
   iacSubstrates: [],
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
+  unclassified: { packages: [], envVars: [], hosts: [], totalCount: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',

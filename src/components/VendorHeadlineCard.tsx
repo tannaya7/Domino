@@ -1,11 +1,33 @@
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
-import type { AvailabilityHeadline, ExactAvailabilityResult } from '../lib/types'
+import type { AvailabilityHeadline, ExactAvailabilityResult, Vendor } from '../lib/types'
+import { computeVendorConfidence } from '../lib/vendorConfidence'
 
 interface VendorHeadlineCardProps {
   headline: AvailabilityHeadline
   result: ExactAvailabilityResult
   currency: Currency
+  vendors: Vendor[]
+  /** Count of external dependencies found but not in the curated vendor knowledge base — see
+   * findUnclassifiedDependencies. 0/undefined renders nothing (never implies "we checked and found
+   * none" when unclassified scanning wasn't run for this analysis, e.g. a demo snapshot). */
+  unclassifiedCount?: number
+  onWhyVendorsSubstrates?: () => void
+  onWhyExpectedLoss?: () => void
+}
+
+function WhyButton({ onClick, label }: { onClick?: () => void; label: string }) {
+  if (!onClick) return null
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="text-[var(--text-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+    >
+      why?
+    </button>
+  )
 }
 
 /** Share of correlated downtime that comes from substrate risk a vendor's own SLA doesn't
@@ -16,11 +38,20 @@ function hiddenSharePercent(headline: AvailabilityHeadline, result: ExactAvailab
   return Math.max(0, Math.min(100, (headline.hiddenUpstreamHoursPerYear / correlatedHours) * 100))
 }
 
-function VendorHeadlineCard({ headline, result, currency }: VendorHeadlineCardProps) {
+function VendorHeadlineCard({
+  headline,
+  result,
+  currency,
+  vendors,
+  unclassifiedCount,
+  onWhyVendorsSubstrates,
+  onWhyExpectedLoss,
+}: VendorHeadlineCardProps) {
   if (headline.vendors === 0) return null
 
   const graceful = headline.vendors <= 1
   const substrateName = headline.worstSingleEvent?.substrate
+  const highConfidenceCount = vendors.filter((v) => computeVendorConfidence(v.detectedVia) === 'high').length
 
   return (
     <div className="panel-glass animate-rise-in rounded-xl px-4 py-3" role="status">
@@ -38,7 +69,8 @@ function VendorHeadlineCard({ headline, result, currency }: VendorHeadlineCardPr
         <p className="text-sm text-[var(--text-primary)]">
           <span className="font-semibold">{headline.vendors} vendors</span>
           <span className="text-[var(--text-muted)]"> → </span>
-          <span className="font-semibold">{headline.substrates} substrates</span>
+          <span className="font-semibold">{headline.substrates} substrates</span>{' '}
+          <WhyButton onClick={onWhyVendorsSubstrates} label="Why this vendor/substrate count?" />
           <span className="text-[var(--text-muted)]"> · </span>
           <span
             title="Share of expected downtime coming from substrate (hosting) risk that a vendor's own SLA number doesn't capture."
@@ -46,9 +78,23 @@ function VendorHeadlineCard({ headline, result, currency }: VendorHeadlineCardPr
             {hiddenSharePercent(headline, result).toFixed(0)}% of expected downtime is invisible to SLA math
           </span>
           <span className="text-[var(--text-muted)]"> · </span>
-          <span>~{formatCurrency(headline.expectedLossPerYear, currency)}/yr at your assumptions</span>
+          <span>~{formatCurrency(headline.expectedLossPerYear, currency)}/yr at your assumptions</span>{' '}
+          <WhyButton onClick={onWhyExpectedLoss} label="Why this expected annual loss?" />
         </p>
       )}
+      <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-[var(--text-muted)]">
+        <span title="High confidence: a manifest dependency AND (an import or an env var). See the risk register for the full rule.">
+          {highConfidenceCount} high-confidence
+        </span>
+        {!!unclassifiedCount && (
+          <span
+            className="font-medium text-amber-300"
+            title="External dependencies found in this repo that aren't in our curated vendor knowledge base — see the Unclassified dependencies panel."
+          >
+            +{unclassifiedCount} unclassified
+          </span>
+        )}
+      </p>
     </div>
   )
 }

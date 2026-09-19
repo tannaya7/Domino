@@ -4,6 +4,7 @@ import Panel from './ui/Panel'
 interface CriticalityPanelProps {
   criticality: CriticalityResult
   onSelectFile?: (fileId: string) => void
+  onWhyNode?: (node: NodeCriticality) => void
 }
 
 /** Keeps the filename and enough trailing context to place it, e.g.
@@ -36,7 +37,7 @@ function whyItMatters(node: NodeCriticality): string {
   return 'No other entrypoints or files depend on this node.'
 }
 
-function CriticalityPanel({ criticality, onSelectFile }: CriticalityPanelProps) {
+function CriticalityPanel({ criticality, onSelectFile, onWhyNode }: CriticalityPanelProps) {
   const notable = criticality.byNode
     .filter((n) => n.isArticulationPoint || n.affectedEntrypoints.length > 0 || n.orphanedNodes.length > 0)
     .slice(0, 5)
@@ -67,7 +68,19 @@ function CriticalityPanel({ criticality, onSelectFile }: CriticalityPanelProps) 
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-[var(--text-secondary)]">{whyItMatters(node)}</p>
+              <div className="mt-1 flex items-baseline justify-between gap-2">
+                <p className="text-xs text-[var(--text-secondary)]">{whyItMatters(node)}</p>
+                {onWhyNode && (
+                  <button
+                    type="button"
+                    onClick={() => onWhyNode(node)}
+                    aria-label={`Why does ${node.nodeId} matter?`}
+                    className="shrink-0 text-xs text-[var(--text-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    why?
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

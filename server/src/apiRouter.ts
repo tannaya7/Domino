@@ -111,6 +111,9 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
         vendorGraph,
         concentration,
         criticality,
+        // Deliberately separate from `vendors` — never merged into vendor counts, substrates, or
+        // availability math. See unclassifiedDependencies.ts.
+        unclassified: result.unclassified,
         meta: {
           owner: result.owner,
           repo: result.repo,

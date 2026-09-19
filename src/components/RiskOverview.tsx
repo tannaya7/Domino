@@ -13,6 +13,7 @@ interface RiskOverviewProps {
   currency: Currency
   vendorStatuses: VendorStatus[] | null
   onSelectVendor: (key: string) => void
+  onWhyVendor?: (key: string) => void
   graphData: GraphData
   adjacencyMap: AdjacencyMap
   onSelectNode: (nodeId: string) => void
@@ -32,6 +33,7 @@ function RiskOverview({
   currency,
   vendorStatuses,
   onSelectVendor,
+  onWhyVendor,
   graphData,
   adjacencyMap,
   onSelectNode,
@@ -74,6 +76,7 @@ function RiskOverview({
             currency={currency}
             vendorStatuses={vendorStatuses}
             onSelectVendor={onSelectVendor}
+            onWhyVendor={onWhyVendor}
           />
         ) : (
           <SystemOverview graphData={graphData} adjacencyMap={adjacencyMap} onSelectNode={onSelectNode} />

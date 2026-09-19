@@ -3,6 +3,7 @@ import { colorForSubstrate } from '../lib/colors'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { VendorWithBlastRadius } from '../lib/types'
+import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, computeVendorConfidence, VENDOR_CONFIDENCE_RULE } from '../lib/vendorConfidence'
 import Panel from './ui/Panel'
 
 interface VendorDetailPanelProps {
@@ -55,7 +56,7 @@ function VendorDetailPanel({
         </button>
       }
     >
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {vendor.substrate.map((s) => (
           <span
             key={s}
@@ -65,6 +66,17 @@ function VendorDetailPanel({
             {s}
           </span>
         ))}
+        {(() => {
+          const confidence = computeVendorConfidence(vendor.detectedVia)
+          return (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${CONFIDENCE_STYLES[confidence]}`}
+              title={VENDOR_CONFIDENCE_RULE}
+            >
+              {CONFIDENCE_LABEL[confidence]} confidence
+            </span>
+          )
+        })()}
       </div>
 
       <p className="mb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Blast radius</p>

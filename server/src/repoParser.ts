@@ -1,12 +1,14 @@
-import type { GraphData } from '../../src/lib/types'
+import type { GraphData, UnclassifiedSummary } from '../../src/lib/types'
 import { loadAliasScopes, loadWorkspaceAliasEntries, resolveAliasedImport, scopeForFile } from './aliasResolver'
 import { extractEnvVarNames, parseEnvFile } from './envScanner'
 import { getDefaultBranch, getRawFileContent, getRepoTree, parseRepoUrl } from './github'
+import { extractHostnames } from './hostScanner'
 import { inferFileType } from './inferFileType'
 import { inferEntrypointsForRepo } from './entrypoints'
 import { extractImportSpecifiers, resolveRelativeImport } from './importParser'
 import { isIacFile, parseIacFile, type IacSubstrateSignal } from './iacParser'
 import { KNOWN_MANIFEST_FILENAMES, parseManifest } from './manifestParser'
+import { findUnclassifiedDependencies } from './unclassifiedDependencies'
 import { resolveVendors, type DetectedVendor, type FileVendorSignal } from './vendorResolver'
 
 const TRACKED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
@@ -177,6 +179,10 @@ export interface BuildGraphResult {
   entrypoints: string[]
   /** Powers the "X% of internal imports resolved" data-quality badge. */
   importResolution: ImportResolutionStats
+  /** External dependencies found but NOT in the curated vendor knowledge base — see
+   * unclassifiedDependencies.ts. Deliberately separate from `vendors`: never merged into vendor
+   * counts, substrates, or availability math anywhere downstream. */
+  unclassified: UnclassifiedSummary
 }
 
 export interface BuildGraphOptions {
@@ -184,6 +190,10 @@ export interface BuildGraphOptions {
    * integration has a hard 30s ceiling) — running past it reports truncated:true instead of the
    * platform killing the request with no response at all. */
   scanBudgetMs?: number
+  /** Used only to exclude the repo's own domain from the unclassified-hosts list — a caller that
+   * omits these just gets a slightly less complete filter there, never a crash. */
+  owner?: string
+  repo?: string
 }
 
 /** Builds a {nodes, edges} import graph plus vendor/substrate signals from any RepoSource. */
@@ -271,8 +281,9 @@ export async function buildGraphFromSource(
     }
 
     const envVarNames = extractEnvVarNames(content)
-    if (bareSpecifiers.length > 0 || envVarNames.length > 0) {
-      fileSignals.push({ file: path, importSpecifiers: bareSpecifiers, envVarNames })
+    const hostnames = extractHostnames(content)
+    if (bareSpecifiers.length > 0 || envVarNames.length > 0 || hostnames.length > 0) {
+      fileSignals.push({ file: path, importSpecifiers: bareSpecifiers, envVarNames, hostnames })
     }
   })
 
@@ -287,6 +298,7 @@ export async function buildGraphFromSource(
 
   const vendors = resolveVendors({ fileSignals })
   const iacSubstrates = discoverySources.iacFiles.flatMap(({ path, content }) => parseIacFile(path, content))
+  const unclassified = findUnclassifiedDependencies(fileSignals, options.owner ?? '', options.repo ?? '')
 
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
   const budgetCapped = fetchedCount < filesToFetch.length
@@ -299,6 +311,7 @@ export async function buildGraphFromSource(
     vendors,
     iacSubstrates,
     entrypoints,
+    unclassified,
     importResolution: { total: internalImportsTotal, resolved: internalImportsResolved },
   }
 }
@@ -317,6 +330,6 @@ export async function analyzeRepo(
   const { owner, repo } = parseRepoUrl(repoUrl)
   const ref = branch ?? (await getDefaultBranch(owner, repo))
   const source = new GithubRepoSource(owner, repo, ref)
-  const result = await buildGraphFromSource(source, options)
+  const result = await buildGraphFromSource(source, { ...options, owner, repo })
   return { ...result, owner, repo, branch: ref }
 }

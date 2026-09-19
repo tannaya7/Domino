@@ -274,3 +274,21 @@ export interface IacSubstrateSignal {
   resourceType?: string
   source: string
 }
+
+/** One package/env-var/hostname found in the scan that never resolved to a known vendor. */
+export interface UnclassifiedItem {
+  name: string
+  /** Files that reference this item — capped upstream, never the full repo file list. */
+  files: string[]
+}
+
+/** External dependencies found but NOT in the curated vendor knowledge base (~33 entries) — the
+ * "unknown != safe" honesty feature. HARD RULE, enforced by construction: nothing here ever enters
+ * vendor counts, substrates, or availability math anywhere downstream — it's a wholly separate
+ * field from `vendors`, never merged into it. */
+export interface UnclassifiedSummary {
+  packages: UnclassifiedItem[]
+  envVars: UnclassifiedItem[]
+  hosts: UnclassifiedItem[]
+  totalCount: number
+}

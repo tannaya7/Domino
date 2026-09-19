@@ -88,6 +88,7 @@ async function main() {
     vendorGraph,
     concentration,
     criticality,
+    unclassified: result.unclassified,
     riskSummary,
     meta: {
       owner,

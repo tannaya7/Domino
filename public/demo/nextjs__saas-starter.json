@@ -3,7 +3,7 @@
   "repo": "saas-starter",
   "branch": "main",
   "commitSha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-  "generatedAt": "2026-09-19T03:44:01.113Z",
+  "generatedAt": "2026-09-19T09:54:31.166Z",
   "nodes": [
     {
       "id": "drizzle.config.ts",
@@ -1140,6 +1140,215 @@
       }
     ]
   },
+  "unclassified": {
+    "packages": [
+      {
+        "name": "drizzle-orm",
+        "files": [
+          "app/(login)/actions.ts",
+          "app/api/stripe/checkout/route.ts",
+          "lib/db/drizzle.ts",
+          "lib/db/queries.ts",
+          "lib/db/schema.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "radix-ui",
+        "files": [
+          "components/ui/avatar.tsx",
+          "components/ui/button.tsx",
+          "components/ui/dropdown-menu.tsx",
+          "components/ui/label.tsx",
+          "components/ui/radio-group.tsx",
+          "package.json"
+        ]
+      },
+      {
+        "name": "swr",
+        "files": [
+          "app/(dashboard)/dashboard/general/page.tsx",
+          "app/(dashboard)/dashboard/page.tsx",
+          "app/(dashboard)/layout.tsx",
+          "app/layout.tsx",
+          "package.json"
+        ]
+      },
+      {
+        "name": "bcryptjs",
+        "files": [
+          "lib/auth/session.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "class-variance-authority",
+        "files": [
+          "components/ui/button.tsx",
+          "package.json"
+        ]
+      },
+      {
+        "name": "drizzle-kit",
+        "files": [
+          "drizzle.config.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "jose",
+        "files": [
+          "lib/auth/session.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "postgres",
+        "files": [
+          "lib/db/drizzle.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "tailwind-merge",
+        "files": [
+          "lib/utils.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "@types/node",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@types/react",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@types/react-dom",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "node:child_process",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:crypto",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:fs",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:os",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:path",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:readline",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "node:util",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "server-only",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "tw-animate-css",
+        "files": [
+          "package.json"
+        ]
+      }
+    ],
+    "envVars": [
+      {
+        "name": "POSTGRES_URL",
+        "files": [
+          ".env.example",
+          "drizzle.config.ts",
+          "lib/db/drizzle.ts"
+        ]
+      },
+      {
+        "name": "AUTH_SECRET",
+        "files": [
+          ".env.example",
+          "lib/auth/session.ts"
+        ]
+      },
+      {
+        "name": "BASE_URL",
+        "files": [
+          ".env.example",
+          "lib/payments/stripe.ts"
+        ]
+      },
+      {
+        "name": "STRIPE_WEBHOOK_SECRET",
+        "files": [
+          ".env.example",
+          "app/api/stripe/webhook/route.ts"
+        ]
+      }
+    ],
+    "hosts": [
+      {
+        "name": "vercel.com",
+        "files": [
+          "app/(dashboard)/page.tsx",
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "dashboard.stripe.com",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "docs.docker.com",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      },
+      {
+        "name": "docs.stripe.com",
+        "files": [
+          "lib/db/setup.ts"
+        ]
+      }
+    ],
+    "totalCount": 29
+  },
   "riskSummary": {
     "subject": "vendor:Stripe",
     "text": "Stripe (payments) is High-risk — 14 components would be affected by a change here. If it fails, app/api/stripe/checkout/route.ts, app/api/stripe/webhook/route.ts, lib/payments/stripe.ts, and others would break. Recommend thorough testing and a staged rollout before deploying changes here."
@@ -1150,7 +1359,7 @@
     "branch": "main",
     "filesScanned": 41,
     "truncated": false,
-    "elapsedMs": 3247,
+    "elapsedMs": 23053,
     "cached": false,
     "importResolution": {
       "total": 81,

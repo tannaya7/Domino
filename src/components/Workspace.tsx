@@ -2,10 +2,28 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AnalyzePrResponse, AnalyzeRepoResponse, SimulateResponse, StatusResponse } from '../lib/api'
 import { analyzeRepo, ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
 import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
+import { analyzeDetectedRedundancy } from '../lib/detectedRedundancy'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { computeStatusChip } from '../lib/statusChip'
-import type { ConcentrationResult, CriticalityResult, GraphData, Runbook, Vendor, VendorGraph } from '../lib/types'
+import type {
+  ConcentrationResult,
+  CriticalityResult,
+  GraphData,
+  NodeCriticality,
+  Runbook,
+  UnclassifiedSummary,
+  Vendor,
+  VendorGraph,
+} from '../lib/types'
+import { buildVendorRiskRows } from '../lib/vendorRiskRegister'
 import { selectBannerVendor } from '../lib/vendorStatusBanner'
+import {
+  buildCriticalityItemWhy,
+  buildExpectedLossWhy,
+  buildRiskRegisterRowWhy,
+  buildVendorsSubstratesWhy,
+  type WhyContent,
+} from '../lib/whyDrawer'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import TopBar from './TopBar'
@@ -17,6 +35,8 @@ import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
 import StatusBanner from './StatusBanner'
 import RiskOverview from './RiskOverview'
+import UnclassifiedPanel from './UnclassifiedPanel'
+import DetectedRedundancyPanel from './DetectedRedundancyPanel'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
@@ -24,6 +44,8 @@ import CriticalityPanel from './CriticalityPanel'
 import LiveStatusPanel from './LiveStatusPanel'
 import RunbookPanel from './RunbookPanel'
 import StatTile from './ui/StatTile'
+import Drawer from './Drawer'
+import WhyDrawerContent from './WhyDrawerContent'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -31,6 +53,8 @@ export interface AnalyzedRepo {
   vendorGraph: VendorGraph
   concentration: ConcentrationResult
   criticality: CriticalityResult
+  /** null for manual-JSON/PR-mode graphs (no scan ran) — never fabricated as "0 found". */
+  unclassified: UnclassifiedSummary | null
   meta: {
     owner: string
     repo: string
@@ -100,6 +124,8 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   const [isLoadingRunbook, setIsLoadingRunbook] = useState(false)
   const [runbookError, setRunbookError] = useState<string | null>(null)
 
+  const [whyContent, setWhyContent] = useState<WhyContent | null>(null)
+
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
     [analyzed.graph],
@@ -149,6 +175,35 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
   const clientHeadline = useMemo(
     () => buildAvailabilityHeadline(analyzed.vendors, clientExactResult),
     [analyzed.vendors, clientExactResult],
+  )
+
+  // Same override channel as the Assumptions panel, threaded into every exact-engine call below —
+  // detected redundancy, the client headline, and every WHY-drawer what-if all stay in sync with
+  // whatever the user has edited.
+  const correlatedOverrides = useMemo(
+    () => ({
+      vendorSlaOverrides: assumptions.vendorSlaOverrides,
+      substrateOutageProbabilities: assumptions.substrateRateOverrides,
+    }),
+    [assumptions],
+  )
+
+  const detectedRedundancyGroups = useMemo(
+    () => analyzeDetectedRedundancy(analyzed.vendors, correlatedOverrides),
+    [analyzed.vendors, correlatedOverrides],
+  )
+
+  // Same inputs RiskOverview/VendorRiskRegister already compute rows from — kept here too so a
+  // WHY-drawer trigger on a risk-register row can look its row back up by vendor key.
+  const vendorRiskRows = useMemo(
+    () =>
+      buildVendorRiskRows(
+        analyzed.vendorGraph.vendors,
+        analyzed.criticality.entrypoints,
+        clientExactResult.expectedDowntimeHoursPerYear.naive,
+        assumptions.costPerHour,
+      ),
+    [analyzed.vendorGraph, analyzed.criticality, clientExactResult, assumptions.costPerHour],
   )
 
   const defaultScenarioId = useMemo(() => {
@@ -217,6 +272,25 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     handleSelectVendor(key)
     setGraphMode('vendors')
     setView('graph')
+  }
+
+  function handleWhyVendorsSubstrates() {
+    setWhyContent(buildVendorsSubstratesWhy(analyzed.vendors, clientHeadline, correlatedOverrides))
+  }
+
+  function handleWhyExpectedLoss() {
+    setWhyContent(buildExpectedLossWhy(clientHeadline, clientExactResult, assumptions.currency))
+  }
+
+  function handleWhyVendor(key: string) {
+    const row = vendorRiskRows.find((r) => r.key === key)
+    const vendor = analyzed.vendorGraph.vendors.find((v) => v.key === key)
+    if (!row || !vendor) return
+    setWhyContent(buildRiskRegisterRowWhy(row, vendor, analyzed.vendors, assumptions.currency, correlatedOverrides))
+  }
+
+  function handleWhyNode(node: NodeCriticality) {
+    setWhyContent(buildCriticalityItemWhy(node))
   }
 
   async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
@@ -335,7 +409,15 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <main className="flex flex-1 flex-col gap-3 overflow-hidden p-4">
           {hasVendorData && (
-            <VendorHeadlineCard headline={clientHeadline} result={clientExactResult} currency={assumptions.currency} />
+            <VendorHeadlineCard
+              headline={clientHeadline}
+              result={clientExactResult}
+              currency={assumptions.currency}
+              vendors={analyzed.vendors}
+              unclassifiedCount={analyzed.unclassified?.totalCount}
+              onWhyVendorsSubstrates={handleWhyVendorsSubstrates}
+              onWhyExpectedLoss={handleWhyExpectedLoss}
+            />
           )}
           {bannerCandidate && bannerVendorStatus && (
             <StatusBanner
@@ -432,6 +514,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
                 currency={assumptions.currency}
                 vendorStatuses={statusResult?.vendorStatuses ?? null}
                 onSelectVendor={handleSelectVendorFromRegister}
+                onWhyVendor={handleWhyVendor}
                 graphData={analyzed.graph}
                 adjacencyMap={adjacencyMap}
                 onSelectNode={handleSelectFromOverview}
@@ -503,7 +586,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           )}
 
           <ConcentrationPanel concentration={analyzed.concentration} />
-          <CriticalityPanel criticality={analyzed.criticality} onSelectFile={handleNodeClick} />
+          <CriticalityPanel criticality={analyzed.criticality} onSelectFile={handleNodeClick} onWhyNode={handleWhyNode} />
+          <DetectedRedundancyPanel groups={detectedRedundancyGroups} />
+          <UnclassifiedPanel unclassified={analyzed.unclassified} />
 
           {hasVendorData && (
             <>
@@ -558,6 +643,10 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           )}
         </aside>
       </div>
+
+      <Drawer isOpen={whyContent !== null} onClose={() => setWhyContent(null)} title={whyContent?.title ?? 'Why'}>
+        {whyContent && <WhyDrawerContent content={whyContent} />}
+      </Drawer>
     </div>
   )
 }

@@ -163,6 +163,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
     },
     repoUrl: 'https://github.com/octocat/hello',
     snapshot: null,
+    unclassified: null,
     ...overrides,
   }
 }
@@ -462,5 +463,87 @@ describe('Workspace — manual/PR data (no vendor data)', () => {
       />,
     )
     expect(screen.getByText('octocat/hello #42')).toBeInTheDocument()
+  })
+})
+
+describe('Workspace — WHY drawer', () => {
+  function twoVendorAnalyzed(): AnalyzedRepo {
+    const stripe = fixtureVendor()
+    const paypal = fixtureVendor({ key: 'paypal', vendor: 'PayPal', substrate: ['aws'] })
+    return fixtureAnalyzed({
+      vendors: [stripe, paypal],
+      vendorGraph: {
+        rootId: '__app__',
+        vendors: [
+          { ...stripe, directFiles: ['src/pay.ts'], affectedFiles: ['src/pay.ts', 'src/index.ts'] },
+          { ...paypal, directFiles: ['src/pay.ts'], affectedFiles: ['src/pay.ts'] },
+        ],
+      },
+      concentration: {
+        vendorCount: 2,
+        substrateCount: 1,
+        bySubstrate: [{ substrate: 'aws', vendorKeys: ['stripe', 'paypal'], vendorNames: ['Stripe', 'PayPal'], share: 1 }],
+        mostConcentrated: { substrate: 'aws', vendorKeys: ['stripe', 'paypal'], vendorNames: ['Stripe', 'PayPal'], share: 1 },
+      },
+      criticality: {
+        entrypoints: ['src/index.ts'],
+        articulationPoints: ['src/pay.ts'],
+        byNode: [
+          {
+            nodeId: 'src/pay.ts',
+            isArticulationPoint: true,
+            affectedEntrypoints: ['src/index.ts'],
+            orphanedNodes: [],
+            entrypointCount: 1,
+            reachabilityLossRatio: 1,
+          },
+        ],
+      },
+    })
+  }
+
+  it('opens with vendors→substrates content, is keyboard accessible, and closes on Escape', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why this vendor\/substrate count/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/2 vendor\(s\) detected/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/substrates =/)).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens with expected-loss content from a separate trigger', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why this expected annual loss/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('expectedLossPerYear = correlatedDowntimeHoursPerYear × costPerHourOfDowntime')).toBeInTheDocument()
+  })
+
+  it('opens with a risk-register row\'s content, naming the vendor and its risk level', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /risk register/i }))
+    await user.click(screen.getAllByRole('button', { name: /^why is stripe/i })[0])
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Stripe is/)).toBeInTheDocument()
+  })
+
+  it('opens with a criticality item\'s content, distinguishing the articulation-point claim', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why does src\/pay\.ts matter/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/structural bottleneck/)).toBeInTheDocument()
   })
 })

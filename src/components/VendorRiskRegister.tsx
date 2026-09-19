@@ -3,6 +3,7 @@ import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import { RISK_STYLES } from '../lib/risk'
 import type { VendorStatus, VendorWithBlastRadius } from '../lib/types'
+import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, VENDOR_CONFIDENCE_RULE, type VendorConfidence } from '../lib/vendorConfidence'
 import { buildVendorRiskRows, type VendorRiskRow } from '../lib/vendorRiskRegister'
 import StatusBadge from './ui/StatusBadge'
 
@@ -14,16 +15,28 @@ interface VendorRiskRegisterProps {
   currency: Currency
   vendorStatuses: VendorStatus[] | null
   onSelectVendor: (key: string) => void
+  onWhyVendor?: (key: string) => void
 }
 
-type SortKey = 'vendor' | 'tier' | 'substrate' | 'filesAffected' | 'entrypointsAffected' | 'downtimeShare' | 'costPerYear' | 'risk'
+type SortKey =
+  | 'vendor'
+  | 'tier'
+  | 'substrate'
+  | 'confidence'
+  | 'filesAffected'
+  | 'entrypointsAffected'
+  | 'downtimeShare'
+  | 'costPerYear'
+  | 'risk'
 
 const RISK_RANK: Record<VendorRiskRow['risk'], number> = { Low: 0, Medium: 1, High: 2 }
+const CONFIDENCE_RANK: Record<VendorConfidence, number> = { low: 0, medium: 1, high: 2 }
 
-const COLUMNS: Array<{ key: SortKey; label: string }> = [
+const COLUMNS: Array<{ key: SortKey; label: string; title?: string }> = [
   { key: 'vendor', label: 'Vendor' },
   { key: 'tier', label: 'Category' },
   { key: 'substrate', label: 'Substrate' },
+  { key: 'confidence', label: 'Confidence', title: VENDOR_CONFIDENCE_RULE },
   { key: 'filesAffected', label: 'Files affected' },
   { key: 'entrypointsAffected', label: 'Entrypoints affected' },
   { key: 'downtimeShare', label: 'Downtime share' },
@@ -39,6 +52,7 @@ function VendorRiskRegister({
   currency,
   vendorStatuses,
   onSelectVendor,
+  onWhyVendor,
 }: VendorRiskRegisterProps) {
   const [sortKey, setSortKey] = useState<SortKey>('costPerYear')
   const [sortDesc, setSortDesc] = useState(true)
@@ -54,6 +68,7 @@ function VendorRiskRegister({
     const sorted = [...rows].sort((a, b) => {
       let cmp: number
       if (sortKey === 'risk') cmp = RISK_RANK[a.risk] - RISK_RANK[b.risk]
+      else if (sortKey === 'confidence') cmp = CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence]
       else if (typeof a[sortKey] === 'number') cmp = (a[sortKey] as number) - (b[sortKey] as number)
       else cmp = String(a[sortKey]).localeCompare(String(b[sortKey]))
       return sortDesc ? -cmp : cmp
@@ -93,7 +108,7 @@ function VendorRiskRegister({
           <thead>
             <tr className="border-b border-[var(--border-subtle)] text-[var(--text-muted)]">
               {COLUMNS.map((col) => (
-                <th key={col.key} className="py-2 pr-4 font-medium">
+                <th key={col.key} className="py-2 pr-4 font-medium" title={col.title}>
                   <button
                     type="button"
                     onClick={() => handleSort(col.key)}
@@ -105,6 +120,7 @@ function VendorRiskRegister({
                 </th>
               ))}
               <th className="py-2 pr-4 font-medium">Live status</th>
+              {onWhyVendor && <th className="py-2 pr-4 font-medium">Why</th>}
             </tr>
           </thead>
           <tbody>
@@ -121,6 +137,14 @@ function VendorRiskRegister({
                   <td className="py-2 pr-4 text-[var(--text-secondary)]" title={row.detectedVia}>
                     {row.substrate}
                   </td>
+                  <td className="py-2 pr-4">
+                    <span
+                      className={`rounded px-2 py-0.5 text-xs font-medium ${CONFIDENCE_STYLES[row.confidence]}`}
+                      title={VENDOR_CONFIDENCE_RULE}
+                    >
+                      {CONFIDENCE_LABEL[row.confidence]}
+                    </span>
+                  </td>
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-primary)]">{row.filesAffected}</td>
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-primary)]">{row.entrypointsAffected}</td>
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-secondary)]">
@@ -135,6 +159,21 @@ function VendorRiskRegister({
                   <td className="py-2 pr-4">
                     <StatusBadge indicator={status?.indicator ?? 'unknown'} stale={status?.stale} />
                   </td>
+                  {onWhyVendor && (
+                    <td className="py-2 pr-4">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onWhyVendor(row.key)
+                        }}
+                        aria-label={`Why is ${row.vendor} ${row.risk}-risk?`}
+                        className="text-[var(--text-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                      >
+                        why?
+                      </button>
+                    </td>
+                  )}
                 </tr>
               )
             })}
