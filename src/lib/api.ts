@@ -76,7 +76,11 @@ export interface AnalyzeRepoResponse extends GraphData {
     repo: string
     branch: string
     filesScanned: number
+    /** Files this scan set out to fetch (after prioritization and the file cap) — the denominator
+     * for the "N of M files scanned" banner. */
+    filesSelected: number
     truncated: boolean
+    truncatedReason?: 'file_cap' | 'time_budget'
     elapsedMs: number
     cached: boolean
     /** Powers the "X% of internal imports resolved" data-quality badge. */

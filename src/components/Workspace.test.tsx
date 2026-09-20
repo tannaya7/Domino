@@ -160,6 +160,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
       branch: 'main',
       truncated: false,
       filesScanned: 2,
+      filesSelected: 2,
       importResolution: { total: 2, resolved: 2 },
     },
     repoUrl: 'https://github.com/octocat/hello',
@@ -371,6 +372,7 @@ describe('Workspace — data-quality badge', () => {
             branch: 'main',
             truncated: false,
             filesScanned: 2,
+            filesSelected: 2,
             importResolution: { total: 10, resolved: 8 },
           },
         })}
@@ -410,7 +412,9 @@ describe('Workspace — truncated scan banner', () => {
             repo: 'hello',
             branch: 'main',
             truncated: true,
+            truncatedReason: 'file_cap',
             filesScanned: 8,
+            filesSelected: 20,
             importResolution: { total: 10, resolved: 8 },
           },
         })}
@@ -421,7 +425,7 @@ describe('Workspace — truncated scan banner', () => {
       />,
     )
     expect(screen.getByText(/scan stopped early/i)).toBeInTheDocument()
-    expect(screen.getByText(/8 file\(s\)/)).toBeInTheDocument()
+    expect(screen.getByText(/8 of 20 files scanned/)).toBeInTheDocument()
   })
 
   it('shows no banner when the scan completed fully', () => {

@@ -25,6 +25,7 @@ const fixtureResult: AnalyzeRepoResult = {
   },
   truncated: false,
   filesScanned: 2,
+  filesSelected: 2,
   vendors: [fixtureVendor],
   iacSubstrates: [],
   entrypoints: [],

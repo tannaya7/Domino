@@ -5,6 +5,7 @@ const fixtureResult: AnalyzeRepoResult = {
   graph: { nodes: [{ id: 'a', label: 'a', type: 'file' }], edges: [] },
   truncated: false,
   filesScanned: 1,
+  filesSelected: 1,
   vendors: [],
   iacSubstrates: [],
   entrypoints: [],

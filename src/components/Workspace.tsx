@@ -83,7 +83,9 @@ export interface AnalyzedRepo {
     repo: string
     branch: string
     truncated: boolean
+    truncatedReason?: 'file_cap' | 'time_budget'
     filesScanned: number
+    filesSelected: number
     importResolution: { total: number; resolved: number }
   } | null
   /** Only set for a real repo scan — required to call /simulate, /status, /runbook. */
@@ -558,8 +560,8 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
             >
               <span aria-hidden="true">⚠</span>
               <span>
-                Scan stopped early (file-count or time budget) — only {analyzed.meta.filesScanned} file(s) were
-                fetched. Results below reflect a partial scan, not the whole repo.
+                Scan stopped early ({analyzed.meta.truncatedReason === 'file_cap' ? 'file-count' : 'time budget'}) — {analyzed.meta.filesScanned} of {analyzed.meta.filesSelected} files scanned.
+                Results below reflect a partial scan, not the whole repo.
               </span>
             </div>
           )}

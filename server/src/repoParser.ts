@@ -14,8 +14,14 @@ import { resolveVendors, type DetectedVendor, type FileVendorSignal } from './ve
 
 const TRACKED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx']
 const EXCLUDED_DIR_SEGMENTS = new Set(['node_modules', 'dist', 'build', '.git', 'coverage', '.next', 'out'])
-const MAX_FILES = 80
-const CONCURRENCY = 8
+// Raised from 80: most real repos need far more than 80 files scanned before a genuine vendor
+// import shows up, so the live scan was stopping early on ordinary-sized repos, not just huge ones.
+// The 25s wall-clock budget (unchanged) is still what actually bounds a request — at CONCURRENCY=12
+// raw.githubusercontent.com fetches, 250 files comfortably finishes well inside that budget for a
+// typical repo; a repo too big/slow to fit still reports truncated:true (now file_cap OR
+// time_budget, whichever hit first) rather than silently claiming completeness either way.
+const MAX_FILES = 250
+const CONCURRENCY = 12
 
 const ENV_FILENAMES = new Set(['.env.example', '.env.sample', 'env.example'])
 // Bounds targeted fetches for vendor-discovery sources (manifests/env/IaC), kept separate from and
@@ -170,7 +176,16 @@ export interface ImportResolutionStats {
 export interface BuildGraphResult {
   graph: GraphData
   truncated: boolean
+  /** Why `truncated` is true — 'file_cap' when the tracked-file list exceeded the file cap,
+   * 'time_budget' when the wall-clock scan budget ran out first. Undefined when not truncated. */
+  truncatedReason?: 'file_cap' | 'time_budget'
   filesScanned: number
+  /** Files this run actually SET OUT to fetch — the tracked-file list after the file cap and
+   * priority ordering (== filesScanned when nothing failed mid-fetch). The right denominator for
+   * "how reliably did this run complete", independent of whether the whole repo was covered (that's
+   * `truncated`/`truncatedReason`) — a per-file fetch failure or rate-limit mid-scan shows up here
+   * as filesScanned < filesSelected even when the cap/budget weren't the limiting factor. */
+  filesSelected: number
   /** Third-party vendors detected from imports, env vars, and manifests — the app's blast-radius layer. */
   vendors: DetectedVendor[]
   /** Cloud-provider signals found in IaC files (Terraform, serverless.yml, vercel.json). */
@@ -192,8 +207,12 @@ export interface BuildGraphResult {
 export interface BuildGraphOptions {
   /** Wall-clock budget in ms from the start of the scan. Defaults to 25s (API Gateway's HTTP API
    * integration has a hard 30s ceiling) — running past it reports truncated:true instead of the
-   * platform killing the request with no response at all. */
+   * platform killing the request with no response at all. The LIVE API never overrides this. */
   scanBudgetMs?: number
+  /** Cap on tracked files fetched. Defaults to 80 (MAX_FILES) — the live API's own budget already
+   * makes a much higher cap moot there; this exists so a local, offline tool (scripts/snapshot-
+   * repo.ts) can ask for a fuller scan of a big repo without touching the live API's default. */
+  maxFiles?: number
   /** Used only to exclude the repo's own domain from the unclassified-hosts list — a caller that
    * omits these just gets a slightly less complete filter there, never a crash. */
   owner?: string
@@ -206,10 +225,11 @@ export async function buildGraphFromSource(
   options: BuildGraphOptions = {},
 ): Promise<BuildGraphResult> {
   const deadline = Date.now() + (options.scanBudgetMs ?? DEFAULT_SCAN_BUDGET_MS)
+  const maxFiles = options.maxFiles ?? MAX_FILES
 
   const allPaths = await source.listFiles()
   const trackedPaths = allPaths.filter(isTrackedFile)
-  const countCapped = trackedPaths.length > MAX_FILES
+  const countCapped = trackedPaths.length > maxFiles
 
   // Resolution uses the FULL tracked-file list, not just filesToFetch — otherwise a file
   // we don't fetch content for (because of the cap) can still never be a valid edge target,
@@ -227,7 +247,7 @@ export async function buildGraphFromSource(
   // whole product depends on. If the budget runs out, the file graph is what gets thinner.
   const discoverySources = await loadVendorDiscoverySources(source, allPaths, deadline)
 
-  const filesToFetch = prioritizeFiles(trackedPaths).slice(0, MAX_FILES)
+  const filesToFetch = prioritizeFiles(trackedPaths).slice(0, maxFiles)
   const remainingBudget = Math.max(0, deadline - Date.now())
   const fetchDeadline = Date.now() + remainingBudget
   const contents = await mapWithConcurrency(
@@ -308,11 +328,16 @@ export async function buildGraphFromSource(
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
   const budgetCapped = fetchedCount < filesToFetch.length
   const entrypoints = inferEntrypointsForRepo([...nodeIds], discoverySources.manifestFiles, knownFilePaths)
+  // File-cap takes precedence when both are true — it's usually the more fundamental reason (a
+  // budget-capped-only run would have kept going past filesToFetch.length if maxFiles allowed it).
+  const truncatedReason: BuildGraphResult['truncatedReason'] = countCapped ? 'file_cap' : budgetCapped ? 'time_budget' : undefined
 
   return {
     graph: { nodes, edges },
     truncated: countCapped || budgetCapped,
+    truncatedReason,
     filesScanned: fetchedCount,
+    filesSelected: filesToFetch.length,
     vendors,
     iacSubstrates,
     entrypoints,

@@ -143,7 +143,9 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
           repo: result.repo,
           branch: result.branch,
           filesScanned: result.filesScanned,
+          filesSelected: result.filesSelected,
           truncated: result.truncated,
+          truncatedReason: result.truncatedReason,
           elapsedMs: Date.now() - start,
           cached: Boolean(cached),
           // "X% of internal imports resolved" data-quality badge.
