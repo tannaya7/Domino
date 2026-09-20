@@ -15,25 +15,33 @@
     "verify:aws": "tsx scripts/verify-aws.ts",
     "verify:all": "tsc -b && oxlint && tsx scripts/verification-report.ts",
     "verify": "tsc -b && vitest run && vite build",
-    "readme:numbers": "tsx scripts/readme-numbers.ts"
+    "readme:numbers": "tsx scripts/readme-numbers.ts",
+    "verify:substrates": "tsx scripts/verify-substrates.ts",
+    "verify:fis": "tsx scripts/verify-fis-actions.ts",
+    "kb:generate": "tsx scripts/generate-vendor-map.ts",
+    "kb:check": "tsx scripts/validate-kb.ts && npm run kb:generate -- --check"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1135.0",
     "@aws-sdk/client-dynamodb": "^3.1135.0",
+    "@aws-sdk/client-fis": "^3.1136.0",
     "@aws-sdk/client-health": "^3.1135.0",
     "@aws-sdk/client-sns": "^3.1135.0",
     "@aws-sdk/client-ssm": "^3.1135.0",
     "@aws-sdk/lib-dynamodb": "^3.1135.0",
+    "diff": "^7.0.0",
     "dotenv": "^18.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-force-graph-2d": "^1.29.1"
+    "react-force-graph-2d": "^1.29.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
+    "@types/diff": "^7.0.2",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

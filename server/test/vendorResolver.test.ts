@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveVendors } from '../src/vendorResolver'
+import { matchVendorByEnvPrefix, matchVendorByHostname, resolveVendors } from '../src/vendorResolver'
 
 describe('resolveVendors', () => {
   it('resolves a bare import specifier to its vendor', () => {
@@ -83,5 +83,48 @@ describe('resolveVendors', () => {
   it('gives a global-only detection an empty detectedInFiles list', () => {
     const result = resolveVendors({ importSpecifiers: ['stripe'] })
     expect(result[0].detectedInFiles).toEqual([])
+  })
+
+  it('resolves a vendor via its statusUrl hostname found in a file signal', () => {
+    const result = resolveVendors({ fileSignals: [{ file: 'src/x.ts', hostnames: ['status.stripe.com'] }] })
+    expect(result).toEqual([
+      expect.objectContaining({ key: 'stripe', detectedVia: ['hostname:status.stripe.com'], detectedInFiles: ['src/x.ts'] }),
+    ])
+  })
+
+  it('does not resolve an unrelated hostname', () => {
+    expect(resolveVendors({ fileSignals: [{ file: 'x.ts', hostnames: ['example.com'] }] })).toEqual([])
+  })
+})
+
+describe('matchVendorByHostname', () => {
+  it('matches a known vendor by its statusUrl hostname', () => {
+    expect(matchVendorByHostname('status.stripe.com')).toBe('stripe')
+  })
+
+  it('is case-insensitive', () => {
+    expect(matchVendorByHostname('STATUS.STRIPE.COM')).toBe('stripe')
+  })
+
+  it('returns null for an unknown hostname', () => {
+    expect(matchVendorByHostname('example.com')).toBeNull()
+  })
+
+  it('also matches the KB\'s own hosts[] entries, not just statusUrl (google-ai.json has no statusUrl at all)', () => {
+    expect(matchVendorByHostname('generativelanguage.googleapis.com')).toBe('@google/generative-ai')
+  })
+
+  it('is case-insensitive for KB hosts[] too', () => {
+    expect(matchVendorByHostname('GENERATIVELANGUAGE.GOOGLEAPIS.COM')).toBe('@google/generative-ai')
+  })
+})
+
+describe('matchVendorByEnvPrefix', () => {
+  it('matches a real prefix, not just an exact name', () => {
+    expect(matchVendorByEnvPrefix('GOOGLE_GENERATIVE_AI_API_KEY_STAGING')).toBe('@google/generative-ai')
+  })
+
+  it('returns null for an unknown env var', () => {
+    expect(matchVendorByEnvPrefix('ACME_WIDGET_API_KEY')).toBeNull()
   })
 })

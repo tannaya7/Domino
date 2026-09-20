@@ -13,6 +13,7 @@ import {
   poissonBinomialPmf,
   redundancyGroupDownProbability,
   sameMarginalsProbabilities,
+  scenarioCombinationProbability,
   seriesAvailabilityFromProbabilities,
   tailProbability,
   unknownHostingVendorKeys,
@@ -476,6 +477,71 @@ describe('correlatedAvailabilityWithRedundancy', () => {
       correlatedSeriesAvailability(buildCorrelatedModel([vendor({ key: 'singleton', sla: 0.99, substrate: ['aws'] })])) *
       (1 - redundancyGroupDownProbability(model, ['a', 'b']))
     expect(exact).not.toBeCloseTo(wrongApproximation, 6)
+  })
+})
+
+describe('scenarioCombinationProbability — brute-force verified', () => {
+  it('substrate required down + vendor on a different substrate required down: P(aws) * P(C down)', () => {
+    // A, B on aws; C on gcp. Require aws down AND C down (C is not on aws).
+    const model = buildCorrelatedModel(
+      [
+        vendor({ key: 'a', substrate: ['aws'], sla: 0.999 }),
+        vendor({ key: 'b', substrate: ['aws'], sla: 0.999 }),
+        vendor({ key: 'c', substrate: ['gcp'], sla: 0.999 }),
+      ],
+      { substrateOutageProbabilities: { aws: 0.002, gcp: 0.003 } },
+    )
+    // Hand-enumerated: relevant substrates are {aws (required), gcp (touches C)}. aws's own q is a
+    // flat factor since C never touches it; gcp is enumerated because it decides whether C is down
+    // "for free" or must roll its own 0.001 independent failure.
+    const gcpDown = 0.003 * 1 // C down via substrate
+    const gcpUp = 0.997 * 0.001 // C down via its own independent outage
+    const expected = 0.002 * (gcpDown + gcpUp)
+    expect(scenarioCombinationProbability(model, new Set(['aws']), new Set(['c']))).toBeCloseTo(expected, 12)
+  })
+
+  it('does NOT multiply marginals: two required vendors sharing an unselected substrate stay correlated', () => {
+    const model = buildCorrelatedModel(
+      [
+        vendor({ key: 'd', substrate: ['azure'], sla: 0.99 }),
+        vendor({ key: 'e', substrate: ['azure'], sla: 0.98 }),
+      ],
+      { substrateOutageProbabilities: { azure: 0.05 } },
+    )
+    // Brute force over azure's two states.
+    const azureDown = 0.05 * 1 * 1 // both down for certain if azure is down
+    const azureUp = 0.95 * 0.01 * 0.02 // both must independently fail
+    const expectedJoint = azureDown + azureUp
+
+    const naiveMarginalProduct =
+      (1 - (1 - 0.01) * (1 - 0.05)) * (1 - (1 - 0.02) * (1 - 0.05)) // WRONG shortcut this must not match
+
+    const actual = scenarioCombinationProbability(model, new Set(), new Set(['d', 'e']))
+    expect(actual).toBeCloseTo(expectedJoint, 12)
+    expect(actual).not.toBeCloseTo(naiveMarginalProduct, 4)
+  })
+
+  it('required substrate not touched by any vendor still contributes its own q (no vendors needed to "activate" it)', () => {
+    const model = buildCorrelatedModel([vendor({ key: 'a', substrate: ['aws'], sla: 0.999 })], {
+      substrateOutageProbabilities: { aws: 0.01 },
+    })
+    expect(scenarioCombinationProbability(model, new Set(['aws']), new Set())).toBeCloseTo(0.01, 12)
+  })
+
+  it('empty selection is the vacuous case: probability 1 (validated against upstream by evaluateScenario, not here)', () => {
+    const model = buildCorrelatedModel([vendor({ key: 'a' })])
+    expect(scenarioCombinationProbability(model, new Set(), new Set())).toBe(1)
+  })
+
+  it('fails loudly when enumerated substrates exceed the 32-bit bitmask limit', () => {
+    const substrate = Array.from({ length: 31 }, (_, i) => `s${i}`)
+    const model: CorrelatedModel = {
+      vendors: [{ key: 'a', label: 'A', ownOutageProbability: 0.001, substrates: substrate }],
+      substrateOutageProbabilities: Object.fromEntries(substrate.map((s) => [s, 0.001])),
+    }
+    expect(() => scenarioCombinationProbability(model, new Set(), new Set(['a']))).toThrow(
+      'scenarioCombinationProbability only supports up to 30 enumerated substrates; got 31',
+    )
   })
 })
 

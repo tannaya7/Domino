@@ -1,8 +1,12 @@
 import { useState } from 'react'
-import { colorForSubstrate } from '../lib/colors'
 import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { VendorWithBlastRadius, WhatIfOverride, WhatIfResult } from '../lib/types'
+import { CONFIDENCE_LABEL, CONFIDENCE_STYLES, computeVendorConfidence, VENDOR_CONFIDENCE_RULE } from '../lib/vendorConfidence'
+import { formatVerificationBadge, type VendorVerificationResult } from '../lib/substrateVerification'
+import { formatSubstrateBadges } from '../lib/vendorKbBadge'
+import { buildReportWrongSubstrateIssueUrl } from '../lib/vendorKbIssueUrl'
+import { VENDOR_KB_BY_DETECTION_KEY } from '../data/vendors.generated'
 import Panel from './ui/Panel'
 import WhatIfPanel from './WhatIfPanel'
 
@@ -12,6 +16,8 @@ interface VendorDetailPanelProps {
   entrypoints: string[]
   costPerHour: number
   currency: Currency
+  /** undefined = never checked (no known global host); present = the DNS-verification result. */
+  verification: VendorVerificationResult | undefined
   onViewFiles: () => void
   /** Starts the graph's visual cascade for this one vendor — see VendorGraphView. */
   onSimulateOutage: () => void
@@ -27,6 +33,8 @@ interface VendorDetailPanelProps {
   onAddWhatIf?: (override: WhatIfOverride) => void
   onRemoveWhatIf?: (index: number) => void
   onResetWhatIf?: () => void
+  /** Opens the FIS "Validate this in your account" modal, scoped to this one vendor's outage. */
+  onValidateInAccount?: () => void
 }
 
 function VendorDetailPanel({
@@ -34,6 +42,7 @@ function VendorDetailPanel({
   entrypoints,
   costPerHour,
   currency,
+  verification,
   onViewFiles,
   onSimulateOutage,
   onClear,
@@ -45,6 +54,7 @@ function VendorDetailPanel({
   onAddWhatIf = () => {},
   onRemoveWhatIf = () => {},
   onResetWhatIf = () => {},
+  onValidateInAccount,
 }: VendorDetailPanelProps) {
   const [simulated, setSimulated] = useState(false)
 
@@ -75,17 +85,58 @@ function VendorDetailPanel({
         </button>
       }
     >
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {vendor.substrate.map((s) => (
-          <span
-            key={s}
-            className="rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: `${colorForSubstrate(s)}26`, color: colorForSubstrate(s) }}
-          >
-            {s}
-          </span>
-        ))}
+      <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+        {(() => {
+          const kb = VENDOR_KB_BY_DETECTION_KEY[vendor.key]
+          return formatSubstrateBadges(kb).map((badge, i) => {
+            const title = 'Curated substrate confidence — see CONTRIBUTING.md and vendors/schema.json. verified = an official/first-party source. reported = claimed but not independently confirmed. unverified = no real source yet.'
+            const content = (
+              <span key={`${badge.label}-${i}`} className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.style}`} title={title}>
+                {badge.label}
+                {badge.href && ' ↗'}
+              </span>
+            )
+            return badge.href ? (
+              <a key={`${badge.label}-${i}`} href={badge.href} target="_blank" rel="noreferrer">
+                {content}
+              </a>
+            ) : (
+              content
+            )
+          })
+        })()}
+        {(() => {
+          const confidence = computeVendorConfidence(vendor.detectedVia)
+          return (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${CONFIDENCE_STYLES[confidence]}`}
+              title={VENDOR_CONFIDENCE_RULE}
+            >
+              {CONFIDENCE_LABEL[confidence]} confidence
+            </span>
+          )
+        })()}
+        {(() => {
+          const badge = formatVerificationBadge(verification)
+          const title = verification
+            ? verification.hosts.map((h) => `${h.host}: ${h.detail}`).join('\n')
+            : 'No independent DNS/IP-range evidence for this vendor (no known global host to check, or not run yet). See scripts/verify-substrates.ts.'
+          return (
+            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.style}`} title={title}>
+              {badge.label}
+            </span>
+          )
+        })()}
       </div>
+
+      <a
+        href={buildReportWrongSubstrateIssueUrl({ name: vendor.vendor, substrate: vendor.substrate, tier: vendor.tier })}
+        target="_blank"
+        rel="noreferrer"
+        className="mb-3 inline-block text-xs text-[var(--text-muted)] underline decoration-dotted underline-offset-2 hover:text-[var(--accent-strong)]"
+      >
+        Report wrong substrate ↗
+      </a>
 
       <p className="mb-1 text-xs font-semibold tracking-wide text-[var(--text-muted)] uppercase">Blast radius</p>
       <p className="mb-3 text-sm text-[var(--text-secondary)]">
@@ -165,6 +216,15 @@ function VendorDetailPanel({
                 </li>
               ))}
             </ul>
+          )}
+          {onValidateInAccount && (
+            <button
+              type="button"
+              onClick={onValidateInAccount}
+              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            >
+              Validate this in your account
+            </button>
           )}
         </div>
       )}

@@ -1,0 +1,36 @@
+{
+  "id": "supabase",
+  "name": "Supabase",
+  "category": "data",
+  "aliases": [],
+  "packages": {
+    "npm": "@supabase/supabase-js",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_URL"
+  ],
+  "hosts": [],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.supabase.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

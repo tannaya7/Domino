@@ -1,0 +1,70 @@
+name: Vendor knowledge base — report or suggest
+description: Report a wrong substrate claim, or suggest a vendor that isn't in the knowledge base yet.
+title: "[vendor-kb] "
+labels: ["vendor-kb"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep the vendor knowledge base (`vendors/*.json`) accurate. See
+        [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full rules — in short, every substrate
+        claim needs either a real evidence URL or an honest `unknown`/`reported` confidence.
+
+        This issue alone doesn't change anything — a maintainer (or you, in a follow-up PR) still
+        needs to edit `vendors/<id>.json` and run `npm run kb:check`.
+  - type: dropdown
+    id: report-type
+    attributes:
+      label: What kind of report is this?
+      options:
+        - Wrong substrate on an existing vendor
+        - Suggest adding a new vendor
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: vendor-name
+    attributes:
+      label: Vendor name
+      description: The vendor's name (or the unclassified package/host name, if suggesting a new one).
+      placeholder: e.g. Stripe
+    validations:
+      required: true
+  - type: input
+    id: current-substrate
+    attributes:
+      label: Current curated substrate (if reporting a wrong one)
+      placeholder: e.g. aws
+    validations:
+      required: false
+  - type: input
+    id: category
+    attributes:
+      label: Category / tier (if known)
+      placeholder: e.g. payments
+    validations:
+      required: false
+  - type: input
+    id: occurrence-count
+    attributes:
+      label: How many files/places this appeared in (if suggesting a new vendor)
+      placeholder: e.g. 3
+    validations:
+      required: false
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence (a real URL, please — no guesses)
+      description: >
+        A link to the vendor's own architecture/security/trust page, or another first-party
+        source, that supports the substrate you're reporting. If you don't have one, say so — an
+        honest "I don't have a source, just noticed this" is genuinely useful and will be recorded
+        as `confidence: "reported"` or `"unknown"`, not thrown away.
+      placeholder: https://...
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Anything else?
+      required: false

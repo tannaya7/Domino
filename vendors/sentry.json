@@ -1,0 +1,44 @@
+{
+  "id": "sentry",
+  "name": "Sentry",
+  "category": "observability",
+  "aliases": [
+    "@sentry/node"
+  ],
+  "packages": {
+    "npm": "@sentry/react",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "SENTRY_DSN"
+  ],
+  "hosts": [
+    "sentry.io"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.sentry.io/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "gcp",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://www.gstatic.com/ipranges/cloud.json",
+          "note": "sentry.io resolves to 34.111.148.117/34.8.226.60, both published in Google Cloud's cloud.json. Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

@@ -5,11 +5,14 @@ const fixtureResult: AnalyzeRepoResult = {
   graph: { nodes: [{ id: 'a', label: 'a', type: 'file' }], edges: [] },
   truncated: false,
   filesScanned: 1,
+  filesSelected: 1,
   vendors: [],
   iacSubstrates: [],
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
   skippedOversizedFiles: 0,
+  unclassified: { packages: [], envVars: [], hosts: [], totalCount: 0 },
+  own: { regions: [], findings: [], unresolved: [], filesScanned: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',
@@ -42,9 +45,15 @@ describe('lambda handler', () => {
     expect(result.headers['Access-Control-Allow-Origin']).toBe('*')
   })
 
-  it('rejects a non-POST/OPTIONS method with 404', async () => {
+  it('rejects an unsupported method (e.g. PATCH) with 404', async () => {
     const { handler } = await import('../src/lambdaHandler')
-    const result = await handler(event({ requestContext: { http: { method: 'GET' } } }))
+    const result = await handler(event({ requestContext: { http: { method: 'PATCH' } } }))
+    expect(result.statusCode).toBe(404)
+  })
+
+  it('rejects a GET to an unmapped path with 404 (GET is supported, but only for real GET routes)', async () => {
+    const { handler } = await import('../src/lambdaHandler')
+    const result = await handler(event({ rawPath: '/not-a-real-route', requestContext: { http: { method: 'GET' } } }))
     expect(result.statusCode).toBe(404)
   })
 

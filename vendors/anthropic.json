@@ -1,0 +1,41 @@
+{
+  "id": "anthropic",
+  "name": "Anthropic",
+  "category": "ai",
+  "aliases": [],
+  "packages": {
+    "npm": "@anthropic-ai/sdk",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "ANTHROPIC_API_KEY"
+  ],
+  "hosts": [
+    "api.anthropic.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.anthropic.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

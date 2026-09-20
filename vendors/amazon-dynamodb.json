@@ -1,0 +1,37 @@
+{
+  "id": "amazon-dynamodb",
+  "name": "Amazon DynamoDB",
+  "category": "data",
+  "aliases": [],
+  "packages": {
+    "npm": "@aws-sdk/client-dynamodb",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [],
+  "hosts": [
+    "dynamodb.us-east-1.amazonaws.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "dynamodb.us-east-1.amazonaws.com resolves to 3.218.181.12, published in AWS ip-ranges.json (region us-east-1); Amazon DynamoDB is a first-party AWS service. Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.9999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

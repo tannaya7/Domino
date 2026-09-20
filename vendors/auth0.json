@@ -1,0 +1,35 @@
+{
+  "id": "auth0",
+  "name": "Auth0",
+  "category": "auth",
+  "aliases": [],
+  "packages": {
+    "npm": "@auth0/auth0-react",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "AUTH0_CLIENT_ID",
+    "AUTH0_DOMAIN"
+  ],
+  "hosts": [],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.auth0.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

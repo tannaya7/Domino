@@ -1,0 +1,47 @@
+{
+  "id": "slack",
+  "name": "Slack",
+  "category": "messaging",
+  "aliases": [],
+  "packages": {
+    "npm": "@slack/web-api",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "SLACK_BOT_TOKEN"
+  ],
+  "hosts": [
+    "slack.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://slack-status.com/api/v2.0.0/current"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "slack.com resolves to 65.2.117.88, published in AWS ip-ranges.json (region ap-south-1). Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    },
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

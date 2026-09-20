@@ -377,3 +377,74 @@ export function redundancyGroupDownProbability(model: CorrelatedModel, memberKey
 
   return total
 }
+
+/**
+ * Exact P(every substrate in `requiredDownSubstrates` is down AND every vendor in
+ * `requiredDownVendorKeys` is down) — the compound-scenario builder's core primitive
+ * (src/engine/scenario.ts). Unlike `pmfNumberDown`'s `forcedDownSubstrates` (which treats a
+ * substrate as certainly down — useful for "given this outage, what else falls"), a REQUIRED
+ * substrate here still carries its own q_s: this is the joint probability of these specific things
+ * simultaneously failing, not a conditional-on-them-already-failing.
+ *
+ * Only substrates that can change the answer are enumerated: the required substrates themselves
+ * (each contributing its own q_s once, not once per vendor), plus any substrate a required vendor
+ * touches (its on/off state decides whether that vendor's "down via shared substrate" branch
+ * fires). Every other substrate in the model marginalizes out to exactly 1 and is never enumerated.
+ * This is what "don't multiply marginals" means in practice: a substrate shared by two required
+ * vendors is sampled ONCE per state, preserving the correlation between them, rather than each
+ * vendor's down-probability being computed independently and multiplied together.
+ */
+export function scenarioCombinationProbability(
+  model: CorrelatedModel,
+  requiredDownSubstrates: ReadonlySet<string>,
+  requiredDownVendorKeys: ReadonlySet<string>,
+): number {
+  const requiredVendors = model.vendors.filter((v) => requiredDownVendorKeys.has(v.key))
+
+  const relevantSubstrates = new Set<string>(requiredDownSubstrates)
+  for (const v of requiredVendors) for (const s of v.substrates) relevantSubstrates.add(s)
+  const enumeratedSubstrates = [...relevantSubstrates].filter((s) => !requiredDownSubstrates.has(s))
+
+  let requiredSubstrateProbability = 1
+  for (const s of requiredDownSubstrates) requiredSubstrateProbability *= model.substrateOutageProbabilities[s] ?? 0
+  if (requiredSubstrateProbability === 0) return 0
+
+  if (enumeratedSubstrates.length >= 31) {
+    throw new Error(
+      `scenarioCombinationProbability only supports up to 30 enumerated substrates; got ${enumeratedSubstrates.length}`,
+    )
+  }
+
+  const stateCount = 1 << enumeratedSubstrates.length
+  let total = 0
+  let compensation = 0
+
+  for (let mask = 0; mask < stateCount; mask++) {
+    const downSet = new Set<string>(requiredDownSubstrates)
+    let stateProbability = requiredSubstrateProbability
+    for (let i = 0; i < enumeratedSubstrates.length; i++) {
+      const s = enumeratedSubstrates[i]
+      const q = model.substrateOutageProbabilities[s]
+      if (mask & (1 << i)) {
+        downSet.add(s)
+        stateProbability *= q
+      } else {
+        stateProbability *= 1 - q
+      }
+    }
+    if (stateProbability === 0) continue
+
+    let combinationProbability = stateProbability
+    for (const v of requiredVendors) {
+      combinationProbability *= v.substrates.some((s) => downSet.has(s)) ? 1 : v.ownOutageProbability
+      if (combinationProbability === 0) break
+    }
+
+    const y = combinationProbability - compensation
+    const t = total + y
+    compensation = t - total - y
+    total = t
+  }
+
+  return total
+}

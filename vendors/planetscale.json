@@ -1,0 +1,31 @@
+{
+  "id": "planetscale",
+  "name": "PlanetScale",
+  "category": "data",
+  "aliases": [],
+  "packages": {
+    "npm": "@planetscale/database",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "PLANETSCALE_DATABASE_URL"
+  ],
+  "hosts": [],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

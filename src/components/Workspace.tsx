@@ -4,21 +4,58 @@ import { analyzeRepo, ApiError, askBlastRadius, fetchRunbook, fetchStatus, simul
 import {
   affectedEntrypointsForScenario,
   buildAvailabilityHeadline,
+  buildScenarioAvailabilityOverlay,
   computeExactAvailability,
   hiddenSharePercent,
   PRESET_SCENARIOS,
   simulateFailureScenario,
 } from '../lib/availability'
 import { outageForReplayScenarioId } from '../data/historicalOutages'
+import { analyzeDetectedRedundancy } from '../lib/detectedRedundancy'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { buildOfflineSimulateResponse } from '../lib/offlineSimulate'
 import { computeStatusChip } from '../lib/statusChip'
-import type { AskResult, ConcentrationResult, CriticalityResult, GraphData, RecommendedMove, Runbook, Vendor, VendorGraph, WhatIfOverride, WhatIfResult } from '../lib/types'
+import type {
+  AnalysisSnapshotSummary,
+  AskResult,
+  ConcentrationResult,
+  CriticalityResult,
+  GraphData,
+  NodeCriticality,
+  OwnInfrastructure,
+  RecommendedMove,
+  Runbook,
+  UnclassifiedSummary,
+  Vendor,
+  VendorGraph,
+  WhatIfOverride,
+  WhatIfResult,
+} from '../lib/types'
+import { buildVendorRiskRows } from '../lib/vendorRiskRegister'
 import { selectBannerVendor } from '../lib/vendorStatusBanner'
+import {
+  buildCriticalityItemWhy,
+  buildExpectedLossWhy,
+  buildRiskRegisterRowWhy,
+  buildVendorsSubstratesWhy,
+  type WhyContent,
+} from '../lib/whyDrawer'
+import { decodeScenarioSelection } from '../lib/scenarioShare'
+import {
+  indexVerificationByVendorKey,
+  loadSubstrateVerification,
+  summarizeSubstrateVerification,
+  type SubstrateVerificationData,
+} from '../lib/substrateVerification'
+import { loadVerifiedFisActions } from '../lib/fisActions'
+import { fisScenarioForVendorTier, getFisScenario, type FisScenarioDefinition } from '../lib/fisScenarios'
+import type { VerifiedFisAction } from '../engine/fisTemplate'
 import type { AvailabilityAssumptionsState } from '../hooks/useAvailabilityAssumptions'
 import { useAvailabilityAssumptions } from '../hooks/useAvailabilityAssumptions'
 import { IDLE_TOUR_CONTROLLER, type TourController } from '../tour/useTour'
 import { buildTourSteps } from '../tour/steps'
+import type { ScenarioResult, ScenarioSelection } from '../engine/scenario'
+import { scenarioKnownIds } from '../engine/scenario'
 import TopBar from './TopBar'
 import GraphView from './GraphView'
 import VendorGraphView from './VendorGraphView'
@@ -28,6 +65,9 @@ import PrSummaryPanel from './PrSummaryPanel'
 import VendorDetailPanel from './VendorDetailPanel'
 import StatusBanner from './StatusBanner'
 import RiskOverview from './RiskOverview'
+import UnclassifiedPanel from './UnclassifiedPanel'
+import OwnInfraPanel from './OwnInfraPanel'
+import DetectedRedundancyPanel from './DetectedRedundancyPanel'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
 import AvailabilityPanel from './AvailabilityPanel'
@@ -39,6 +79,12 @@ import RunbookPanel from './RunbookPanel'
 import AskPanel from './AskPanel'
 import StatTile from './ui/StatTile'
 import { MAX_WHATIF_STACK } from './WhatIfPanel'
+import Drawer from './Drawer'
+import WhyDrawerContent from './WhyDrawerContent'
+import ScenarioBuilderPanel from './ScenarioBuilderPanel'
+import FisValidateModal from './FisValidateModal'
+import KbFooter from './KbFooter'
+import HistoryPanel from './HistoryPanel'
 
 export interface AnalyzedRepo {
   graph: GraphData
@@ -46,12 +92,20 @@ export interface AnalyzedRepo {
   vendorGraph: VendorGraph
   concentration: ConcentrationResult
   criticality: CriticalityResult
+  /** null for manual-JSON/PR-mode graphs (no scan ran) — never fabricated as "0 found". */
+  unclassified: UnclassifiedSummary | null
+  /** Static IaC resilience linter over the repo's OWN infrastructure — display only, never a vendor.
+   * null for manual-JSON/PR-mode graphs, or a snapshot generated before this feature existed —
+   * never fabricated as "scanned, found nothing". */
+  own: OwnInfrastructure | null
   meta: {
     owner: string
     repo: string
     branch: string
     truncated: boolean
+    truncatedReason?: 'file_cap' | 'time_budget'
     filesScanned: number
+    filesSelected: number
     importResolution: { total: number; resolved: number }
   } | null
   /** Only set for a real repo scan — required to call /simulate, /status, /runbook. */
@@ -69,6 +123,16 @@ export interface AnalyzedRepo {
    * (the server has never cached this repo, so /ask would 404 — same reasoning as isSnapshot
    * hiding AvailabilityPanel/RunbookPanel elsewhere in this file). */
   bedrockAvailable: boolean
+  /** Embedded (frozen, from snapshot-generation time) DNS-substrate-verification results, when this
+   * analysis came from a demo snapshot that had them. null for a live analysis (Workspace fetches
+   * the current /substrate-verification.json itself instead — see its own effect) or a snapshot
+   * generated before this feature existed. */
+  substrateVerification: SubstrateVerificationData | null
+  /** Embedded (frozen, from snapshot-generation time) analysis-history samples, when this analysis
+   * came from a demo snapshot that had them — the History tab uses this instead of a live
+   * GET /history call, zero network in demo mode. null for a live analysis (History tab fetches
+   * live instead) or a snapshot generated before this feature existed — never fabricated as []. */
+  history: AnalysisSnapshotSummary[] | null
 }
 
 interface WorkspaceProps {
@@ -95,7 +159,7 @@ interface WorkspaceProps {
   onTourAutoStartConsumed?: () => void
 }
 
-type View = 'graph' | 'overview'
+type View = 'graph' | 'overview' | 'history'
 type GraphMode = 'vendors' | 'files'
 
 function apiErrorMessage(err: unknown, fallback: string): string {
@@ -167,6 +231,50 @@ function Workspace({
   const [whatIfError, setWhatIfError] = useState<string | null>(null)
   const [recommendedMoves, setRecommendedMoves] = useState<RecommendedMove[]>([])
 
+  const [whyContent, setWhyContent] = useState<WhyContent | null>(null)
+
+  // Decoded once, on mount, from ?scenario= — never re-derived on later renders (a scenario link
+  // is a one-time "open with this pre-filled" seed, not something that should fight further edits).
+  const [initialScenarioSelection] = useState<ScenarioSelection | null>(() => {
+    if (typeof window === 'undefined') return null
+    const encoded = new URLSearchParams(window.location.search).get('scenario')
+    if (!encoded) return null
+    return decodeScenarioSelection(encoded, scenarioKnownIds(analyzed.vendorGraph.vendors))
+  })
+  const [scenarioBuilderOpen, setScenarioBuilderOpen] = useState(() => initialScenarioSelection !== null)
+
+  // Substrate verification is repo-independent (it's about whether "Stripe" is really on AWS, not
+  // about this specific repo), so it's never part of the /analyze-repo response — snapshot mode
+  // gets it pre-embedded (frozen at generation time, zero network); live mode fetches the current
+  // static JSON once. Either way this is a plain static-asset fetch, never a live DNS call — the
+  // verification script (scripts/verify-substrates.ts) is the only thing that ever touches DNS.
+  const [liveSubstrateVerification, setLiveSubstrateVerification] = useState<SubstrateVerificationData | null>(null)
+  useEffect(() => {
+    if (isSnapshot) return
+    let cancelled = false
+    loadSubstrateVerification().then((data) => {
+      if (!cancelled) setLiveSubstrateVerification(data)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const substrateVerification = analyzed.substrateVerification ?? liveSubstrateVerification
+  const verificationByVendorKey = useMemo(() => indexVerificationByVendorKey(substrateVerification), [substrateVerification])
+  const substrateVerificationSummary = useMemo(
+    () => summarizeSubstrateVerification(substrateVerification, analyzed.vendors.map((v) => v.key)),
+    [substrateVerification, analyzed.vendors],
+  )
+
+  // Static, repo-independent constant data (the verified FIS action catalog) — fetched once,
+  // never a live AWS call. Used only by the "Validate this in your account" modal below.
+  const [fisActions, setFisActions] = useState<VerifiedFisAction[]>([])
+  useEffect(() => {
+    loadVerifiedFisActions().then((data) => setFisActions(data?.actions ?? []))
+  }, [])
+  const [fisModal, setFisModal] = useState<{ scenario: FisScenarioDefinition; targetTags: Record<string, string> } | null>(null)
+
   const adjacencyMap = useMemo(
     () => buildAdjacencyMap(analyzed.graph.nodes, analyzed.graph.edges),
     [analyzed.graph],
@@ -216,6 +324,35 @@ function Workspace({
   const clientHeadline = useMemo(
     () => buildAvailabilityHeadline(analyzed.vendors, clientExactResult),
     [analyzed.vendors, clientExactResult],
+  )
+
+  // Same override channel as the Assumptions panel, threaded into every exact-engine call below —
+  // detected redundancy, the client headline, and every WHY-drawer what-if all stay in sync with
+  // whatever the user has edited.
+  const correlatedOverrides = useMemo(
+    () => ({
+      vendorSlaOverrides: assumptions.vendorSlaOverrides,
+      substrateOutageProbabilities: assumptions.substrateRateOverrides,
+    }),
+    [assumptions],
+  )
+
+  const detectedRedundancyGroups = useMemo(
+    () => analyzeDetectedRedundancy(analyzed.vendors, correlatedOverrides),
+    [analyzed.vendors, correlatedOverrides],
+  )
+
+  // Same inputs RiskOverview/VendorRiskRegister already compute rows from — kept here too so a
+  // WHY-drawer trigger on a risk-register row can look its row back up by vendor key.
+  const vendorRiskRows = useMemo(
+    () =>
+      buildVendorRiskRows(
+        analyzed.vendorGraph.vendors,
+        analyzed.criticality.entrypoints,
+        clientExactResult.expectedDowntimeHoursPerYear.naive,
+        assumptions.costPerHour,
+      ),
+    [analyzed.vendorGraph, analyzed.criticality, clientExactResult, assumptions.costPerHour],
   )
 
   const defaultScenarioId = useMemo(() => {
@@ -284,6 +421,73 @@ function Workspace({
     handleSelectVendor(key)
     setGraphMode('vendors')
     setView('graph')
+  }
+
+  function handleWhyVendorsSubstrates() {
+    setWhyContent(buildVendorsSubstratesWhy(analyzed.vendors, clientHeadline, correlatedOverrides))
+  }
+
+  function handleWhyExpectedLoss() {
+    setWhyContent(buildExpectedLossWhy(clientHeadline, clientExactResult, assumptions.currency))
+  }
+
+  function handleWhyVendor(key: string) {
+    const row = vendorRiskRows.find((r) => r.key === key)
+    const vendor = analyzed.vendorGraph.vendors.find((v) => v.key === key)
+    if (!row || !vendor) return
+    setWhyContent(
+      buildRiskRegisterRowWhy(row, vendor, analyzed.vendors, assumptions.currency, correlatedOverrides, verificationByVendorKey.get(key)),
+    )
+  }
+
+  function handleWhyNode(node: NodeCriticality) {
+    setWhyContent(buildCriticalityItemWhy(node))
+  }
+
+  // "Validate this in your account" — the tags below are ILLUSTRATIVE (derived from what this
+  // analysis actually knows: the worst-single-event substrate, or the one vendor selected), never
+  // the user's real AWS resource tags. The modal's own README/checklist makes clear these must be
+  // edited to match what's actually tagged in their account before anything is deployed.
+  function handleValidateAzDisruption() {
+    const substrate = clientHeadline.worstSingleEvent?.substrate
+    setFisModal({ scenario: getFisScenario('az-disruption'), targetTags: substrate ? { substrate } : { scenario: 'az-disruption' } })
+  }
+
+  function handleValidateVendor(vendor: { key: string; tier: string }) {
+    setFisModal({ scenario: fisScenarioForVendorTier(vendor.tier), targetTags: { vendor: vendor.key } })
+  }
+
+  // Feeds the existing cascade animation the same way picking a preset scenario already does — a
+  // compound scenario's down set is a superset of what a plain substrate filter would find (it also
+  // includes explicitly-selected vendors), so it's built directly from the scenario result rather
+  // than re-deriving via simulateFailureScenario. The exact-availability numbers stay the baseline
+  // (the engine has no per-scenario conditioning today — the same simplification /simulate already
+  // makes for preset scenarios); only expectedLossPerYear is overridden with this scenario's own
+  // modeled annual cost, so the cascade's dollar figure reflects what was actually built, not the
+  // unconditional baseline.
+  function handleRunScenario(result: ScenarioResult, selection: ScenarioSelection) {
+    const downSet = new Set(result.downVendorKeys)
+    const affectedVendors = analyzed.vendors.filter((v) => downSet.has(v.key))
+    const unaffectedVendors = analyzed.vendors.filter((v) => !downSet.has(v.key))
+    const overlay = buildScenarioAvailabilityOverlay(clientExactResult, clientHeadline, result.expectedDowntimeHoursPerYear, result.expectedAnnualCost)
+    setSimulation({
+      scenario: {
+        scenario: { id: 'scenario-builder', label: 'Compound scenario', downSubstrates: selection.substrates },
+        affectedVendors,
+        unaffectedVendors,
+        affectedCount: affectedVendors.length,
+        totalCount: analyzed.vendors.length,
+        affectedShare: analyzed.vendors.length > 0 ? affectedVendors.length / analyzed.vendors.length : 0,
+      },
+      simulation: overlay.simulation,
+      presetScenarios: PRESET_SCENARIOS,
+      headline: overlay.headline,
+    })
+    setSingleVendorCascadeTarget(null)
+    setActiveScenarioId(undefined)
+    setGraphMode('vendors')
+    setView('graph')
+    setScenarioBuilderOpen(false)
   }
 
   async function runSimulation(scenarioId: string | undefined, withAssumptions: AvailabilityAssumptionsState) {
@@ -608,7 +812,16 @@ function Workspace({
       <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <main className="flex flex-1 flex-col gap-3 overflow-hidden p-4">
           {hasVendorData && (
-            <VendorHeadlineCard headline={clientHeadline} result={clientExactResult} currency={assumptions.currency} />
+            <VendorHeadlineCard
+              headline={clientHeadline}
+              result={clientExactResult}
+              currency={assumptions.currency}
+              vendors={analyzed.vendors}
+              unclassifiedCount={analyzed.unclassified?.totalCount}
+              substrateVerificationSummary={substrateVerificationSummary ?? undefined}
+              onWhyVendorsSubstrates={handleWhyVendorsSubstrates}
+              onWhyExpectedLoss={handleWhyExpectedLoss}
+            />
           )}
           {bannerCandidate && bannerVendorStatus && (
             <StatusBanner
@@ -625,8 +838,8 @@ function Workspace({
             >
               <span aria-hidden="true">⚠</span>
               <span>
-                Scan stopped early (file-count or time budget) — only {analyzed.meta.filesScanned} file(s) were
-                fetched. Results below reflect a partial scan, not the whole repo.
+                Scan stopped early ({analyzed.meta.truncatedReason === 'file_cap' ? 'file-count' : 'time budget'}) — {analyzed.meta.filesScanned} of {analyzed.meta.filesSelected} files scanned.
+                Results below reflect a partial scan, not the whole repo.
               </span>
             </div>
           )}
@@ -682,6 +895,24 @@ function Workspace({
             >
               Risk register
             </button>
+            {hasVendorData && repoLabel && (
+              <button
+                type="button"
+                onClick={() => setView('history')}
+                className={`rounded-md border px-2.5 py-1 font-medium ${view === 'history' ? 'border-[var(--accent)] text-[var(--accent-strong)]' : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                History
+              </button>
+            )}
+            {hasVendorData && (
+              <button
+                type="button"
+                onClick={() => setScenarioBuilderOpen(true)}
+                className="rounded-md border border-[var(--border-subtle)] px-2.5 py-1 font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Scenario builder
+              </button>
+            )}
             {graphMode === 'files' && view === 'graph' && importResolutionBadge && (
               <span
                 className="ml-auto flex items-center gap-1.5 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-[var(--text-secondary)]"
@@ -698,7 +929,17 @@ function Workspace({
           </div>
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
-            {view === 'overview' ? (
+            {view === 'history' && repoLabel ? (
+              <HistoryPanel
+                repo={repoLabel}
+                repoUrl={analyzed.repoUrl}
+                embeddedHistory={analyzed.history}
+                isSnapshotMode={isSnapshot}
+                costPerHour={assumptions.costPerHour}
+                vendorSlaOverrides={assumptions.vendorSlaOverrides}
+                substrateOutageProbabilities={assumptions.substrateRateOverrides}
+              />
+            ) : view === 'overview' ? (
               <RiskOverview
                 vendors={analyzed.vendorGraph.vendors}
                 entrypoints={analyzed.criticality.entrypoints}
@@ -706,7 +947,9 @@ function Workspace({
                 costPerHour={assumptions.costPerHour}
                 currency={assumptions.currency}
                 vendorStatuses={statusResult?.vendorStatuses ?? null}
+                verifications={verificationByVendorKey}
                 onSelectVendor={handleSelectVendorFromRegister}
+                onWhyVendor={handleWhyVendor}
                 graphData={analyzed.graph}
                 adjacencyMap={adjacencyMap}
                 onSelectNode={handleSelectFromOverview}
@@ -766,8 +1009,10 @@ function Workspace({
               entrypoints={analyzed.criticality.entrypoints}
               costPerHour={assumptions.costPerHour}
               currency={assumptions.currency}
+              verification={verificationByVendorKey.get(selectedVendor.key)}
               onViewFiles={handleViewAffectedFiles}
               onSimulateOutage={() => handleSimulateVendorOutage(selectedVendor.key)}
+              onValidateInAccount={() => handleValidateVendor(selectedVendor)}
               onClear={() => handleSelectVendor(null)}
               whatIfStack={whatIfStack}
               vendorNameByKey={vendorNameByKey}
@@ -787,7 +1032,10 @@ function Workspace({
           )}
 
           <ConcentrationPanel concentration={analyzed.concentration} />
-          <CriticalityPanel criticality={analyzed.criticality} onSelectFile={handleNodeClick} />
+          <CriticalityPanel criticality={analyzed.criticality} onSelectFile={handleNodeClick} onWhyNode={handleWhyNode} />
+          <DetectedRedundancyPanel groups={detectedRedundancyGroups} />
+          <UnclassifiedPanel unclassified={analyzed.unclassified} />
+          <OwnInfraPanel own={analyzed.own} />
 
           {hasVendorData && (
             <>
@@ -831,6 +1079,7 @@ function Workspace({
                     error={simulationError}
                     currency={assumptions.currency}
                     onRun={handleRunBaseline}
+                    onValidateInAccount={handleValidateAzDisruption}
                   />
                   <RecommendedMovesPanel
                     moves={recommendedMoves}
@@ -866,6 +1115,39 @@ function Workspace({
           )}
         </aside>
       </div>
+
+      <KbFooter />
+
+      <Drawer isOpen={whyContent !== null} onClose={() => setWhyContent(null)} title={whyContent?.title ?? 'Why'}>
+        {whyContent && <WhyDrawerContent content={whyContent} />}
+      </Drawer>
+
+      <Drawer isOpen={scenarioBuilderOpen} onClose={() => setScenarioBuilderOpen(false)} title="Compound failure scenario">
+        {hasVendorData && (
+          <ScenarioBuilderPanel
+            vendors={analyzed.vendorGraph.vendors}
+            entrypoints={analyzed.criticality.entrypoints}
+            costPerHour={assumptions.costPerHour}
+            currency={assumptions.currency}
+            overrides={correlatedOverrides}
+            baselineExpectedLossPerYear={clientHeadline.expectedLossPerYear}
+            repoUrl={analyzed.repoUrl}
+            initialSelection={initialScenarioSelection}
+            onRun={handleRunScenario}
+          />
+        )}
+      </Drawer>
+
+      {fisModal && (
+        <FisValidateModal
+          isOpen
+          onClose={() => setFisModal(null)}
+          scenario={fisModal.scenario}
+          targetTags={fisModal.targetTags}
+          region="us-east-1"
+          verifiedActions={fisActions}
+        />
+      )}
     </div>
   )
 }

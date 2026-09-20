@@ -1,0 +1,35 @@
+{
+  "id": "firebase",
+  "name": "Firebase",
+  "category": "data",
+  "aliases": [
+    "firebase-admin"
+  ],
+  "packages": {
+    "npm": "firebase",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "FIREBASE_API_KEY"
+  ],
+  "hosts": [
+    "firestore.googleapis.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

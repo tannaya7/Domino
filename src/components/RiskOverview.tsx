@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AdjacencyMap } from '../lib/graph'
 import type { Currency } from '../lib/currency'
 import type { GraphData, VendorStatus, VendorWithBlastRadius } from '../lib/types'
+import type { VendorVerificationResult } from '../lib/substrateVerification'
 import SystemOverview from './SystemOverview'
 import VendorRiskRegister from './VendorRiskRegister'
 
@@ -12,7 +13,9 @@ interface RiskOverviewProps {
   costPerHour: number
   currency: Currency
   vendorStatuses: VendorStatus[] | null
+  verifications: Map<string, VendorVerificationResult>
   onSelectVendor: (key: string) => void
+  onWhyVendor?: (key: string) => void
   graphData: GraphData
   adjacencyMap: AdjacencyMap
   onSelectNode: (nodeId: string) => void
@@ -31,7 +34,9 @@ function RiskOverview({
   costPerHour,
   currency,
   vendorStatuses,
+  verifications,
   onSelectVendor,
+  onWhyVendor,
   graphData,
   adjacencyMap,
   onSelectNode,
@@ -73,7 +78,9 @@ function RiskOverview({
             costPerHour={costPerHour}
             currency={currency}
             vendorStatuses={vendorStatuses}
+            verifications={verifications}
             onSelectVendor={onSelectVendor}
+            onWhyVendor={onWhyVendor}
           />
         ) : (
           <SystemOverview graphData={graphData} adjacencyMap={adjacencyMap} onSelectNode={onSelectNode} />

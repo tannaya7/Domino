@@ -1,0 +1,47 @@
+{
+  "id": "datadog",
+  "name": "Datadog",
+  "category": "observability",
+  "aliases": [],
+  "packages": {
+    "npm": "dd-trace",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "DATADOG_API_KEY"
+  ],
+  "hosts": [
+    "api.datadoghq.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.datadoghq.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "api.datadoghq.com resolves to 3.233.158.19, published in AWS ip-ranges.json (region us-east-1). Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    },
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

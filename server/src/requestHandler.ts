@@ -38,17 +38,20 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   try {
-    if (req.method === 'GET' && req.url === '/health') {
+    if (!req.url || (req.method !== 'POST' && req.method !== 'GET')) {
+      sendJson(res, 404, { error: 'Not found' })
+      return
+    }
+    const url = new URL(req.url, 'http://localhost')
+    if (req.method === 'GET' && url.pathname === '/health') {
       const { status, body } = healthCheck()
       sendJson(res, status, body)
       return
     }
-    if (req.method !== 'POST' || !req.url) {
-      sendJson(res, 404, { error: 'Not found' })
-      return
-    }
-    const body = await readJsonBody(req)
-    const { status, body: responseBody } = await routeApi(req.url, body)
+    // GET routes (e.g. /history?repo=owner/repo) take their input from the query string instead of
+    // a JSON body — routeApi() reads both the same way, so every route handler stays body-shaped.
+    const body = req.method === 'GET' ? Object.fromEntries(url.searchParams) : await readJsonBody(req)
+    const { status, body: responseBody } = await routeApi(url.pathname, body)
     sendJson(res, status, responseBody)
   } catch (err) {
     const { status, message } = errorMessage(err)

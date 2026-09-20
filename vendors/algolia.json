@@ -1,0 +1,40 @@
+{
+  "id": "algolia",
+  "name": "Algolia",
+  "category": "search",
+  "aliases": [],
+  "packages": {
+    "npm": "algoliasearch",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "ALGOLIA_API_KEY",
+    "ALGOLIA_APP_ID"
+  ],
+  "hosts": [],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.algolia.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.9999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

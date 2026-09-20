@@ -3,6 +3,7 @@ import { HISTORICAL_OUTAGES } from '../data/historicalOutages'
 import {
   affectedEntrypointsForScenario,
   buildAvailabilityHeadline,
+  buildScenarioAvailabilityOverlay,
   buildWhatIfResult,
   calculateNaiveAvailability,
   computeExactAvailability,
@@ -412,5 +413,45 @@ describe('buildWhatIfResult', () => {
     })
     expect(result.unresolvedFailovers).toEqual(['Adyen'])
     expect(result.meaningfulChange).toBe(false)
+  })
+})
+
+describe('buildScenarioAvailabilityOverlay — exposure must equal downtime x cost/h consistently', () => {
+  const vendors = [vendor({ key: 'a', substrate: ['aws'] }), vendor({ key: 'b', substrate: ['aws'] }), vendor({ key: 'c', substrate: ['gcp'] })]
+  const costPerHour = 49_966
+  const baselineResult = computeExactAvailability(vendors, { costPerHourOfDowntime: costPerHour })
+  const baselineHeadline = buildAvailabilityHeadline(vendors, baselineResult)
+
+  it('reproduces the reported bug: overriding only expectedLossPerYear leaves it paired with an unrelated downtime figure', () => {
+    // This is the OLD (buggy) construction handleRunScenario used to build inline: the scenario's
+    // own exposure number, but the UNCONDITIONAL baseline correlated downtime still displayed next
+    // to it — e.g. a "17.5 hrs/yr" downtime tile next to an exposure computed from a completely
+    // different (smaller) scenario-specific downtime.
+    const scenarioExpectedDowntimeHoursPerYear = 8.76
+    const scenarioExpectedAnnualCost = costPerHour * scenarioExpectedDowntimeHoursPerYear
+    const buggyHeadline = { ...baselineHeadline, expectedLossPerYear: scenarioExpectedAnnualCost }
+    // The bug: displayed downtime (baseline) x cost/h does NOT equal the displayed exposure.
+    expect(baselineResult.expectedDowntimeHoursPerYear.correlated * costPerHour).not.toBeCloseTo(buggyHeadline.expectedLossPerYear, 0)
+  })
+
+  it('the fix: both the displayed downtime and the displayed exposure come from the scenario, so they always multiply out consistently', () => {
+    const scenarioExpectedDowntimeHoursPerYear = 8.76
+    const scenarioExpectedAnnualCost = costPerHour * scenarioExpectedDowntimeHoursPerYear
+    const overlay = buildScenarioAvailabilityOverlay(baselineResult, baselineHeadline, scenarioExpectedDowntimeHoursPerYear, scenarioExpectedAnnualCost)
+
+    expect(overlay.simulation.expectedDowntimeHoursPerYear.correlated).toBe(scenarioExpectedDowntimeHoursPerYear)
+    expect(overlay.headline.expectedLossPerYear).toBe(scenarioExpectedAnnualCost)
+    expect(overlay.simulation.expectedDowntimeHoursPerYear.correlated * costPerHour).toBeCloseTo(overlay.headline.expectedLossPerYear, 6)
+  })
+
+  it('leaves every other baseline number (naive downtime, tail risk, redundancy groups) untouched', () => {
+    const overlay = buildScenarioAvailabilityOverlay(baselineResult, baselineHeadline, 1, costPerHour)
+    expect(overlay.simulation.expectedDowntimeHoursPerYear.naive).toBe(baselineResult.expectedDowntimeHoursPerYear.naive)
+    expect(overlay.simulation.expectedDowntimeHoursPerYear.independentSameMarginals).toBe(
+      baselineResult.expectedDowntimeHoursPerYear.independentSameMarginals,
+    )
+    expect(overlay.headline.tailRisk).toBe(baselineHeadline.tailRisk)
+    expect(overlay.headline.redundancyGroups).toBe(baselineHeadline.redundancyGroups)
+    expect(overlay.headline.vendors).toBe(baselineHeadline.vendors)
   })
 })

@@ -7,13 +7,23 @@ import {
   simulateFailureScenario,
 } from '../../src/lib/availability'
 import { analyzeCriticality } from '../../src/lib/criticality'
+import { evaluateScenario, MAX_SCENARIO_SELECTIONS, ScenarioValidationException } from '../../src/engine/scenario'
+import { diffAnalyses } from '../../src/engine/snapshotDiff'
+import { computeAssumptionsHash } from '../../src/lib/assumptionsHash'
 import { buildAdjacencyMap, buildVendorGraph, getDownstream } from '../../src/lib/graph'
 import type { ExactAvailabilityAssumptions, FailureScenario, WhatIfOverride, WhatIfResult } from '../../src/lib/types'
 import { askQuestion } from './ask'
+import {
+  buildSnapshotSummary,
+  getHistory,
+  getSnapshotBySk,
+  saveSnapshot,
+  SnapshotTooLargeError,
+} from './analysisSnapshots'
 import { getAwsHealthStatus, isAwsHealthApiEnabled } from './awsHealth'
 import { isBedrockConfigured } from './bedrock'
 import { getCachedGraph, isDynamoConfigured, setCachedGraph } from './cache'
-import { GithubApiError, parseRepoUrl } from './github'
+import { getBranchSha, GithubApiError, parseRepoShorthand, parseRepoUrl } from './github'
 import { analyzePr } from './prAnalyzer'
 import { analyzeRepo, type AnalyzeRepoResult } from './repoParser'
 import { runPrGate } from './prGate'
@@ -92,12 +102,20 @@ function sanitizeWhatIfOverrides(value: unknown): WhatIfOverride[] {
   return result
 }
 
-/** Shared by /simulate, /status, /runbook — they all operate on a repo /analyze-repo already cached. */
+/** Shared by /simulate, /evaluate-scenario, /status, /runbook, /snapshot. A cache miss here does NOT
+ * mean "never analyzed" — this process may be a different, colder Lambda container than the one
+ * that served /analyze-repo, and containers share no memory. So this rebuilds from the request's
+ * own repoUrl (the same repoUrl /analyze-repo itself takes) rather than depending on that per-
+ * process cache being warm; the result is cached for next time under the same never-cache-a-
+ * truncated-scan policy /analyze-repo uses. */
 async function requireCachedAnalysis(repoUrl: string): Promise<AnalyzeRepoResult> {
   const { owner, repo } = parseRepoUrl(repoUrl)
-  const cached = await getCachedGraph(`${owner}/${repo}`)
-  if (!cached) throw new HttpError(400, 'Analyze this repo via /analyze-repo first.')
-  return cached
+  const cacheKey = `${owner}/${repo}`
+  const cached = await getCachedGraph(cacheKey)
+  if (cached) return cached
+  const result = await analyzeRepo(repoUrl)
+  if (!result.truncated) await setCachedGraph(cacheKey, result)
+  return result
 }
 
 export interface ApiResponse {
@@ -137,7 +155,10 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const cacheKey = `${owner}/${repo}`
     const cached = await getCachedGraph(cacheKey)
     const result = cached ?? (await analyzeRepo(repoUrl))
-    if (!cached) await setCachedGraph(cacheKey, result)
+    // A truncated/rate-limited scan may have missed IaC files entirely — caching it would let a
+    // later /simulate, /snapshot, or repeat /analyze-repo silently treat "we didn't get to see it"
+    // as "we looked and found nothing" (own-infrastructure findings, vendor detection, everything).
+    if (!cached && !result.truncated) await setCachedGraph(cacheKey, result)
 
     const adjacency = buildAdjacencyMap(result.graph.nodes, result.graph.edges)
     const vendorGraph = buildVendorGraph(result.vendors, adjacency)
@@ -162,12 +183,20 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
         vendorGraph,
         concentration,
         criticality,
+        // Deliberately separate from `vendors` — never merged into vendor counts, substrates, or
+        // availability math. See unclassifiedDependencies.ts.
+        unclassified: result.unclassified,
+        // Static IaC resilience linter over the repo's OWN infrastructure — display only, never a
+        // vendor. See src/engine/ownInfrastructure.ts.
+        own: result.own,
         meta: {
           owner: result.owner,
           repo: result.repo,
           branch: result.branch,
           filesScanned: result.filesScanned,
+          filesSelected: result.filesSelected,
           truncated: result.truncated,
+          truncatedReason: result.truncatedReason,
           elapsedMs: Date.now() - start,
           cached: Boolean(cached),
           // "X% of internal imports resolved" data-quality badge.
@@ -259,6 +288,41 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     }
   }
 
+  if (path === '/evaluate-scenario') {
+    const repoUrl = asTrimmedString(body.repoUrl)
+    const cached = await requireCachedAnalysis(repoUrl)
+    const adjacency = buildAdjacencyMap(cached.graph.nodes, cached.graph.edges)
+    const vendorGraph = buildVendorGraph(cached.vendors, adjacency)
+
+    // Generous raw-array bound (well above MAX_SCENARIO_SELECTIONS) so an over-long payload still
+    // reaches evaluateScenario's own validation and gets the real "N selections, max 12" message,
+    // rather than being silently truncated to exactly the limit beforehand.
+    const selection = {
+      substrates: asStringArray(body.substrates, MAX_SCENARIO_SELECTIONS * 4),
+      vendors: asStringArray(body.vendors, MAX_SCENARIO_SELECTIONS * 4),
+      hours: typeof body.hours === 'number' ? body.hours : NaN,
+    }
+
+    try {
+      const result = evaluateScenario(
+        {
+          vendors: vendorGraph.vendors,
+          entrypoints: cached.entrypoints,
+          costPerHour: sanitizeCost(body.costPerHour) ?? 0,
+          overrides: {
+            vendorSlaOverrides: sanitizeProbabilityMap(body.vendorSlaOverrides),
+            substrateOutageProbabilities: sanitizeProbabilityMap(body.substrateOutageProbabilities),
+          },
+        },
+        selection,
+      )
+      return { status: 200, body: result }
+    } catch (err) {
+      if (err instanceof ScenarioValidationException) throw new HttpError(400, err.message)
+      throw err
+    }
+  }
+
   if (path === '/status') {
     const repoUrl = asTrimmedString(body.repoUrl)
     const cached = await requireCachedAnalysis(repoUrl)
@@ -329,6 +393,80 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
 
     const result = await askQuestion({ cached, question, assumptions })
     return { status: 200, body: result }
+  }
+
+  if (path === '/snapshot') {
+    const repoUrl = asTrimmedString(body.repoUrl)
+    const cached = await requireCachedAnalysis(repoUrl)
+
+    // Never snapshot a degraded or rate-limited scan — a compact summary built from a partial file
+    // graph would misrepresent this point in history forever (snapshots are meant to be trusted
+    // later, unlike a live analysis the user can just re-run).
+    if (cached.truncated) {
+      throw new HttpError(400, 'Cannot save a snapshot from a truncated/rate-limited scan — analyze this repo again with a full scan first.')
+    }
+
+    const { owner, repo } = parseRepoUrl(repoUrl)
+    const sha = await getBranchSha(owner, repo, cached.branch)
+
+    const adjacency = buildAdjacencyMap(cached.graph.nodes, cached.graph.edges)
+    const concentration = analyzeConcentration(cached.vendors, cached.iacSubstrates)
+    const criticality = analyzeCriticality(
+      adjacency,
+      cached.graph.nodes.map((n) => n.id),
+      cached.entrypoints.length > 0 ? cached.entrypoints : undefined,
+    )
+    const costPerHourOfDowntime = sanitizeCost(body.costPerHourOfDowntime) ?? 0
+    const vendorSlaOverrides = sanitizeProbabilityMap(body.vendorSlaOverrides) ?? {}
+    const substrateOutageProbabilities = sanitizeProbabilityMap(body.substrateOutageProbabilities) ?? {}
+    const exactResult = computeExactAvailability(cached.vendors, { costPerHourOfDowntime, vendorSlaOverrides, substrateOutageProbabilities })
+    const headline = buildAvailabilityHeadline(cached.vendors, exactResult)
+
+    const note = asTrimmedString(body.note).slice(0, 280) || undefined
+
+    const summary = buildSnapshotSummary({
+      repo: `${owner}/${repo}`,
+      sha,
+      vendors: cached.vendors,
+      concentration,
+      criticality,
+      headline,
+      unclassifiedCount: cached.unclassified?.totalCount ?? null,
+      ownInfraFindingsCount: cached.own?.findings.length ?? null,
+      ownInfraRegionCount: cached.own?.regions.length ?? null,
+      assumptionsHash: computeAssumptionsHash({ costPerHourOfDowntime, vendorSlaOverrides, substrateOutageProbabilities }),
+      note,
+    })
+
+    try {
+      await saveSnapshot(summary)
+    } catch (err) {
+      if (err instanceof SnapshotTooLargeError) throw new HttpError(500, err.message)
+      throw err
+    }
+
+    return { status: 200, body: summary }
+  }
+
+  if (path === '/history') {
+    const { owner, repo } = parseRepoShorthand(asTrimmedString(body.repo))
+    const limit = typeof body.limit === 'number' ? body.limit : Number(body.limit) || 50
+    const history = await getHistory(`${owner}/${repo}`, Math.max(1, Math.min(50, Math.trunc(limit))))
+    return { status: 200, body: { repo: `${owner}/${repo}`, history } }
+  }
+
+  if (path === '/compare') {
+    const { owner, repo } = parseRepoShorthand(asTrimmedString(body.repo))
+    const repoKey = `${owner}/${repo}`
+    const aSk = asTrimmedString(body.a)
+    const bSk = asTrimmedString(body.b)
+    if (!aSk || !bSk) throw new HttpError(400, 'Both "a" and "b" snapshot keys are required.')
+
+    const [a, b] = await Promise.all([getSnapshotBySk(repoKey, aSk), getSnapshotBySk(repoKey, bSk)])
+    if (!a) throw new HttpError(404, `Snapshot "${aSk}" was not found for ${repoKey}.`)
+    if (!b) throw new HttpError(404, `Snapshot "${bSk}" was not found for ${repoKey}.`)
+
+    return { status: 200, body: { a, b, diff: diffAnalyses(a, b) } }
   }
 
   return { status: 404, body: { error: 'Not found' } }

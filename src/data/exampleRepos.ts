@@ -23,6 +23,39 @@ export interface ExampleRepo {
 
 export const EXAMPLE_REPOS: ExampleRepo[] = [
   {
+    owner: 'langfuse',
+    repo: 'langfuse',
+    file: '/demo/langfuse__langfuse.json',
+    vendors: 10,
+    substrates: 4,
+    sha: 'ef0add7',
+    branch: 'main',
+    snapshotDate: '2026-09-20T06:17:46.208Z',
+    blurb: 'Open-source LLM observability platform — the richest vendor mix of the showcase set.',
+  },
+  {
+    owner: 'calcom',
+    repo: 'cal.com',
+    file: '/demo/calcom__cal.com.json',
+    vendors: 7,
+    substrates: 4,
+    sha: '6bc4529',
+    branch: 'main',
+    snapshotDate: '2026-09-20T06:19:12.527Z',
+    blurb: 'Open-source scheduling infrastructure — a large real-world monorepo with real IaC.',
+  },
+  {
+    owner: 'dubinc',
+    repo: 'dub',
+    file: '/demo/dubinc__dub.json',
+    vendors: 6,
+    substrates: 4,
+    sha: '70350f7',
+    branch: 'main',
+    snapshotDate: '2026-09-20T06:19:59.752Z',
+    blurb: 'Open-source link management platform — 4-way substrate concentration worth exploring.',
+  },
+  {
     owner: 'documenso',
     repo: 'documenso',
     file: '/demo/documenso__documenso.json',
@@ -31,7 +64,7 @@ export const EXAMPLE_REPOS: ExampleRepo[] = [
     sha: 'e658cc5',
     branch: 'main',
     snapshotDate: '2026-09-19T03:43:37.001Z',
-    blurb: 'Open-source e-signature platform — the richest vendor mix of the showcase set.',
+    blurb: 'Open-source e-signature platform — the smallest, clearest concentration story in the set.',
   },
   {
     owner: 'formbricks',

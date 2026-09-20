@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workspace, { type AnalyzedRepo } from './Workspace'
 import type { AnalyzePrResponse } from '../lib/api'
 import type { GraphData, Vendor } from '../lib/types'
+import verifiedFisActionsJson from '../../data/fis-actions.verified.json'
 
 // jsdom doesn't implement ResizeObserver — useElementSize (used by GraphView/VendorGraphView) needs a stub.
 class ResizeObserverStub {
@@ -159,11 +160,16 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
       branch: 'main',
       truncated: false,
       filesScanned: 2,
+      filesSelected: 2,
       importResolution: { total: 2, resolved: 2 },
     },
     repoUrl: 'https://github.com/octocat/hello',
     snapshot: null,
     bedrockAvailable: false,
+    unclassified: null,
+    own: null,
+    substrateVerification: null,
+    history: null,
     ...overrides,
   }
 }
@@ -367,6 +373,7 @@ describe('Workspace — data-quality badge', () => {
             branch: 'main',
             truncated: false,
             filesScanned: 2,
+            filesSelected: 2,
             importResolution: { total: 10, resolved: 8 },
           },
         })}
@@ -406,7 +413,9 @@ describe('Workspace — truncated scan banner', () => {
             repo: 'hello',
             branch: 'main',
             truncated: true,
+            truncatedReason: 'file_cap',
             filesScanned: 8,
+            filesSelected: 20,
             importResolution: { total: 10, resolved: 8 },
           },
         })}
@@ -417,7 +426,7 @@ describe('Workspace — truncated scan banner', () => {
       />,
     )
     expect(screen.getByText(/scan stopped early/i)).toBeInTheDocument()
-    expect(screen.getByText(/8 file\(s\)/)).toBeInTheDocument()
+    expect(screen.getByText(/8 of 20 files scanned/)).toBeInTheDocument()
   })
 
   it('shows no banner when the scan completed fully', () => {
@@ -463,5 +472,153 @@ describe('Workspace — manual/PR data (no vendor data)', () => {
       />,
     )
     expect(screen.getByText('octocat/hello #42')).toBeInTheDocument()
+  })
+})
+
+describe('Workspace — WHY drawer', () => {
+  function twoVendorAnalyzed(): AnalyzedRepo {
+    const stripe = fixtureVendor()
+    const paypal = fixtureVendor({ key: 'paypal', vendor: 'PayPal', substrate: ['aws'] })
+    return fixtureAnalyzed({
+      vendors: [stripe, paypal],
+      vendorGraph: {
+        rootId: '__app__',
+        vendors: [
+          { ...stripe, directFiles: ['src/pay.ts'], affectedFiles: ['src/pay.ts', 'src/index.ts'] },
+          { ...paypal, directFiles: ['src/pay.ts'], affectedFiles: ['src/pay.ts'] },
+        ],
+      },
+      concentration: {
+        vendorCount: 2,
+        substrateCount: 1,
+        bySubstrate: [{ substrate: 'aws', vendorKeys: ['stripe', 'paypal'], vendorNames: ['Stripe', 'PayPal'], share: 1 }],
+        mostConcentrated: { substrate: 'aws', vendorKeys: ['stripe', 'paypal'], vendorNames: ['Stripe', 'PayPal'], share: 1 },
+      },
+      criticality: {
+        entrypoints: ['src/index.ts'],
+        articulationPoints: ['src/pay.ts'],
+        byNode: [
+          {
+            nodeId: 'src/pay.ts',
+            isArticulationPoint: true,
+            affectedEntrypoints: ['src/index.ts'],
+            orphanedNodes: [],
+            entrypointCount: 1,
+            reachabilityLossRatio: 1,
+          },
+        ],
+      },
+    })
+  }
+
+  it('opens with vendors→substrates content, is keyboard accessible, and closes on Escape', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why this vendor\/substrate count/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/2 vendor\(s\) detected/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/substrates =/)).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('opens with expected-loss content from a separate trigger', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why this expected annual loss/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('expectedLossPerYear = correlatedDowntimeHoursPerYear × costPerHourOfDowntime')).toBeInTheDocument()
+  })
+
+  it('opens with a risk-register row\'s content, naming the vendor and its risk level', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /risk register/i }))
+    await user.click(screen.getAllByRole('button', { name: /^why is stripe/i })[0])
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/Stripe is/)).toBeInTheDocument()
+  })
+
+  it('opens with a criticality item\'s content, distinguishing the articulation-point claim', async () => {
+    const user = userEvent.setup()
+    render(<Workspace analyzed={twoVendorAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /why does src\/pay\.ts matter/i }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/structural bottleneck/)).toBeInTheDocument()
+  })
+})
+
+describe('Workspace — scenario builder', () => {
+  it('opens, toggling a substrate chip updates the live summary, and Run feeds the cascade + closes the drawer', async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /scenario builder/i }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeDisabled()
+
+    await user.click(within(dialog).getByRole('button', { name: 'aws' }))
+    expect(within(dialog).getByText(/1 selected/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/1 vendor\(s\) down/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeEnabled()
+
+    await user.click(within(dialog).getByRole('button', { name: /^run$/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByTestId('node-stripe')).toHaveAttribute('data-color', '#d03b3b')
+  })
+
+  it('Clear resets the selection back to nothing selected', async () => {
+    localStorage.clear()
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: /scenario builder/i }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'aws' }))
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeEnabled()
+
+    await user.click(within(dialog).getByRole('button', { name: /^clear$/i }))
+    expect(within(dialog).getByRole('button', { name: /^run$/i })).toBeDisabled()
+  })
+})
+
+describe('Workspace — FIS "Validate this in your account"', () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  it('opens the modal from a vendor\'s simulated-outage result, with a real generated template', async () => {
+    globalThis.fetch = vi.fn((url: string) => {
+      if (url.includes('/fis-actions.json')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(verifiedFisActionsJson) } as Response)
+      }
+      return Promise.reject(new Error('not mocked'))
+    }) as typeof fetch
+    const user = userEvent.setup()
+    render(<Workspace analyzed={fixtureAnalyzed()} prResult={null} onReset={vi.fn()} onClearPr={vi.fn()} onLiveAnalysisComplete={vi.fn()} />)
+
+    await user.click(screen.getByTestId('node-stripe'))
+    await user.click(screen.getByRole('button', { name: /simulate this vendor's outage/i }))
+    const validateButton = await screen.findByRole('button', { name: /validate this in your account/i })
+    await user.click(validateButton)
+
+    const dialog = await screen.findByRole('dialog', { name: /validate this in your account/i })
+    expect(within(dialog).getByText(/generated, not executed/i)).toBeInTheDocument()
+    // fixtureVendor's tier is 'payments' -> single-instance scenario -> a real question, not a verdict.
+    expect(within(dialog).getByText(/does the application stay available/i)).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: /download json/i })).toBeInTheDocument()
   })
 })

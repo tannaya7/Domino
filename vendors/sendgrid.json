@@ -1,0 +1,42 @@
+{
+  "id": "sendgrid",
+  "name": "SendGrid",
+  "category": "email",
+  "aliases": [],
+  "packages": {
+    "npm": "@sendgrid/mail",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "SENDGRID_API_KEY"
+  ],
+  "hosts": [
+    "api.sendgrid.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.sendgrid.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "azure",
+      "confidence": "reported",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "CONFLICT — curated substrate is azure, but api.sendgrid.com resolves to 13.229.175.20, published in AWS ip-ranges.json (region ap-southeast-1). Left at \"azure\" (behavior-preserving) pending human review; see docs/kb-todo.md.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}
