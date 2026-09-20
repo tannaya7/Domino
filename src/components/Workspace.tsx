@@ -482,6 +482,8 @@ function Workspace({
       simulation: overlay.simulation,
       presetScenarios: PRESET_SCENARIOS,
       headline: overlay.headline,
+      whatIf: null,
+      recommendedMoves: [],
     })
     setSingleVendorCascadeTarget(null)
     setActiveScenarioId(undefined)
