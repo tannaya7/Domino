@@ -23,16 +23,16 @@ function truncatePathMiddle(path: string, maxLength = 36): string {
 
 /** One plain-English sentence — this is what a non-graph-theory reader actually needs to know. */
 function whyItMatters(node: NodeCriticality): string {
-  const { isArticulationPoint, affectedEntrypoints, orphanedNodes } = node
+  const { isArticulationPoint, affectedEntrypoints, orphanedNodes, entrypointCount } = node
+  const entrypointClause = `If this file breaks, ${affectedEntrypoints.length} of ${entrypointCount} entrypoint${entrypointCount === 1 ? '' : 's'} ${entrypointCount === 1 ? 'fails' : 'fail'}.`
   if (isArticulationPoint && affectedEntrypoints.length > 0) {
-    return `Structural bottleneck — removing it disconnects ${orphanedNodes.length} file${orphanedNodes.length === 1 ? '' : 's'} and cuts off ${affectedEntrypoints.length} other route${affectedEntrypoints.length === 1 ? '' : 's'}.`
+    return `Structural bottleneck — removing it disconnects ${orphanedNodes.length} file${orphanedNodes.length === 1 ? '' : 's'}. ${entrypointClause}`
   }
   if (isArticulationPoint) {
     return `Structural bottleneck — removing it disconnects ${orphanedNodes.length} other file${orphanedNodes.length === 1 ? '' : 's'} from the rest of the graph.`
   }
   if (affectedEntrypoints.length > 0) {
-    const isPlural = affectedEntrypoints.length !== 1
-    return `${affectedEntrypoints.length} other route${isPlural ? 's' : ''} ${isPlural ? 'depend' : 'depends'} on it — breaking this breaks them too.`
+    return entrypointClause
   }
   return 'No other entrypoints or files depend on this node.'
 }

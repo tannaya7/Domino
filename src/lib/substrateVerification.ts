@@ -38,20 +38,35 @@ export function indexVerificationByVendorKey(data: SubstrateVerificationData | n
   return new Map(data.results.map((r) => [r.vendorKey, r]))
 }
 
-/** "Verified by DNS for N of M vendors; K conflicts" — N counts only vendors that were actually
- * checked (had a known global host); a vendor with no checkable host was never attempted, which is
- * out of scope, not a failure, and must not be counted as either checked or a silent failure. */
+export interface SubstrateVerificationSummary {
+  /** Verdict agrees/agrees-edge only — this is what "Verified by DNS" means; a conflict or an
+   * inconclusive result is NOT "verified", even though a check was attempted. */
+  verifiedCount: number
+  totalCount: number
+  conflictCount: number
+  /** Checked (had a known global host) but neither confirmed nor contradicted — e.g. no usable DNS
+   * observation, or an edge-only mismatch that isn't a proven hosting-layer conflict. */
+  inconclusiveCount: number
+}
+
+/** "Verified by DNS for N of M vendors; K conflicts; J inconclusive" — N counts ONLY verdict
+ * agrees/agrees-edge, matching exactly what `formatVerificationBadge` labels "DNS-verified" per
+ * vendor in the register; conflicts and inconclusive results are reported separately so the
+ * headline can never claim a vendor is verified while the register calls it "unverified" or
+ * "differs". A vendor with no checkable host was never attempted at all, which is out of scope —
+ * not counted as checked, verified, conflicting, or inconclusive. */
 export function summarizeSubstrateVerification(
   data: SubstrateVerificationData | null,
   detectedVendorKeys: string[],
-): { checkedCount: number; totalCount: number; conflictCount: number } | null {
+): SubstrateVerificationSummary | null {
   if (!data) return null
   const byKey = indexVerificationByVendorKey(data)
   const relevant = detectedVendorKeys.map((k) => byKey.get(k)).filter((r): r is VendorVerificationResult => r !== undefined)
   return {
-    checkedCount: relevant.length,
+    verifiedCount: relevant.filter((r) => r.verdict === 'agrees' || r.verdict === 'agrees-edge').length,
     totalCount: detectedVendorKeys.length,
     conflictCount: relevant.filter((r) => r.verdict === 'conflict').length,
+    inconclusiveCount: relevant.filter((r) => r.verdict === 'inconclusive').length,
   }
 }
 

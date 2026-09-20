@@ -2,6 +2,7 @@ import type { Currency } from '../lib/currency'
 import { formatCurrency } from '../lib/currency'
 import type { AvailabilityHeadline, ExactAvailabilityResult, Vendor } from '../lib/types'
 import { computeVendorConfidence } from '../lib/vendorConfidence'
+import type { SubstrateVerificationSummary } from '../lib/substrateVerification'
 
 interface VendorHeadlineCardProps {
   headline: AvailabilityHeadline
@@ -12,10 +13,11 @@ interface VendorHeadlineCardProps {
    * findUnclassifiedDependencies. 0/undefined renders nothing (never implies "we checked and found
    * none" when unclassified scanning wasn't run for this analysis, e.g. a demo snapshot). */
   unclassifiedCount?: number
-  /** "Verified by DNS for N of M vendors; K conflicts" — undefined when verification data hasn't
-   * loaded (or doesn't apply), which renders nothing rather than implying zero conflicts. Curated
-   * substrates are still what every number above is computed from — this line never changes that. */
-  substrateVerificationSummary?: { checkedCount: number; totalCount: number; conflictCount: number }
+  /** "Verified by DNS for N of M vendors; K conflicts; J inconclusive" — undefined when verification
+   * data hasn't loaded (or doesn't apply), which renders nothing rather than implying zero
+   * conflicts. Curated substrates are still what every number above is computed from — this line
+   * never changes that. */
+  substrateVerificationSummary?: SubstrateVerificationSummary
   onWhyVendorsSubstrates?: () => void
   onWhyExpectedLoss?: () => void
 }
@@ -104,8 +106,9 @@ function VendorHeadlineCard({
             className={substrateVerificationSummary.conflictCount > 0 ? 'font-medium text-amber-300' : undefined}
             title="Independent DNS + published-IP-range evidence for curated substrate tags — informational only, never automatically applied. See docs/substrate-verification.md."
           >
-            Verified by DNS for {substrateVerificationSummary.checkedCount} of {substrateVerificationSummary.totalCount} vendors
+            Verified by DNS for {substrateVerificationSummary.verifiedCount} of {substrateVerificationSummary.totalCount} vendors
             {substrateVerificationSummary.conflictCount > 0 ? `; ${substrateVerificationSummary.conflictCount} conflict(s)` : ''}
+            {substrateVerificationSummary.inconclusiveCount > 0 ? `; ${substrateVerificationSummary.inconclusiveCount} inconclusive` : ''}
           </span>
         )}
       </p>

@@ -1,7 +1,6 @@
 import type { UnclassifiedItem, UnclassifiedSummary } from '../../src/lib/types'
 import { IGNORED_HOSTS, isPrivateOrLocalHost, looksLikeOwnDomain } from './hostScanner'
-import { matchVendorByHostname, matchVendorKey, type FileVendorSignal } from './vendorResolver'
-import { ENV_ALIASES } from './vendorMap'
+import { matchVendorByEnvPrefix, matchVendorByHostname, matchVendorKey, type FileVendorSignal } from './vendorResolver'
 
 /**
  * Small, curated, and reviewable on purpose — packages that are clearly framework/tooling/UI
@@ -15,7 +14,7 @@ export const NON_SERVICE_PACKAGE_ALLOWLIST = new Set([
   'express', 'fastify', 'koa', 'hono',
   // Styling
   'tailwindcss', 'postcss', 'autoprefixer', 'sass', 'less', 'styled-components', 'clsx', 'classnames',
-  '@tailwindcss/vite', '@tailwindcss/postcss',
+  '@tailwindcss/vite', '@tailwindcss/postcss', 'class-variance-authority', 'tailwind-merge',
   // Utilities (no network calls of their own)
   'lodash', 'lodash.debounce', 'lodash.throttle', 'lodash.merge', 'ramda', 'date-fns', 'dayjs',
   'moment', 'uuid', 'zod', 'yup', 'immer', 'nanoid', 'clsx',
@@ -26,10 +25,20 @@ export const NON_SERVICE_PACKAGE_ALLOWLIST = new Set([
   // Testing
   'jest', 'vitest', 'mocha', 'chai', '@testing-library/react', '@testing-library/jest-dom',
   '@testing-library/user-event', 'playwright', '@playwright/test', 'cypress', 'supertest',
-  // Icons / UI primitives / animation (client-side only, no service behind them)
+  // Icons / UI primitives / animation / charts (client-side only, no service behind them)
   'lucide-react', 'react-icons', '@radix-ui/react-slot', 'framer-motion', 'react-hook-form',
-  'motion',
+  'motion', 'recharts',
 ])
+
+/** Package-name PREFIXES that are always UI/build tooling, never a service — a whole namespace
+ * (@radix-ui/*, @types/*) or a family of plugin/config packages (eslint*, e.g.
+ * "eslint-plugin-react", "eslint-config-next") that would otherwise need listing one by one. */
+const NON_SERVICE_PACKAGE_PREFIX_ALLOWLIST = ['@radix-ui/', '@types/', 'eslint']
+
+function isAllowlistedPackage(name: string): boolean {
+  if (NON_SERVICE_PACKAGE_ALLOWLIST.has(name)) return true
+  return NON_SERVICE_PACKAGE_PREFIX_ALLOWLIST.some((prefix) => name.startsWith(prefix))
+}
 
 const TEST_OR_CONFIG_FILE = new RegExp(
   [
@@ -64,8 +73,9 @@ function toSortedItems(map: Map<string, Set<string>>): UnclassifiedItem[] {
 }
 
 /**
- * Surfaces what the curated vendor map (~33 entries) does NOT recognize: packages, env vars, and
- * hostnames found during the scan that never resolved to a known vendor. Excludes devDependencies,
+ * Surfaces what the curated vendor map (~30 vendors, see docs/kb-todo.md for why this isn't 33)
+ * does NOT recognize: packages, env vars, and hostnames found during the scan that never resolved
+ * to a known vendor. Excludes devDependencies,
  * test/config files, and NON_SERVICE_PACKAGE_ALLOWLIST — noise, not signal. Deliberately returns a
  * SEPARATE object from vendor detection: nothing here is a Vendor, and nothing here is meant to
  * ever be merged into vendor counts, substrates, or availability math (see buildGraphFromSource,
@@ -87,19 +97,19 @@ export function findUnclassifiedDependencies(
     for (const specifier of signal.importSpecifiers ?? []) {
       const name = topLevelPackageName(specifier)
       if (matchVendorKey(specifier)) continue
-      if (NON_SERVICE_PACKAGE_ALLOWLIST.has(name)) continue
+      if (isAllowlistedPackage(name)) continue
       addTo(packages, name, file)
     }
 
     for (const dep of signal.manifestDeps ?? []) {
       if (dep.isDev) continue
       if (matchVendorKey(dep.name)) continue
-      if (NON_SERVICE_PACKAGE_ALLOWLIST.has(dep.name)) continue
+      if (isAllowlistedPackage(dep.name)) continue
       addTo(packages, dep.name, file)
     }
 
     for (const envVar of signal.envVarNames ?? []) {
-      if (ENV_ALIASES[envVar]) continue
+      if (matchVendorByEnvPrefix(envVar)) continue
       addTo(envVars, envVar, file)
     }
 

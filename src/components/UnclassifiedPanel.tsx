@@ -64,16 +64,19 @@ function UnclassifiedPanel({ unclassified }: UnclassifiedPanelProps) {
           <p className="text-sm text-[var(--text-primary)]">
             Not in our knowledge base:{' '}
             <span className="font-semibold">
-              {packages.length} package{packages.length === 1 ? '' : 's'}
+              {hosts.length} host{hosts.length === 1 ? '' : 's'}
             </span>
             , <span className="font-semibold">{envVars.length} env var{envVars.length === 1 ? '' : 's'}</span>,{' '}
             <span className="font-semibold">
-              {hosts.length} host{hosts.length === 1 ? '' : 's'}
+              {packages.length} package{packages.length === 1 ? '' : 's'}
             </span>
           </p>
-          <ItemGroup label="Packages" items={packages} />
-          <ItemGroup label="Env vars" items={envVars} />
+          {/* Hosts and env vars are the strongest, most direct evidence of an undetected live
+              service (a real network endpoint or credential) — shown above packages, which are a
+              weaker, more indirect signal (a library import that may not even call out). */}
           <ItemGroup label="Hosts" items={hosts} />
+          <ItemGroup label="Env vars" items={envVars} />
+          <ItemGroup label="Packages" items={packages} />
           <p className="border-t border-[var(--border-subtle)] pt-2 text-xs font-medium text-amber-300">
             unknown != safe: these may be hidden vendors.
           </p>

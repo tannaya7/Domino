@@ -73,12 +73,20 @@ function sanitizeProbabilityMap(value: unknown): Record<string, number> | undefi
   return result
 }
 
-/** Shared by /simulate, /status, /runbook — they all operate on a repo /analyze-repo already cached. */
+/** Shared by /simulate, /evaluate-scenario, /status, /runbook, /snapshot. A cache miss here does NOT
+ * mean "never analyzed" — this process may be a different, colder Lambda container than the one
+ * that served /analyze-repo, and containers share no memory. So this rebuilds from the request's
+ * own repoUrl (the same repoUrl /analyze-repo itself takes) rather than depending on that per-
+ * process cache being warm; the result is cached for next time under the same never-cache-a-
+ * truncated-scan policy /analyze-repo uses. */
 async function requireCachedAnalysis(repoUrl: string): Promise<AnalyzeRepoResult> {
   const { owner, repo } = parseRepoUrl(repoUrl)
-  const cached = await getCachedGraph(`${owner}/${repo}`)
-  if (!cached) throw new HttpError(400, 'Analyze this repo via /analyze-repo first.')
-  return cached
+  const cacheKey = `${owner}/${repo}`
+  const cached = await getCachedGraph(cacheKey)
+  if (cached) return cached
+  const result = await analyzeRepo(repoUrl)
+  if (!result.truncated) await setCachedGraph(cacheKey, result)
+  return result
 }
 
 export interface ApiResponse {

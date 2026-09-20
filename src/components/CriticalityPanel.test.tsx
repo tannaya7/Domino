@@ -41,10 +41,29 @@ describe('CriticalityPanel', () => {
     render(<CriticalityPanel criticality={criticality} />)
 
     expect(screen.getByText('Articulation point')).toBeInTheDocument()
-    expect(screen.getByText(/structural bottleneck.*disconnects 1 file.*cuts off 1 other route/i)).toBeInTheDocument()
+    expect(screen.getByText(/structural bottleneck.*disconnects 1 file.*if this file breaks, 1 of 1 entrypoint fails/i)).toBeInTheDocument()
     // other.ts is shown (has reachability loss) but is never labeled an articulation point.
     expect(screen.getByText('other.ts')).toBeInTheDocument()
-    expect(screen.getByText(/1 other route depends on it/i)).toBeInTheDocument()
+    expect(screen.getByText('If this file breaks, 1 of 1 entrypoint fails.')).toBeInTheDocument()
+  })
+
+  it('pluralizes "entrypoints" and reports the true N of M when only some entrypoints are affected', () => {
+    const criticality: CriticalityResult = {
+      entrypoints: ['a.ts', 'b.ts', 'c.ts'],
+      articulationPoints: [],
+      byNode: [
+        {
+          nodeId: 'shared.ts',
+          isArticulationPoint: false,
+          affectedEntrypoints: ['a.ts', 'b.ts'],
+          orphanedNodes: [],
+          entrypointCount: 3,
+          reachabilityLossRatio: 2 / 3,
+        },
+      ],
+    }
+    render(<CriticalityPanel criticality={criticality} />)
+    expect(screen.getByText('If this file breaks, 2 of 3 entrypoints fail.')).toBeInTheDocument()
   })
 
   it('middle-truncates long paths and keeps the full path in a tooltip', () => {

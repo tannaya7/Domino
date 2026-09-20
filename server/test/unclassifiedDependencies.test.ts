@@ -134,3 +134,68 @@ describe('isTestOrConfigFile', () => {
     expect(isTestOrConfigFile('src/api/pay.ts')).toBe(false)
   })
 })
+
+describe('findUnclassifiedDependencies — UI/build-tool allow-list', () => {
+  it('excludes a whole @radix-ui/* namespace, not just the one already-listed subpath', () => {
+    const signals: FileVendorSignal[] = [
+      { file: 'src/x.tsx', importSpecifiers: ['@radix-ui/react-dialog', '@radix-ui/react-tooltip'] },
+    ]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').packages).toEqual([])
+  })
+
+  it('excludes @types/* declaration-only packages', () => {
+    const signals: FileVendorSignal[] = [
+      { file: 'package.json', manifestDeps: [{ name: '@types/node', ecosystem: 'npm' }, { name: '@types/react', ecosystem: 'npm' }] },
+    ]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').packages).toEqual([])
+  })
+
+  it('excludes eslint plugin/config packages, not just the bare "eslint" package', () => {
+    const signals: FileVendorSignal[] = [
+      { file: 'package.json', manifestDeps: [{ name: 'eslint-plugin-react', ecosystem: 'npm' }, { name: 'eslint-config-next', ecosystem: 'npm' }] },
+    ]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').packages).toEqual([])
+  })
+
+  it('excludes class-variance-authority, tailwind-merge, and recharts', () => {
+    const signals: FileVendorSignal[] = [
+      { file: 'src/x.tsx', importSpecifiers: ['class-variance-authority', 'tailwind-merge', 'recharts'] },
+    ]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').packages).toEqual([])
+  })
+
+  it('still surfaces a real unclassified package that merely starts with a similar-looking name', () => {
+    const signals: FileVendorSignal[] = [{ file: 'src/x.ts', importSpecifiers: ['eslint-but-not-really-a-real-eslint-package'] }]
+    // Documented, accepted trade-off: a broad "eslint" prefix also swallows a hypothetical
+    // unrelated package that happens to start with "eslint" — there are none in practice today.
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').packages).toEqual([])
+  })
+})
+
+describe('findUnclassifiedDependencies — KB envPrefixes/hosts wiring', () => {
+  it('excludes an env var that matches a KB envPrefix as a real PREFIX, not just an exact name', () => {
+    // GOOGLE_GENERATIVE_AI_API_KEY is a real, curated envPrefix (vendors/google-ai.json) — a
+    // suffixed variant of it must still classify, proving this is prefix matching, not exact-only.
+    const signals: FileVendorSignal[] = [{ file: 'src/x.ts', envVarNames: ['GOOGLE_GENERATIVE_AI_API_KEY_STAGING'] }]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').envVars).toEqual([])
+  })
+
+  it('still surfaces a genuinely unknown env var', () => {
+    const signals: FileVendorSignal[] = [{ file: 'src/x.ts', envVarNames: ['ACME_WIDGET_API_KEY'] }]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').envVars).toEqual([{ name: 'ACME_WIDGET_API_KEY', files: ['src/x.ts'] }])
+  })
+
+  it('excludes a host that matches a KB hosts[] entry directly (not just a statusUrl host)', () => {
+    // generativelanguage.googleapis.com is a real, curated host (vendors/google-ai.json), never
+    // previously indexed since matchVendorByHostname only read statusUrl before this fix.
+    const signals: FileVendorSignal[] = [{ file: 'src/x.ts', hostnames: ['generativelanguage.googleapis.com'] }]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').hosts).toEqual([])
+  })
+
+  it('leaves a host unclassified when no KB entry (with real evidence) covers it — e.g. no "Vercel" entry exists yet', () => {
+    const signals: FileVendorSignal[] = [{ file: 'src/x.ts', hostnames: ['abc123.public.blob.vercel-storage.com'] }]
+    expect(findUnclassifiedDependencies(signals, 'me', 'repo').hosts).toEqual([
+      { name: 'abc123.public.blob.vercel-storage.com', files: ['src/x.ts'] },
+    ])
+  })
+})

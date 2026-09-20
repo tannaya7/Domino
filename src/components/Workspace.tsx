@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AnalyzePrResponse, AnalyzeRepoResponse, SimulateResponse, StatusResponse } from '../lib/api'
 import { analyzeRepo, ApiError, fetchRunbook, fetchStatus, simulate } from '../lib/api'
-import { buildAvailabilityHeadline, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
+import { buildAvailabilityHeadline, buildScenarioAvailabilityOverlay, computeExactAvailability, PRESET_SCENARIOS } from '../lib/availability'
 import { analyzeDetectedRedundancy } from '../lib/detectedRedundancy'
 import { buildAdjacencyMap, getBlastRadius } from '../lib/graph'
 import { computeStatusChip } from '../lib/statusChip'
@@ -395,6 +395,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
     const downSet = new Set(result.downVendorKeys)
     const affectedVendors = analyzed.vendors.filter((v) => downSet.has(v.key))
     const unaffectedVendors = analyzed.vendors.filter((v) => !downSet.has(v.key))
+    const overlay = buildScenarioAvailabilityOverlay(clientExactResult, clientHeadline, result.expectedDowntimeHoursPerYear, result.expectedAnnualCost)
     setSimulation({
       scenario: {
         scenario: { id: 'scenario-builder', label: 'Compound scenario', downSubstrates: selection.substrates },
@@ -404,9 +405,9 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
         totalCount: analyzed.vendors.length,
         affectedShare: analyzed.vendors.length > 0 ? affectedVendors.length / analyzed.vendors.length : 0,
       },
-      simulation: clientExactResult,
+      simulation: overlay.simulation,
       presetScenarios: PRESET_SCENARIOS,
-      headline: { ...clientHeadline, expectedLossPerYear: result.expectedAnnualCost },
+      headline: overlay.headline,
     })
     setSingleVendorCascadeTarget(null)
     setActiveScenarioId(undefined)

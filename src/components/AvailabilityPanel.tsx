@@ -86,12 +86,16 @@ function AvailabilityPanel({ simulation, isLoading, error, currency, onRun, onVa
               {simulation.headline.tailRisk.map((point) => (
                 <li key={point.k} className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-[var(--text-secondary)]">≥{point.k} vendors down</span>
-                  <span className="tabular-nums text-[var(--text-primary)]">
-                    {formatSmallPercent(point.correlated)}
-                    <span className="ml-1.5 font-medium text-[var(--status-critical)]">
-                      ({formatMultiplier(point.multiplier)} vs. independent risk)
+                  {point.k > simulation.headline.vendors ? (
+                    <span className="text-[var(--text-muted)]">needs at least {point.k} vendors</span>
+                  ) : (
+                    <span className="tabular-nums text-[var(--text-primary)]">
+                      {formatSmallPercent(point.correlated)}
+                      <span className="ml-1.5 font-medium text-[var(--status-critical)]">
+                        ({formatMultiplier(point.multiplier)} vs. independent risk)
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </li>
               ))}
             </ul>

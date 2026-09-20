@@ -71,9 +71,23 @@ describe('summarizeSubstrateVerification', () => {
     ],
   }
 
-  it('counts only detected vendors that were actually checked, not every curated vendor', () => {
+  it('counts verifiedCount as agrees/agrees-edge ONLY — a conflict is checked but not verified', () => {
     const summary = summarizeSubstrateVerification(data, ['stripe', 'openai', 'firebase'])
-    expect(summary).toEqual({ checkedCount: 2, totalCount: 3, conflictCount: 1 })
+    expect(summary).toEqual({ verifiedCount: 1, totalCount: 3, conflictCount: 1, inconclusiveCount: 0 })
+  })
+
+  it('counts agrees-edge toward verifiedCount, and inconclusive separately from conflict', () => {
+    const withEdgeAndInconclusive: SubstrateVerificationData = {
+      generatedAt: '2026-09-19T12:00:00.000Z',
+      asnLookupAvailable: true,
+      results: [
+        result({ vendorKey: 'stripe', verdict: 'agrees-edge' }),
+        result({ vendorKey: 'openai', verdict: 'inconclusive' }),
+        result({ vendorKey: 'firebase', verdict: 'conflict' }),
+      ],
+    }
+    const summary = summarizeSubstrateVerification(withEdgeAndInconclusive, ['stripe', 'openai', 'firebase'])
+    expect(summary).toEqual({ verifiedCount: 1, totalCount: 3, conflictCount: 1, inconclusiveCount: 1 })
   })
 
   it('returns null (not zeros) when there is no verification data at all', () => {

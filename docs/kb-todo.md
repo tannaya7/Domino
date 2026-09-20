@@ -64,3 +64,24 @@ provider) to set confidence to `verified`, or a repeat DNS/IP-range check
 (`npm run verify:substrates`) landing on a direct (non-edge) match. Add the evidence URL to the
 vendor's `substrate[].evidence` array, set `confidence` accordingly, run `npm run kb:generate`, and
 remove that vendor from this file.
+
+## Why the footer says 30 vendors, not 33 (investigated, not a bug)
+
+The pre-migration hardcoded `VENDOR_MAP` (see `git show 49d37a1^:server/src/vendorMap.ts`) had 33
+*keys*, but three vendors were each registered under two separate npm package names, counted twice:
+
+- **Clerk** — `@clerk/nextjs` and `@clerk/clerk-react`
+- **Firebase** — `firebase` and `firebase-admin`
+- **Sentry** — `@sentry/react` and `@sentry/node`
+
+That's 33 keys for 30 *distinct* vendors. `vendors/*.json` (30 files) now has exactly one file per
+distinct vendor — the correct, deduplicated model — and each of the three above lists its second
+package name in its own `aliases` array (`vendors/clerk.json`, `vendors/firebase.json`,
+`vendors/sentry.json`). `scripts/generate-vendor-map.ts` compiles `aliases` into additional
+`VENDOR_MAP` entries, so **all 33 original detection keys still resolve** — confirmed by diffing the
+pre-migration `VENDOR_MAP` keys against the generated one (all present) and by cross-checking every
+one of the 30 vendor names against the pre-migration vendor list (exact match, nothing missing,
+nothing extra). Regression coverage: `server/test/vendorResolver.test.ts` / `vendorMap` generation
+tests already exercise both package names for these three vendors.
+
+Nothing to restore here — the count difference is intentional deduplication, not data loss.

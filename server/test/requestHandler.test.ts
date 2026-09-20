@@ -142,10 +142,12 @@ describe('POST /analyze-repo', () => {
 })
 
 describe('POST /simulate', () => {
-  it('requires the repo to be analyzed first', async () => {
+  it('self-heals a cache miss by rebuilding the analysis, rather than requiring /analyze-repo first', async () => {
+    analyzeRepoMock.mockClear()
     const { status, json } = await post('/simulate', { repoUrl: 'https://github.com/octocat/hello' })
-    expect(status).toBe(400)
-    expect(json.error).toMatch(/analyze this repo/i)
+    expect(status).toBe(200)
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1)
+    expect(json.simulation).toBeDefined()
   })
 
   it('returns exact naive vs correlated availability for an analyzed repo', async () => {
@@ -190,15 +192,17 @@ describe('POST /simulate', () => {
 })
 
 describe('POST /evaluate-scenario', () => {
-  it('requires the repo to be analyzed first', async () => {
+  it('self-heals a cache miss by rebuilding the analysis, rather than requiring /analyze-repo first', async () => {
+    analyzeRepoMock.mockClear()
     const { status, json } = await post('/evaluate-scenario', {
       repoUrl: 'https://github.com/octocat/hello',
       substrates: ['aws'],
       vendors: [],
       hours: 4,
     })
-    expect(status).toBe(400)
-    expect(json.error).toMatch(/analyze this repo/i)
+    expect(status).toBe(200)
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1)
+    expect(json.downVendorKeys).toEqual(['stripe'])
   })
 
   it('evaluates a valid selection and returns the vendors it takes down', async () => {
@@ -283,6 +287,14 @@ describe('POST /runbook', () => {
     const { status } = await post('/runbook', { repoUrl: 'https://github.com/octocat/hello', vendorKey: 'nope' })
     expect(status).toBe(404)
   })
+
+  it('self-heals a cache miss by rebuilding the analysis, rather than requiring /analyze-repo first', async () => {
+    analyzeRepoMock.mockClear()
+    const { status, json } = await post('/runbook', { repoUrl: 'https://github.com/octocat/hello', vendorKey: 'stripe' })
+    expect(status).toBe(200)
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1)
+    expect(json.summary).toContain('Stripe')
+  })
 })
 
 describe('POST /status', () => {
@@ -300,9 +312,19 @@ describe('POST /status', () => {
     expect(json.awsHealth.source).toBe('unknown')
   })
 
-  it('requires the repo to be analyzed first', async () => {
-    const { status } = await post('/status', { repoUrl: 'https://github.com/octocat/hello' })
+  it('self-heals a cache miss by rebuilding the analysis from the request repoUrl — no per-process cache required (a different, colder Lambda container has none)', async () => {
+    analyzeRepoMock.mockClear()
+    const { status, json } = await post('/status', { repoUrl: 'https://github.com/octocat/hello' })
+    expect(status).toBe(200)
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1)
+    expect(json.vendorStatuses).toEqual([expect.objectContaining({ vendorKey: 'stripe', indicator: 'operational' })])
+  })
+
+  it('still surfaces a real error when the repo genuinely cannot be analyzed, rather than a generic "analyze first" message', async () => {
+    analyzeRepoMock.mockRejectedValueOnce(new Error('Repo not found or private.'))
+    const { status, json } = await post('/status', { repoUrl: 'https://github.com/octocat/does-not-exist' })
     expect(status).toBe(400)
+    expect(json.error).toMatch(/repo not found/i)
   })
 })
 
@@ -323,10 +345,12 @@ describe('unknown routes and malformed input', () => {
 })
 
 describe('POST /snapshot, GET /history, POST /compare', () => {
-  it('POST /snapshot requires the repo to be analyzed first', async () => {
+  it('POST /snapshot self-heals a cache miss by rebuilding the analysis, rather than requiring /analyze-repo first', async () => {
+    analyzeRepoMock.mockClear()
     const { status, json } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/hello' })
-    expect(status).toBe(400)
-    expect(json.error).toMatch(/analyze this repo/i)
+    expect(status).toBe(200)
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1)
+    expect(json.repo).toBe('octocat/hello')
   })
 
   it('POST /snapshot saves a compact summary and GET /history returns it', async () => {
@@ -345,19 +369,20 @@ describe('POST /snapshot, GET /history, POST /compare', () => {
     expect(history.history[0].sk).toBe(saved.sk)
   })
 
-  it('POST /snapshot refuses a truncated/degraded scan — a truncated /analyze-repo result is never cached at all, so this fails at the "analyze first" check rather than ever reaching a stale/partial cache entry', async () => {
+  it('POST /snapshot refuses a truncated/degraded scan even when self-healing (not just a stale cache entry)', async () => {
     analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
     const { json: analyzeJson } = await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
     expect(analyzeJson.meta.truncated).toBe(true)
 
+    // Never cached (see the /analyze-repo caching test above) — /snapshot self-heals by rebuilding,
+    // but the rebuild is truncated too, so it must still refuse, not silently accept a partial scan.
+    analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
     const { status, json } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/truncated' })
     expect(status).toBe(400)
-    expect(json.error).toMatch(/analyze this repo/i)
+    expect(json.error).toMatch(/truncated|rate-limited/i)
 
-    // Confirms it really is a cache MISS, not a coincidentally-worded different error: a second,
-    // non-truncated /analyze-repo call now succeeds in populating the cache, and /snapshot then works.
+    // A subsequent self-heal that comes back non-truncated succeeds.
     analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: false })
-    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
     const { status: secondStatus } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/truncated' })
     expect(secondStatus).toBe(200)
   })

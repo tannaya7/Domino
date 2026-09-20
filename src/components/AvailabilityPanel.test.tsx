@@ -104,10 +104,32 @@ describe('AvailabilityPanel', () => {
     const simulation = fixtureSimulation({
       headline: {
         ...fixtureSimulation().headline,
+        vendors: 2,
         tailRisk: [{ k: 2, naive: 0, independentSameMarginals: 0.0000001, correlated: 0.01, multiplier: 1000 }],
       },
     })
     render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
     expect(screen.getByText(/>1,000x/)).toBeInTheDocument()
+  })
+
+  it('shows "needs at least k vendors" instead of a fabricated 0%/1.0x when there aren\'t enough vendors to reach k', () => {
+    // Default fixture has 1 vendor with tailRisk checkpoints at k=2 and k=3 — both impossible, not "0% risk".
+    render(<AvailabilityPanel simulation={fixtureSimulation()} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.getByText('needs at least 2 vendors')).toBeInTheDocument()
+    expect(screen.getByText('needs at least 3 vendors')).toBeInTheDocument()
+    expect(screen.queryByText(/1\.0x/)).not.toBeInTheDocument()
+  })
+
+  it('shows the real percentage/multiplier once there are enough vendors to reach k', () => {
+    const simulation = fixtureSimulation({
+      headline: {
+        ...fixtureSimulation().headline,
+        vendors: 3,
+        tailRisk: [{ k: 2, naive: 0, independentSameMarginals: 0.001, correlated: 0.01, multiplier: 10 }],
+      },
+    })
+    render(<AvailabilityPanel simulation={simulation} isLoading={false} error={null} currency="USD" onRun={vi.fn()} />)
+    expect(screen.queryByText(/needs at least/)).not.toBeInTheDocument()
+    expect(screen.getByText(/10\.0x/)).toBeInTheDocument()
   })
 })

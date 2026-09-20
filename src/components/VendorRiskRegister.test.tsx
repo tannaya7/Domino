@@ -40,10 +40,29 @@ describe('VendorRiskRegister', () => {
   })
 
   it('shows every vendor as a row with its computed columns', () => {
+    const vendors = [vendor(), vendor({ key: 'razorpay', vendor: 'Razorpay', sla: 0.999 })]
+    render(<VendorRiskRegister {...baseProps} vendors={vendors} />)
+    expect(screen.getByText('Stripe')).toBeInTheDocument()
+    expect(screen.getByText('Razorpay')).toBeInTheDocument()
+    expect(screen.getAllByText('50%')).toHaveLength(2) // downtime share, split evenly (same SLA)
+  })
+
+  it('hides the Downtime share column entirely with a single vendor — a 100% allocation across a set of one is trivially uninformative, not a real signal', () => {
     render(<VendorRiskRegister {...baseProps} vendors={[vendor()]} />)
     expect(screen.getByText('Stripe')).toBeInTheDocument()
-    expect(screen.getByText('payments')).toBeInTheDocument()
-    expect(screen.getByText('100%')).toBeInTheDocument() // downtime share, lone vendor
+    expect(screen.queryByText('Downtime share')).not.toBeInTheDocument()
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+  })
+
+  it('shows the Downtime share column again once there is more than one vendor', () => {
+    const vendors = [vendor(), vendor({ key: 'razorpay', vendor: 'Razorpay' })]
+    render(<VendorRiskRegister {...baseProps} vendors={vendors} />)
+    expect(screen.getByText('Downtime share')).toBeInTheDocument()
+  })
+
+  it('documents that Risk is based only on files affected, independent of cost', () => {
+    render(<VendorRiskRegister {...baseProps} vendors={[vendor()]} />)
+    expect(screen.getByTitle(/risk is based only on files affected/i)).toBeInTheDocument()
   })
 
   it('shows "unknown" live status (never fabricated healthy) when no status was fetched', () => {

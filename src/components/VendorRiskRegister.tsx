@@ -35,7 +35,7 @@ type SortKey =
 const RISK_RANK: Record<VendorRiskRow['risk'], number> = { Low: 0, Medium: 1, High: 2 }
 const CONFIDENCE_RANK: Record<VendorConfidence, number> = { low: 0, medium: 1, high: 2 }
 
-const COLUMNS: Array<{ key: SortKey; label: string; title?: string }> = [
+const BASE_COLUMNS: Array<{ key: SortKey; label: string; title?: string }> = [
   { key: 'vendor', label: 'Vendor' },
   { key: 'tier', label: 'Category' },
   { key: 'substrate', label: 'Substrate' },
@@ -46,6 +46,9 @@ const COLUMNS: Array<{ key: SortKey; label: string; title?: string }> = [
   { key: 'costPerYear', label: 'Cost/yr' },
   { key: 'risk', label: 'Risk' },
 ]
+
+const RISK_THRESHOLDS_TOOLTIP =
+  'Risk is based ONLY on files affected — Low: <=2, Medium: 3-6, High: >6 — independent of cost/yr; a Low-risk vendor can still have a high cost/yr, and vice versa. Downtime share and cost/yr are proportional allocations by each vendor\'s own SLA, not a decomposition of correlated risk — see the Availability panel for that.'
 
 function VendorRiskRegister({
   vendors,
@@ -60,6 +63,11 @@ function VendorRiskRegister({
 }: VendorRiskRegisterProps) {
   const [sortKey, setSortKey] = useState<SortKey>('costPerYear')
   const [sortDesc, setSortDesc] = useState(true)
+
+  // With exactly one vendor, downtimeShare is trivially 100% — an allocation across a set of one
+  // says nothing, so the column (and its sort option) is hidden rather than showing a fake 100%.
+  const showDowntimeShare = vendors.length > 1
+  const columns = showDowntimeShare ? BASE_COLUMNS : BASE_COLUMNS.filter((c) => c.key !== 'downtimeShare')
 
   const statusByKey = useMemo(() => new Map((vendorStatuses ?? []).map((s) => [s.vendorKey, s])), [vendorStatuses])
 
@@ -100,10 +108,7 @@ function VendorRiskRegister({
     <div className="h-full overflow-auto p-6 pt-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">Vendor risk register</h2>
-        <p
-          className="text-xs text-[var(--text-muted)]"
-          title="Low: <=2 files affected. Medium: 3-6 files affected. High: >6 files affected. Downtime share and cost/yr are proportional allocations by each vendor's own SLA, not a decomposition of correlated risk — see the Availability panel for that."
-        >
+        <p className="text-xs text-[var(--text-muted)]" title={RISK_THRESHOLDS_TOOLTIP}>
           Risk thresholds & allocation method ⓘ
         </p>
       </div>
@@ -111,7 +116,7 @@ function VendorRiskRegister({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--border-subtle)] text-[var(--text-muted)]">
-              {COLUMNS.map((col) => (
+              {columns.map((col) => (
                 <th key={col.key} className="py-2 pr-4 font-medium" title={col.title}>
                   <button
                     type="button"
@@ -154,9 +159,11 @@ function VendorRiskRegister({
                   </td>
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-primary)]">{row.filesAffected}</td>
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-primary)]">{row.entrypointsAffected}</td>
-                  <td className="py-2 pr-4 tabular-nums text-[var(--text-secondary)]">
-                    {(row.downtimeShare * 100).toFixed(0)}%
-                  </td>
+                  {showDowntimeShare && (
+                    <td className="py-2 pr-4 tabular-nums text-[var(--text-secondary)]">
+                      {(row.downtimeShare * 100).toFixed(0)}%
+                    </td>
+                  )}
                   <td className="py-2 pr-4 tabular-nums text-[var(--text-primary)]">
                     {row.costPerYear > 0 ? `${formatCurrency(row.costPerYear, currency)}/yr` : 'not estimated'}
                   </td>

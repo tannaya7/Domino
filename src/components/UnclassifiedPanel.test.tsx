@@ -59,4 +59,10 @@ describe('UnclassifiedPanel', () => {
     expect(screen.queryByText('Env vars')).not.toBeInTheDocument()
     expect(screen.queryByText('Hosts')).not.toBeInTheDocument()
   })
+
+  it('shows Hosts and Env vars above Packages — the strongest live-service evidence first', () => {
+    render(<UnclassifiedPanel unclassified={fixtureSummary()} />)
+    const labels = screen.getAllByText(/^(Hosts|Env vars|Packages)$/).map((el) => el.textContent)
+    expect(labels).toEqual(['Hosts', 'Env vars', 'Packages'])
+  })
 })
