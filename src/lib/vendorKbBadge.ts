@@ -12,21 +12,29 @@ const REPORTED_STYLE = 'border border-amber-500/30 bg-amber-500/10 text-amber-30
 const UNVERIFIED_STYLE = 'border border-[var(--border-subtle)] bg-white/5 text-[var(--text-muted)]'
 
 /**
- * One badge per substrate entry: "aws (verified)" [linked to its evidence], "azure (reported)"
- * [linked], or plain "unverified" for confidence=unknown (never repeating a value nobody actually
- * confirmed). `kb` is undefined when this vendor has no knowledge-base record at all (shouldn't
- * happen for anything in VENDOR_MAP today, but every detected vendor still gets an honest badge).
+ * One badge per verified/reported substrate entry: "aws (verified)" [linked to its evidence],
+ * "azure (reported)" [linked], and at most one plain "unverified" badge for unknown confidence.
+ * `kb` is undefined when this vendor has no knowledge-base record at all (shouldn't happen for
+ * anything in VENDOR_MAP today, but every detected vendor still gets an honest badge).
  */
 export function formatSubstrateBadges(kb: VendorKbEntry | undefined): SubstrateBadge[] {
   if (!kb || kb.substrate.length === 0) return [{ label: 'unverified', style: UNVERIFIED_STYLE }]
 
-  return kb.substrate.map((s) => {
+  const badges: SubstrateBadge[] = []
+  let hasUnknown = false
+
+  for (const s of kb.substrate) {
     if (s.confidence === 'verified') {
-      return { label: `${s.value} (verified)`, style: VERIFIED_STYLE, href: s.evidence[0]?.url }
+      badges.push({ label: `${s.value} (verified)`, style: VERIFIED_STYLE, href: s.evidence[0]?.url })
+      continue
     }
     if (s.confidence === 'reported') {
-      return { label: `${s.value} (reported)`, style: REPORTED_STYLE, href: s.evidence[0]?.url }
+      badges.push({ label: `${s.value} (reported)`, style: REPORTED_STYLE, href: s.evidence[0]?.url })
+      continue
     }
-    return { label: 'unverified', style: UNVERIFIED_STYLE }
-  })
+    hasUnknown = true
+  }
+
+  if (hasUnknown) badges.push({ label: 'unverified', style: UNVERIFIED_STYLE })
+  return badges
 }

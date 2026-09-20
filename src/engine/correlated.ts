@@ -336,6 +336,12 @@ export function scenarioCombinationProbability(
   for (const s of requiredDownSubstrates) requiredSubstrateProbability *= model.substrateOutageProbabilities[s] ?? 0
   if (requiredSubstrateProbability === 0) return 0
 
+  if (enumeratedSubstrates.length >= 31) {
+    throw new Error(
+      `scenarioCombinationProbability only supports up to 30 enumerated substrates; got ${enumeratedSubstrates.length}`,
+    )
+  }
+
   const stateCount = 1 << enumeratedSubstrates.length
   let total = 0
   let compensation = 0

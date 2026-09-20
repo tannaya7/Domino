@@ -472,6 +472,17 @@ describe('scenarioCombinationProbability — brute-force verified', () => {
     const model = buildCorrelatedModel([vendor({ key: 'a' })])
     expect(scenarioCombinationProbability(model, new Set(), new Set())).toBe(1)
   })
+
+  it('fails loudly when enumerated substrates exceed the 32-bit bitmask limit', () => {
+    const substrate = Array.from({ length: 31 }, (_, i) => `s${i}`)
+    const model: CorrelatedModel = {
+      vendors: [{ key: 'a', label: 'A', ownOutageProbability: 0.001, substrates: substrate }],
+      substrateOutageProbabilities: Object.fromEntries(substrate.map((s) => [s, 0.001])),
+    }
+    expect(() => scenarioCombinationProbability(model, new Set(), new Set(['a']))).toThrow(
+      'scenarioCombinationProbability only supports up to 30 enumerated substrates; got 31',
+    )
+  })
 })
 
 describe('expectedValue', () => {

@@ -38,13 +38,15 @@ describe('formatSubstrateBadges', () => {
     expect(badges).toEqual([{ label: 'unverified', style: expect.any(String) }])
   })
 
-  it('produces one badge per substrate entry, independently', () => {
+  it('keeps verified/reported entries and appends one unverified badge for unknown entries', () => {
     const badges = formatSubstrateBadges(
       kb([
         { value: 'aws', confidence: 'verified', evidence: [{ url: 'https://x.example.com', note: 'n', retrievedAt: '2026-01-01' }] },
+        { value: 'azure', confidence: 'reported', evidence: [{ url: 'https://y.example.com', note: 'n', retrievedAt: '2026-01-01' }] },
         { value: 'gcp', confidence: 'unknown', evidence: [] },
+        { value: 'do', confidence: 'unknown', evidence: [] },
       ]),
     )
-    expect(badges.map((b) => b.label)).toEqual(['aws (verified)', 'unverified'])
+    expect(badges.map((b) => b.label)).toEqual(['aws (verified)', 'azure (reported)', 'unverified'])
   })
 })
