@@ -3,7 +3,12 @@ import {
   computeClusterAnchors,
   computeHullCircle,
   createClusterForce,
+  HUB_RADIUS,
+  hullLabelFontSize,
+  hullLabelPosition,
+  MAX_HULL_LABEL_FONT_SIZE,
   MAX_VENDOR_RADIUS,
+  MIN_HULL_LABEL_FONT_SIZE,
   MIN_VENDOR_RADIUS,
   rankByWeight,
   shouldShowLabel,
@@ -131,5 +136,40 @@ describe('rankByWeight', () => {
     const ranks = rankByWeight(new Map([['b', 1], ['a', 1]]))
     expect(ranks.get('a')).toBe(0)
     expect(ranks.get('b')).toBe(1)
+  })
+})
+
+describe('HUB_RADIUS — the repo node stays smaller than every vendor node', () => {
+  it('is smaller than even the smallest (min-weight) vendor node, not just the average one', () => {
+    expect(HUB_RADIUS).toBeLessThan(MIN_VENDOR_RADIUS)
+  })
+})
+
+describe('hullLabelFontSize', () => {
+  it('is screen-constant at globalScale 1 (matches the un-scaled base)', () => {
+    expect(hullLabelFontSize(1)).toBe(12)
+  })
+
+  it('caps at MAX_HULL_LABEL_FONT_SIZE when zoomed out (small globalScale) — this was the actual bug: an unbounded font at low zoom', () => {
+    expect(hullLabelFontSize(0.1)).toBe(MAX_HULL_LABEL_FONT_SIZE)
+    expect(hullLabelFontSize(0.01)).toBe(MAX_HULL_LABEL_FONT_SIZE)
+  })
+
+  it('floors at MIN_HULL_LABEL_FONT_SIZE when zoomed in (large globalScale) so the label never disappears', () => {
+    expect(hullLabelFontSize(100)).toBe(MIN_HULL_LABEL_FONT_SIZE)
+  })
+
+  it('never returns a non-finite size for degenerate globalScale input', () => {
+    expect(Number.isFinite(hullLabelFontSize(0))).toBe(true)
+    expect(Number.isFinite(hullLabelFontSize(NaN))).toBe(true)
+    expect(Number.isFinite(hullLabelFontSize(-5))).toBe(true)
+  })
+})
+
+describe('hullLabelPosition', () => {
+  it('anchors above and to the left of the hull, outside its radius — never overlapping member nodes inside it', () => {
+    const pos = hullLabelPosition({ substrate: 'aws', x: 100, y: 100, radius: 50 })
+    expect(pos.x).toBe(50) // x - radius
+    expect(pos.y).toBeLessThan(100 - 50) // strictly above the hull's top edge (y - radius), not inside it
   })
 })

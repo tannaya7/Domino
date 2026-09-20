@@ -1,0 +1,23 @@
+name: Vendor knowledge base check
+
+on:
+  pull_request:
+    paths:
+      - "vendors/**"
+      - "src/data/vendors.generated.ts"
+      - "scripts/generate-vendor-map.ts"
+      - "scripts/validate-kb.ts"
+      - "src/engine/vendorKbValidation.ts"
+
+jobs:
+  kb-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - name: Validate vendors/*.json and confirm the generated file is up to date
+        run: npm run kb:check

@@ -9,12 +9,17 @@ import {
 } from '../src/manifestParser'
 
 describe('parsePackageJsonDependencies', () => {
-  it('extracts dependencies and devDependencies', () => {
+  it('extracts dependencies as prod and devDependencies tagged isDev', () => {
     const pkg = JSON.stringify({ dependencies: { stripe: '^14.0.0' }, devDependencies: { vitest: '^5.0.0' } })
     expect(parsePackageJsonDependencies(pkg)).toEqual([
       { name: 'stripe', ecosystem: 'npm' },
-      { name: 'vitest', ecosystem: 'npm' },
+      { name: 'vitest', ecosystem: 'npm', isDev: true },
     ])
+  })
+
+  it('does not double-list a name present in both dependencies and devDependencies — prod wins', () => {
+    const pkg = JSON.stringify({ dependencies: { react: '^19.0.0' }, devDependencies: { react: '^19.0.0' } })
+    expect(parsePackageJsonDependencies(pkg)).toEqual([{ name: 'react', ecosystem: 'npm' }])
   })
 
   it('returns an empty array for invalid JSON instead of throwing', () => {

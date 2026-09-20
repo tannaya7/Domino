@@ -1,5 +1,6 @@
 import { getRiskLevel, type RiskLevel } from './risk'
 import type { VendorWithBlastRadius } from './types'
+import { computeVendorConfidence, type VendorConfidence } from './vendorConfidence'
 
 export interface VendorRiskRow {
   key: string
@@ -7,6 +8,7 @@ export interface VendorRiskRow {
   tier: string
   substrate: string
   detectedVia: string
+  confidence: VendorConfidence
   filesAffected: number
   entrypointsAffected: number
   /** Share (0-1) of the naive annual downtime allocated to this vendor, proportional to its own
@@ -46,6 +48,7 @@ export function buildVendorRiskRows(
       tier: v.tier,
       substrate: v.substrate.length > 0 ? v.substrate.join(', ') : 'self-hosted/unknown',
       detectedVia: v.detectedVia.length > 0 ? v.detectedVia.join(', ') : 'unknown',
+      confidence: computeVendorConfidence(v.detectedVia),
       filesAffected,
       entrypointsAffected,
       downtimeShare: share,

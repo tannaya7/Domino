@@ -280,6 +280,31 @@ export function computeExactAvailability(
  * empty here — this function has no file-graph access (pure vendor/substrate model only); the
  * caller (apiRouter.ts, which has the cached repo's file graph) fills it in when available.
  */
+/**
+ * Builds the Availability panel's overlay for a compound scenario (src/components/Workspace.tsx's
+ * scenario-builder flow) — the exact engine has no per-scenario conditioning (same simplification
+ * /simulate already makes for preset scenarios), so every OTHER number stays the baseline. Only
+ * `expectedDowntimeHoursPerYear.correlated` and `expectedAnnualExposure.correlated`/
+ * `expectedLossPerYear` are overridden, and with the SAME scenario-modeled number, so "Expected
+ * downtime" and "Estimated exposure" in the UI stay one consistent downtime × cost/h pair instead
+ * of pairing the scenario's own exposure with the baseline's unconditional downtime (a real bug:
+ * the two used to come from different bases and could show, e.g., a 17.5h downtime figure next to
+ * an exposure computed from an 8.76h scenario-specific downtime instead).
+ */
+export function buildScenarioAvailabilityOverlay(
+  baselineResult: ExactAvailabilityResult,
+  baselineHeadline: AvailabilityHeadline,
+  scenarioExpectedDowntimeHoursPerYear: number,
+  scenarioExpectedAnnualCost: number,
+): { simulation: ExactAvailabilityResult; headline: AvailabilityHeadline } {
+  const simulation: ExactAvailabilityResult = {
+    ...baselineResult,
+    expectedDowntimeHoursPerYear: { ...baselineResult.expectedDowntimeHoursPerYear, correlated: scenarioExpectedDowntimeHoursPerYear },
+    expectedAnnualExposure: { ...baselineResult.expectedAnnualExposure, correlated: scenarioExpectedAnnualCost },
+  }
+  return { simulation, headline: { ...baselineHeadline, expectedLossPerYear: scenarioExpectedAnnualCost } }
+}
+
 export function buildAvailabilityHeadline(vendors: Vendor[], result: ExactAvailabilityResult): AvailabilityHeadline {
   const model = buildCorrelatedModel(vendors, result.assumptions)
   const vendorNameByKey = new Map(vendors.map((v) => [v.key, v.vendor]))

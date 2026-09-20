@@ -1,0 +1,42 @@
+{
+  "id": "clerk",
+  "name": "Clerk",
+  "category": "auth",
+  "aliases": [
+    "@clerk/clerk-react"
+  ],
+  "packages": {
+    "npm": "@clerk/nextjs",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY"
+  ],
+  "hosts": [],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.clerk.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    },
+    {
+      "value": "cloudflare",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

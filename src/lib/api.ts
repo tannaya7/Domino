@@ -1,4 +1,6 @@
 import type {
+  AnalysisDiff,
+  AnalysisSnapshotSummary,
   AskResult,
   AvailabilityHeadline,
   AwsHealthStatus,
@@ -7,8 +9,10 @@ import type {
   ExactAvailabilityResult,
   FailureScenarioResult,
   GraphData,
+  OwnInfrastructure,
   RecommendedMove,
   Runbook,
+  UnclassifiedSummary,
   Vendor,
   VendorGraph,
   VendorStatus,
@@ -58,6 +62,24 @@ async function postJson<T>(path: string, payload: unknown): Promise<T> {
   return body as T
 }
 
+async function getJson<T>(path: string, query: Record<string, string>): Promise<T> {
+  let res: Response
+  const search = new URLSearchParams(query).toString()
+  try {
+    res = await fetch(`${API_BASE_URL}${path}?${search}`)
+  } catch {
+    throw new ApiError(
+      `Could not reach the analysis backend at ${API_BASE_URL}. Is it running (npm run server:dev)?`,
+    )
+  }
+
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new ApiError(body.error ?? `Request failed with status ${res.status}.`)
+  }
+  return body as T
+}
+
 export interface AnalyzeRepoResponse extends GraphData {
   /** Third-party vendors detected from imports, env vars, manifests, and IaC. */
   vendors: Vendor[]
@@ -65,12 +87,21 @@ export interface AnalyzeRepoResponse extends GraphData {
   concentration: ConcentrationResult
   /** Graph-theory criticality of the file graph (articulation points, reachability loss). */
   criticality: CriticalityResult
+  /** External dependencies found but not in the curated vendor knowledge base — never merged into
+   * vendors/concentration/availability math. */
+  unclassified: UnclassifiedSummary
+  /** Static IaC resilience linter over the repo's OWN infrastructure — display only, never a vendor. */
+  own: OwnInfrastructure
   meta: {
     owner: string
     repo: string
     branch: string
     filesScanned: number
+    /** Files this scan set out to fetch (after prioritization and the file cap) — the denominator
+     * for the "N of M files scanned" banner. */
+    filesSelected: number
     truncated: boolean
+    truncatedReason?: 'file_cap' | 'time_budget'
     elapsedMs: number
     cached: boolean
     /** Powers the "X% of internal imports resolved" data-quality badge. */
@@ -229,4 +260,34 @@ export interface GateRequest {
  * (no policy) so a judge/reviewer sees the identical verdict card without needing a GitHub Action. */
 export async function runGate(input: GateRequest): Promise<GateResponse> {
   return postJson<GateResponse>('/gate', input)
+}
+
+export interface SaveSnapshotRequest {
+  repoUrl: string
+  note?: string
+  costPerHourOfDowntime?: number
+  vendorSlaOverrides?: Record<string, number>
+  substrateOutageProbabilities?: Record<string, number>
+}
+
+export async function saveSnapshot(input: SaveSnapshotRequest): Promise<AnalysisSnapshotSummary> {
+  return postJson<AnalysisSnapshotSummary>('/snapshot', input)
+}
+
+export async function fetchHistory(repo: string, limit = 50): Promise<AnalysisSnapshotSummary[]> {
+  const { history } = await getJson<{ repo: string; history: AnalysisSnapshotSummary[] }>('/history', {
+    repo,
+    limit: String(limit),
+  })
+  return history
+}
+
+export interface CompareResponse {
+  a: AnalysisSnapshotSummary
+  b: AnalysisSnapshotSummary
+  diff: AnalysisDiff
+}
+
+export async function compareSnapshots(repo: string, a: string, b: string): Promise<CompareResponse> {
+  return postJson<CompareResponse>('/compare', { repo, a, b })
 }

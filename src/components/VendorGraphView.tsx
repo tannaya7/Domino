@@ -16,6 +16,8 @@ import {
   computeClusterAnchors,
   createClusterForce,
   HUB_RADIUS,
+  hullLabelFontSize,
+  hullLabelPosition,
   rankByWeight,
   shouldShowLabel,
   vendorNodeRadius,
@@ -429,7 +431,7 @@ function VendorGraphView({
   }, [drawNode, resumeAndScheduleIdlePause])
 
   const drawHulls = useCallback(
-    (ctx: CanvasRenderingContext2D) => {
+    (ctx: CanvasRenderingContext2D, globalScale: number) => {
       if (!groupBySubstrate) return
       for (const [substrate, nodes] of nodesBySubstrate) {
         // Allocation-free centroid + max-radius pass — this runs every animation frame, so no
@@ -467,9 +469,11 @@ function VendorGraphView({
         ctx.textAlign = 'left'
         ctx.textBaseline = 'alphabetic'
         ctx.fillStyle = isFailedIsland ? STATUS_COLORS.outage : '#a6acbb'
-        ctx.font = '600 12px system-ui, sans-serif'
+        const hullFontSize = hullLabelFontSize(globalScale)
+        ctx.font = `600 ${hullFontSize}px system-ui, sans-serif`
         const label = `${substrate.toUpperCase()} · ${nodes.length} vendor${nodes.length === 1 ? '' : 's'}${isFailedIsland ? ' — outage' : ''}`
-        ctx.fillText(label, cx - radius + 8, cy - radius + 16)
+        const labelPos = hullLabelPosition({ substrate, x: cx, y: cy, radius })
+        ctx.fillText(label, labelPos.x, labelPos.y)
       }
     },
     [groupBySubstrate, nodesBySubstrate, scenario, affectedVendorKeys],

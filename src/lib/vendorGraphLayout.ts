@@ -3,7 +3,9 @@
 
 export const MIN_VENDOR_RADIUS = 10
 export const MAX_VENDOR_RADIUS = 28
-export const HUB_RADIUS = 22
+// Smaller than MIN_VENDOR_RADIUS so the repo node reads as smaller than every vendor node, not
+// just the average one — a low-blast-radius vendor used to render smaller than the hub.
+export const HUB_RADIUS = 8
 
 /** Log-scaled so one huge blast radius doesn't dwarf everything else on screen — clamped to a
  * fixed visual range regardless of how large `weight` (affected-file count) actually gets. */
@@ -88,6 +90,25 @@ export function computeHullCircle(substrate: string, memberPositions: Point[], p
     if (d > maxDist) maxDist = d
   }
   return { substrate, x: cx, y: cy, radius: maxDist + padding }
+}
+
+export const MIN_HULL_LABEL_FONT_SIZE = 6
+export const MAX_HULL_LABEL_FONT_SIZE = 16
+
+/** Screen-constant substrate/cascade hull label size — mirrors the vendor node labels' zoom-
+ * invariant `base / globalScale` sizing (canvas draws in graph space, which react-force-graph then
+ * scales by globalScale, so dividing first cancels that scaling out). Floored so it never
+ * disappears at high zoom, and capped at 16px so it never balloons to dominate the screen at low
+ * zoom — this was a real bug: an un-scaled fixed-12px font grew without bound as the user zoomed out. */
+export function hullLabelFontSize(globalScale: number, base = 12): number {
+  const safeScale = Number.isFinite(globalScale) && globalScale > 0 ? globalScale : 1
+  return Math.max(MIN_HULL_LABEL_FONT_SIZE, Math.min(MAX_HULL_LABEL_FONT_SIZE, base / safeScale))
+}
+
+/** Anchor for a substrate hull's label: just above the hull's top edge, OUTSIDE every member node
+ * it contains, so it never overlaps or gets clipped by the vendor nodes/labels inside the hull. */
+export function hullLabelPosition(hull: HullCircle, margin = 6): Point {
+  return { x: hull.x - hull.radius, y: hull.y - hull.radius - margin }
 }
 
 /** Show a label only when zoomed in enough to read it, or for the highest-weight nodes regardless

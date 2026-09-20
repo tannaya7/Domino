@@ -3,17 +3,25 @@ export type ManifestEcosystem = 'npm' | 'pip' | 'go' | 'gem' | 'maven'
 export interface ManifestDependency {
   name: string
   ecosystem: ManifestEcosystem
+  /** True for a devDependencies-only entry. Only npm distinguishes this today — pip/go/gem/maven
+   * manifests don't carry a clean dev/prod split in the formats parsed below, so their deps are
+   * never marked dev (a documented, smallest-working-subset limitation, not a silent gap). */
+  isDev?: boolean
 }
 
 /** Extracts `dependencies`/`devDependencies` package names from a package.json source string. */
 export function parsePackageJsonDependencies(source: string): ManifestDependency[] {
   try {
     const json = JSON.parse(source)
-    const names = new Set<string>([
-      ...Object.keys(json?.dependencies ?? {}),
-      ...Object.keys(json?.devDependencies ?? {}),
-    ])
-    return [...names].map((name) => ({ name, ecosystem: 'npm' as const }))
+    const prodNames = new Set<string>(Object.keys(json?.dependencies ?? {}))
+    const devNames = new Set<string>(Object.keys(json?.devDependencies ?? {}))
+    const result: ManifestDependency[] = []
+    for (const name of prodNames) result.push({ name, ecosystem: 'npm' })
+    for (const name of devNames) {
+      if (prodNames.has(name)) continue // already recorded as prod — don't double-list it as dev too
+      result.push({ name, ecosystem: 'npm', isDev: true })
+    }
+    return result
   } catch {
     return []
   }

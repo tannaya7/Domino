@@ -1,0 +1,33 @@
+{
+  "id": "new-relic",
+  "name": "New Relic",
+  "category": "observability",
+  "aliases": [],
+  "packages": {
+    "npm": "newrelic",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "NEW_RELIC_LICENSE_KEY"
+  ],
+  "hosts": [
+    "api.newrelic.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

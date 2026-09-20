@@ -114,21 +114,21 @@ describe('buildGraphFromSource', () => {
   })
 
   it('does not drop edges into files that exceed the file-fetch cap', async () => {
-    // Simulate a repo bigger than the fetch cap: file 0 imports file 90, which is
+    // Simulate a repo bigger than the fetch cap: file 0 imports file 260, which is
     // past the point where we stop fetching content, but should still resolve
     // and appear as a node since it's a real, known file in the repo.
     const files: Record<string, string> = {
-      'src/file0.ts': `import { x } from './file90'`,
+      'src/file0.ts': `import { x } from './file260'`,
     }
-    for (let i = 1; i <= 90; i++) {
+    for (let i = 1; i <= 260; i++) {
       files[`src/file${i}.ts`] = `export const x = ${i}`
     }
 
     const { graph, truncated } = await buildGraphFromSource(fixtureSource(files))
 
     expect(truncated).toBe(true)
-    expect(graph.edges).toContainEqual({ from: 'src/file0.ts', to: 'src/file90.ts' })
-    expect(graph.nodes.map((n) => n.id)).toContain('src/file90.ts')
+    expect(graph.edges).toContainEqual({ from: 'src/file0.ts', to: 'src/file260.ts' })
+    expect(graph.nodes.map((n) => n.id)).toContain('src/file260.ts')
   })
 
   it('does not turn a bare package import into a file-graph node or edge', async () => {
@@ -217,8 +217,8 @@ describe('buildGraphFromSource — scan budget', () => {
     }
   }
 
-  // Concurrency is 8, so the deadline check (evaluated once per worker, before it starts its next
-  // item — not mid-flight) only bites at the boundary BETWEEN rounds of 8. These numbers are
+  // Concurrency is 12, so the deadline check (evaluated once per worker, before it starts its next
+  // item — not mid-flight) only bites at the boundary BETWEEN rounds of 12. These numbers are
   // chosen so round 1 always completes, and round 2's start time reliably lands on either side of
   // the deadline, with a comfortable margin either way.
   it('reports truncated:true and a lower filesScanned when the budget runs out', async () => {
@@ -226,11 +226,11 @@ describe('buildGraphFromSource — scan budget', () => {
     for (let i = 0; i < 30; i++) files[`src/file${i}.ts`] = `export const x = ${i}`
     const source = slowSource(files, 30)
 
-    // Round 1 (8 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
+    // Round 1 (12 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
     const result = await buildGraphFromSource(source, { scanBudgetMs: 20 })
 
     expect(result.truncated).toBe(true)
-    expect(result.filesScanned).toBe(8)
+    expect(result.filesScanned).toBe(12)
   })
 
   it('does not truncate when everything finishes inside the budget', async () => {
@@ -242,18 +242,18 @@ describe('buildGraphFromSource — scan budget', () => {
 
   it('prioritizes entrypoint files over deeply nested ones when time runs out', async () => {
     const files: Record<string, string> = { 'index.ts': 'export const root = 1' }
-    for (let i = 0; i < 10; i++) files[`a/b/c/deep${i}.ts`] = `export const d${i} = ${i}`
+    for (let i = 0; i < 20; i++) files[`a/b/c/deep${i}.ts`] = `export const d${i} = ${i}`
     const source = slowSource(files, 30)
 
     // Without prioritization, index.ts (inserted last) would land in round 2 and get cut here.
-    // Round 1 (8 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
+    // Round 1 (12 files) finishes ~30ms; round 2 starts ~30ms > the 20ms deadline -> skipped.
     const result = await buildGraphFromSource(source, { scanBudgetMs: 20 })
 
     expect(result.truncated).toBe(true)
-    expect(result.filesScanned).toBe(8)
+    expect(result.filesScanned).toBe(12)
     const scannedIds = result.graph.nodes.map((n) => n.id)
     expect(scannedIds).toContain('index.ts')
-    expect(scannedIds).not.toContain('a/b/c/deep9.ts')
+    expect(scannedIds).not.toContain('a/b/c/deep19.ts')
   })
 })
 

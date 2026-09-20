@@ -1,0 +1,42 @@
+{
+  "id": "razorpay",
+  "name": "Razorpay",
+  "category": "payments",
+  "aliases": [],
+  "packages": {
+    "npm": "razorpay",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET"
+  ],
+  "hosts": [
+    "api.razorpay.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "api.razorpay.com resolves to 3.108.150.134, published in AWS ip-ranges.json (region ap-south-1). Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": [
+    "stripe"
+  ]
+}

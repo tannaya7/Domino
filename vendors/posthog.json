@@ -1,0 +1,39 @@
+{
+  "id": "posthog",
+  "name": "PostHog",
+  "category": "analytics",
+  "aliases": [],
+  "packages": {
+    "npm": "posthog-js",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "POSTHOG_API_KEY"
+  ],
+  "hosts": [
+    "app.posthog.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "app.posthog.com CNAMEs to posthog-ingress-prod-us-256455477.us-east-1.elb.amazonaws.com, a direct AWS ELB hostname. Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

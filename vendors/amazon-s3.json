@@ -1,0 +1,37 @@
+{
+  "id": "amazon-s3",
+  "name": "Amazon S3",
+  "category": "storage",
+  "aliases": [],
+  "packages": {
+    "npm": "@aws-sdk/client-s3",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [],
+  "hosts": [
+    "s3.amazonaws.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "s3.amazonaws.com resolves to 16.15.236.113, published in AWS ip-ranges.json (region us-east-1); Amazon S3 is a first-party AWS service. Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.9999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

@@ -1,0 +1,33 @@
+{
+  "id": "google-maps",
+  "name": "Google Maps",
+  "category": "maps",
+  "aliases": [],
+  "packages": {
+    "npm": "@googlemaps/js-api-loader",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "GOOGLE_MAPS_API_KEY"
+  ],
+  "hosts": [
+    "maps.googleapis.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

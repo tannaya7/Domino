@@ -32,10 +32,14 @@ function analyzedFromFileGraph(graph: GraphData): AnalyzedRepo {
     vendorGraph: { rootId: VENDOR_GRAPH_ROOT_ID, vendors: [] },
     concentration: analyzeConcentration([]),
     criticality: analyzeCriticality(adjacency, nodeIds, entrypoints.length > 0 ? entrypoints : undefined),
+    unclassified: null,
+    own: null,
     meta: null,
     repoUrl: null,
     snapshot: null,
     bedrockAvailable: false,
+    substrateVerification: null,
+    history: null,
   }
 }
 
@@ -52,10 +56,14 @@ function App() {
       vendorGraph: result.vendorGraph,
       concentration: result.concentration,
       criticality: result.criticality,
+      unclassified: result.unclassified,
+      own: result.own,
       meta: result.meta,
       repoUrl,
       snapshot: null,
       bedrockAvailable: result.bedrockAvailable,
+      substrateVerification: null, // live mode — Workspace fetches the current static JSON itself
+      history: null, // live mode — Workspace fetches live history for this repo itself
     })
     setPrResult(null)
     setGateResult(null)
@@ -69,6 +77,8 @@ function App() {
       vendorGraph: snapshot.vendorGraph,
       concentration: snapshot.concentration,
       criticality: snapshot.criticality,
+      unclassified: snapshot.unclassified ?? null,
+      own: snapshot.own ?? null,
       meta: snapshot.meta,
       repoUrl: `https://github.com/${snapshot.owner}/${snapshot.repo}`,
       snapshot: { sha: snapshot.commitSha, generatedAt: snapshot.generatedAt },
@@ -77,6 +87,8 @@ function App() {
       // The server has never scanned a snapshot-loaded repo, so /ask would 404 regardless of
       // whether Bedrock itself is configured — never claim it's available here.
       bedrockAvailable: false,
+      substrateVerification: snapshot.substrateVerification ?? null,
+      history: snapshot.history ?? null,
     })
     setPrResult(null)
     setGateResult(null)

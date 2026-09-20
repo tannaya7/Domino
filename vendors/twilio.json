@@ -1,0 +1,48 @@
+{
+  "id": "twilio",
+  "name": "Twilio",
+  "category": "messaging",
+  "aliases": [],
+  "packages": {
+    "npm": "twilio",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN"
+  ],
+  "hosts": [
+    "api.twilio.com"
+  ],
+  "statusFeed": {
+    "kind": "statuspage",
+    "url": "https://status.twilio.com/api/v2/status.json"
+  },
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "reported",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "api.twilio.com CNAMEs to dt5wf3kt7zzil.cloudfront.net (AWS CloudFront) — an edge/CDN observation, corroborates but does not confirm the origin cloud. Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    },
+    {
+      "value": "gcp",
+      "confidence": "unknown",
+      "evidence": []
+    }
+  ],
+  "sla": {
+    "value": 0.9995,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}

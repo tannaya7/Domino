@@ -39,6 +39,42 @@ export interface VendorEntry {
   fallbacks?: string[]
 }
 
+/** One evidence citation backing a substrate (or other) claim — never fabricated; see CONTRIBUTING.md. */
+export interface VendorKbEvidence {
+  url: string
+  note: string
+  retrievedAt: string
+}
+
+/** verified = backed by an official/first-party source in evidence[]. reported = claimed (prior
+ * curator, docs, or a live finding worth a second look) but not independently confirmed. unknown =
+ * no real source at all. Never affects the correlated-failure engine — purely UI/data-quality
+ * metadata; only VendorEntry.substrate's plain string values feed the math. */
+export type VendorKbConfidence = 'verified' | 'reported' | 'unknown'
+
+export interface VendorKbSubstrateEntry {
+  value: string
+  confidence: VendorKbConfidence
+  evidence: VendorKbEvidence[]
+}
+
+/** The full data-driven knowledge-base record for one vendor — source: vendors/<id>.json, schema:
+ * vendors/schema.json. src/data/vendors.generated.ts (built by scripts/generate-vendor-map.ts) is
+ * the only place this is actually read into the running app — never a runtime file read. */
+export interface VendorKbEntry {
+  id: string
+  name: string
+  category: VendorTier
+  aliases: string[]
+  packages: { npm: string | null; pypi: string | null; go: string | null; gem: string | null; maven: string | null }
+  envPrefixes: string[]
+  hosts: string[]
+  statusFeed: { kind: 'statuspage' | 'other'; url: string } | null
+  substrate: VendorKbSubstrateEntry[]
+  sla: { value: number; sourceUrl: string | null; retrievedAt: string | null } | null
+  alternatives: string[]
+}
+
 /** A vendor as detected in a specific repo, with full provenance back to what triggered detection. */
 export interface Vendor extends VendorEntry {
   /** Stable key into the curated vendor knowledge base, e.g. "@sentry/react". */
@@ -343,4 +379,220 @@ export interface AskResult {
   /** Flat numeric facts the answer is grounded in, merged from every tool call's own result. */
   numbers: Record<string, number>
   generatedBy: 'bedrock' | 'deterministic'
+}
+
+/** One package/env-var/hostname found in the scan that never resolved to a known vendor. */
+export interface UnclassifiedItem {
+  name: string
+  /** Files that reference this item — capped upstream, never the full repo file list. */
+  files: string[]
+}
+
+/** External dependencies found but NOT in the curated vendor knowledge base (vendors/*.json) — the
+ * "unknown != safe" honesty feature. HARD RULE, enforced by construction: nothing here ever enters
+ * vendor counts, substrates, or availability math anywhere downstream — it's a wholly separate
+ * field from `vendors`, never merged into it. */
+export interface UnclassifiedSummary {
+  packages: UnclassifiedItem[]
+  envVars: UnclassifiedItem[]
+  hosts: UnclassifiedItem[]
+  totalCount: number
+}
+
+// --- Analysis snapshots (History tab) --------------------------------------------------------
+// A COMPACT summary of one point-in-time analysis, never the full file graph — see
+// server/src/analysisSnapshots.ts for the 100 KB/item cap this is built to respect.
+
+export interface SnapshotVendorSummary {
+  id: string
+  substrate: string[]
+  category: VendorTier
+}
+
+export interface SnapshotSubstrateShare {
+  substrate: string
+  share: number
+}
+
+export interface SnapshotTailRiskPoint {
+  k: number
+  correlated: number
+  multiplier: number
+}
+
+export interface SnapshotWorstSingleEvent {
+  substrate: string
+  vendorKeys: string[]
+  probabilityPerYear: number
+}
+
+export interface SnapshotCriticalityItem {
+  nodeId: string
+  isArticulationPoint: boolean
+  reachabilityLossRatio: number
+}
+
+export interface AnalysisSnapshotSummary {
+  /** "owner/repo" — the DynamoDB partition key. */
+  repo: string
+  /** The DynamoDB sort key: "<isoTime>#<sha>". */
+  sk: string
+  sha: string
+  analyzedAt: string
+  note?: string
+  vendors: SnapshotVendorSummary[]
+  substrateShares: SnapshotSubstrateShare[]
+  tailRisk: SnapshotTailRiskPoint[]
+  worstSingleEvent: SnapshotWorstSingleEvent | null
+  /** Top 5 by reachabilityLossRatio (criticality.byNode is already sorted that way). */
+  topCriticality: SnapshotCriticalityItem[]
+  /** null when unclassified scanning didn't run for this analysis — never fabricated as 0. */
+  unclassifiedCount: number | null
+  /** null when the own-infrastructure linter didn't run for this analysis — never fabricated as 0. */
+  ownInfraFindingsCount: number | null
+  /** null for the same reason as ownInfraFindingsCount. */
+  ownInfraRegionCount: number | null
+  entrypointCount: number
+  engineVersion: string
+  kbVersion: string
+  assumptionsHash: string
+}
+
+// --- Snapshot diff (src/engine/snapshotDiff.ts) ---------------------------------------------
+
+export interface VendorSubstrateChange {
+  id: string
+  from: string[]
+  to: string[]
+}
+
+export interface SubstrateShareChange {
+  substrate: string
+  from: number
+  to: number
+  delta: number
+}
+
+export interface TailRiskChange {
+  k: number
+  correlatedFrom: number
+  correlatedTo: number
+  multiplierFrom: number
+  multiplierTo: number
+}
+
+export interface WorstSingleEventChange {
+  from: SnapshotWorstSingleEvent | null
+  to: SnapshotWorstSingleEvent | null
+  changed: boolean
+}
+
+export interface AnalysisDiff {
+  vendorsAdded: string[]
+  vendorsRemoved: string[]
+  /** Vendors present in both snapshots whose substrate list changed. */
+  substrateChanges: VendorSubstrateChange[]
+  substrateShareChanges: SubstrateShareChange[]
+  tailRiskChanges: TailRiskChange[]
+  worstSingleEventChange: WorstSingleEventChange
+  /** null when either snapshot has unclassifiedCount === null (scanning didn't run for one of them) —
+   * a delta against "we didn't check" would be fabricated, so this is honestly not computed. */
+  unclassifiedDelta: number | null
+  entrypointDelta: number
+  engineVersionChanged: boolean
+  kbVersionChanged: boolean
+  /** Non-repo-change caveats — e.g. engineVersion/kbVersion differing, which can shift numbers
+   * without anything about the repo itself changing. Always surfaced, never silently absorbed into
+   * the verdict as if it were a real finding. */
+  warnings: string[]
+  /** One deterministic sentence, e.g. "aws share rose 40% -> 62%; 3 vendors added". Describes what
+   * changed, never a prediction of what it means. */
+  verdict: string
+}
+
+// --- "Your infrastructure" — static IaC resilience linter (Well-Architected Reliability) --------
+// DISPLAY ONLY: never a vendor. Nothing here ever enters `vendors`, concentration, the correlated-
+// failure engine, a snapshot's vendor list, or the risk register — see src/engine/ownInfrastructure.ts.
+
+export type OwnInfraRuleId =
+  | 'SINGLE_REGION'
+  | 'RDS_SINGLE_AZ'
+  | 'DB_BACKUPS_DISABLED'
+  | 'DDB_NO_PITR'
+  | 'SINGLE_INSTANCE'
+  | 'CACHE_NO_FAILOVER'
+
+export type OwnInfraSeverity = 'high' | 'medium' | 'low'
+
+/** One resolvable AWS region this repo's IaC puts resources in, plus where that came from. */
+export interface OwnInfraRegion {
+  region: string
+  resourceCount: number
+  /** "file:line" strings — real receipts, never a bare count. */
+  evidence: string[]
+}
+
+export interface OwnInfraFinding {
+  rule: OwnInfraRuleId
+  severity: OwnInfraSeverity
+  pillar: 'Reliability'
+  /** The resource's type + logical name, e.g. "aws_db_instance.primary". */
+  resource: string
+  file: string
+  line: number
+  /** One sentence: what this finding is and, where relevant, when it can be intentional
+   * (e.g. a dev/staging environment). Never a command to fix it — that's the fix snippet. */
+  message: string
+  /** A 3-6 line static snippet showing the fix — illustrative, not a guaranteed-correct diff. */
+  fixSnippet: string
+}
+
+/** Something the linter looked at but could not statically resolve — a variable, a registry
+ * module, a value set outside the repo. Never a finding and never treated as a pass. */
+export interface OwnInfraUnresolved {
+  resource: string
+  file: string
+  line: number
+  reason: string
+}
+
+// --- Fix generator (server/src/ownInfraPatches.ts) — deterministic patches for R2/R3/R4/R6 -------
+// R1 (SINGLE_REGION) and R5 (SINGLE_INSTANCE) are architectural: 'advisory' only, never a patch.
+
+export type OwnInfraFixStatus =
+  /** A real, self-checked text patch — a unified diff is present. */
+  | 'patched'
+  /** A patch was attempted for this finding but blocked (dynamic block, module path, unresolved
+   * value, resource no longer found, or the self-check re-lint failed) — see `note`. */
+  | 'refused'
+  /** No patch is ever attempted for this finding by design (R1/R5's architectural nature, or R6
+   * with no static evidence of a second cache node to fail over to) — see `note`. */
+  | 'advisory'
+
+export interface OwnInfraFixSuggestion {
+  rule: OwnInfraRuleId
+  /** Same "type.name" address as the finding it addresses. */
+  resource: string
+  file: string
+  status: OwnInfraFixStatus
+  /** Refusal reason ('refused') or guidance text ('advisory'). Absent for 'patched'. */
+  note?: string
+  /** Unified diff text (`a/<file>` / `b/<file>`, git-apply compatible). Only set for 'patched'. */
+  diff?: string
+  /** This one fix's markdown section for the combined PR body. Only set for 'patched'. */
+  prText?: string
+}
+
+export interface OwnInfrastructure {
+  regions: OwnInfraRegion[]
+  findings: OwnInfraFinding[]
+  unresolved: OwnInfraUnresolved[]
+  filesScanned: number
+  /** One entry per finding in `findings`, same order — see OwnInfraFixSuggestion. Optional: the
+   * pure rule engine (evaluateOwnInfrastructure) never sets this — it has no file text to patch —
+   * only server/src/ownInfra.ts's real orchestrator does. Never fabricated as [] when absent. */
+  fixes?: OwnInfraFixSuggestion[]
+  /** Combined deterministic PR body covering every 'patched' entry in `fixes`, or null when there
+   * are none to combine. Absent for the same reason as `fixes`. */
+  fixesPrText?: string | null
 }

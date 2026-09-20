@@ -11,6 +11,10 @@ interface AvailabilityPanelProps {
   error: string | null
   currency: Currency
   onRun: () => void
+  /** Opens the FIS "Validate this in your account" modal for the AZ-disruption scenario, scoped
+   * to the vendors behind the worst single event. Omitted (no button) when there's nothing to
+   * scope a real experiment to yet. */
+  onValidateInAccount?: () => void
 }
 
 const formatPercent = (n: number) => `${n.toFixed(2)}%`
@@ -27,7 +31,7 @@ function formatMultiplier(n: number): string {
   return n >= 1000 ? '>1,000x' : `${n.toFixed(1)}x`
 }
 
-function AvailabilityPanel({ simulation, isLoading, error, currency, onRun }: AvailabilityPanelProps) {
+function AvailabilityPanel({ simulation, isLoading, error, currency, onRun, onValidateInAccount }: AvailabilityPanelProps) {
   const formatMoney = (n: number) => (n > 0 ? `${formatCurrency(n, currency)}/yr` : 'not estimated')
 
   return (
@@ -82,12 +86,16 @@ function AvailabilityPanel({ simulation, isLoading, error, currency, onRun }: Av
               {simulation.headline.tailRisk.map((point) => (
                 <li key={point.k} className="flex items-center justify-between gap-2 text-xs">
                   <span className="text-[var(--text-secondary)]">≥{point.k} vendors down</span>
-                  <span className="tabular-nums text-[var(--text-primary)]">
-                    {formatSmallPercent(point.correlated)}
-                    <span className="ml-1.5 font-medium text-[var(--status-critical)]">
-                      ({formatMultiplier(point.multiplier)} vs. independent risk)
+                  {point.k > simulation.headline.vendors ? (
+                    <span className="text-[var(--text-muted)]">needs at least {point.k} vendors</span>
+                  ) : (
+                    <span className="tabular-nums text-[var(--text-primary)]">
+                      {formatSmallPercent(point.correlated)}
+                      <span className="ml-1.5 font-medium text-[var(--status-critical)]">
+                        ({formatMultiplier(point.multiplier)} vs. independent risk)
+                      </span>
                     </span>
-                  </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -116,6 +124,15 @@ function AvailabilityPanel({ simulation, isLoading, error, currency, onRun }: Av
                 {simulation.headline.worstSingleEvent.entrypointsAffected.length > 0 &&
                   ` · ${simulation.headline.worstSingleEvent.entrypointsAffected.length} entrypoint(s) affected`}
               </p>
+              {onValidateInAccount && (
+                <button
+                  type="button"
+                  onClick={onValidateInAccount}
+                  className="mt-2 rounded-md border border-[var(--border-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                >
+                  Validate this in your account
+                </button>
+              )}
             </div>
           )}
 

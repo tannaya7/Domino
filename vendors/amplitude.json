@@ -1,0 +1,39 @@
+{
+  "id": "amplitude",
+  "name": "Amplitude",
+  "category": "analytics",
+  "aliases": [],
+  "packages": {
+    "npm": "@amplitude/analytics-browser",
+    "pypi": null,
+    "go": null,
+    "gem": null,
+    "maven": null
+  },
+  "envPrefixes": [
+    "AMPLITUDE_API_KEY"
+  ],
+  "hosts": [
+    "api2.amplitude.com"
+  ],
+  "statusFeed": null,
+  "substrate": [
+    {
+      "value": "aws",
+      "confidence": "verified",
+      "evidence": [
+        {
+          "url": "https://ip-ranges.amazonaws.com/ip-ranges.json",
+          "note": "api2.amplitude.com resolves to 35.161.38.218, published in AWS ip-ranges.json (region us-west-2). Checked via scripts/verify-substrates.ts.",
+          "retrievedAt": "2026-09-19"
+        }
+      ]
+    }
+  ],
+  "sla": {
+    "value": 0.999,
+    "sourceUrl": null,
+    "retrievedAt": null
+  },
+  "alternatives": []
+}
