@@ -1,4 +1,4 @@
-import type { GraphData, UnclassifiedSummary } from '../../src/lib/types'
+import type { GraphData, OwnInfrastructure, UnclassifiedSummary } from '../../src/lib/types'
 import { loadAliasScopes, loadWorkspaceAliasEntries, resolveAliasedImport, scopeForFile } from './aliasResolver'
 import { extractEnvVarNames, parseEnvFile } from './envScanner'
 import { getDefaultBranch, getRawFileContent, getRepoTree, parseRepoUrl } from './github'
@@ -8,6 +8,7 @@ import { inferEntrypointsForRepo } from './entrypoints'
 import { extractImportSpecifiers, resolveRelativeImport } from './importParser'
 import { isIacFile, parseIacFile, type IacSubstrateSignal } from './iacParser'
 import { KNOWN_MANIFEST_FILENAMES, parseManifest } from './manifestParser'
+import { buildOwnInfrastructure } from './ownInfra'
 import { findUnclassifiedDependencies } from './unclassifiedDependencies'
 import { resolveVendors, type DetectedVendor, type FileVendorSignal } from './vendorResolver'
 
@@ -183,6 +184,9 @@ export interface BuildGraphResult {
    * unclassifiedDependencies.ts. Deliberately separate from `vendors`: never merged into vendor
    * counts, substrates, or availability math anywhere downstream. */
   unclassified: UnclassifiedSummary
+  /** Static IaC resilience linter over the repo's OWN infrastructure — display only. Never merged
+   * into `vendors`, concentration, the correlated-failure engine, or a snapshot's vendor list. */
+  own: OwnInfrastructure
 }
 
 export interface BuildGraphOptions {
@@ -299,6 +303,7 @@ export async function buildGraphFromSource(
   const vendors = resolveVendors({ fileSignals })
   const iacSubstrates = discoverySources.iacFiles.flatMap(({ path, content }) => parseIacFile(path, content))
   const unclassified = findUnclassifiedDependencies(fileSignals, options.owner ?? '', options.repo ?? '')
+  const own = buildOwnInfrastructure(discoverySources.iacFiles)
 
   const nodes = [...nodeIds].map((path) => ({ id: path, label: path, type: inferFileType(path) }))
   const budgetCapped = fetchedCount < filesToFetch.length
@@ -312,6 +317,7 @@ export async function buildGraphFromSource(
     iacSubstrates,
     entrypoints,
     unclassified,
+    own,
     importResolution: { total: internalImportsTotal, resolved: internalImportsResolved },
   }
 }

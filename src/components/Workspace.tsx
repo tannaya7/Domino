@@ -11,6 +11,7 @@ import type {
   CriticalityResult,
   GraphData,
   NodeCriticality,
+  OwnInfrastructure,
   Runbook,
   UnclassifiedSummary,
   Vendor,
@@ -49,6 +50,7 @@ import VendorDetailPanel from './VendorDetailPanel'
 import StatusBanner from './StatusBanner'
 import RiskOverview from './RiskOverview'
 import UnclassifiedPanel from './UnclassifiedPanel'
+import OwnInfraPanel from './OwnInfraPanel'
 import DetectedRedundancyPanel from './DetectedRedundancyPanel'
 import ConcentrationPanel from './ConcentrationPanel'
 import AssumptionsPanel from './AssumptionsPanel'
@@ -72,6 +74,10 @@ export interface AnalyzedRepo {
   criticality: CriticalityResult
   /** null for manual-JSON/PR-mode graphs (no scan ran) — never fabricated as "0 found". */
   unclassified: UnclassifiedSummary | null
+  /** Static IaC resilience linter over the repo's OWN infrastructure — display only, never a vendor.
+   * null for manual-JSON/PR-mode graphs, or a snapshot generated before this feature existed —
+   * never fabricated as "scanned, found nothing". */
+  own: OwnInfrastructure | null
   meta: {
     owner: string
     repo: string
@@ -737,6 +743,7 @@ function Workspace({ analyzed, prResult, onReset, onClearPr, onLiveAnalysisCompl
           <CriticalityPanel criticality={analyzed.criticality} onSelectFile={handleNodeClick} onWhyNode={handleWhyNode} />
           <DetectedRedundancyPanel groups={detectedRedundancyGroups} />
           <UnclassifiedPanel unclassified={analyzed.unclassified} />
+          <OwnInfraPanel own={analyzed.own} />
 
           {hasVendorData && (
             <>

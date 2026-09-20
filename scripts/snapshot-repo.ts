@@ -104,6 +104,7 @@ async function main() {
     concentration,
     criticality,
     unclassified: result.unclassified,
+    own: result.own,
     riskSummary,
     ...(substrateVerification ? { substrateVerification } : {}),
     meta: {

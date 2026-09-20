@@ -14,6 +14,8 @@ function snapshot(overrides: Partial<AnalysisSnapshotSummary> = {}): AnalysisSna
     worstSingleEvent: { substrate: 'aws', vendorKeys: ['stripe'], probabilityPerYear: 0.001 },
     topCriticality: [],
     unclassifiedCount: 0,
+    ownInfraFindingsCount: 0,
+    ownInfraRegionCount: 0,
     entrypointCount: 3,
     engineVersion: '1.0.0',
     kbVersion: 'v1',

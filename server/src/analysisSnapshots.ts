@@ -66,6 +66,10 @@ export interface BuildSnapshotSummaryInput {
   headline: AvailabilityHeadline
   /** null when unclassified scanning didn't run for this analysis — never fabricated as 0. */
   unclassifiedCount: number | null
+  /** null when the own-infrastructure linter didn't run for this analysis — never fabricated as 0. */
+  ownInfraFindingsCount: number | null
+  /** null for the same reason as ownInfraFindingsCount. */
+  ownInfraRegionCount: number | null
   assumptionsHash: string
   note?: string
 }
@@ -97,6 +101,8 @@ export function buildSnapshotSummary(input: BuildSnapshotSummaryInput): Analysis
       reachabilityLossRatio: n.reachabilityLossRatio,
     })),
     unclassifiedCount: input.unclassifiedCount,
+    ownInfraFindingsCount: input.ownInfraFindingsCount,
+    ownInfraRegionCount: input.ownInfraRegionCount,
     entrypointCount: input.criticality.entrypoints.length,
     engineVersion: ENGINE_VERSION,
     kbVersion: KB_VERSION,

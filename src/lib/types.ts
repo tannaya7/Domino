@@ -378,6 +378,10 @@ export interface AnalysisSnapshotSummary {
   topCriticality: SnapshotCriticalityItem[]
   /** null when unclassified scanning didn't run for this analysis — never fabricated as 0. */
   unclassifiedCount: number | null
+  /** null when the own-infrastructure linter didn't run for this analysis — never fabricated as 0. */
+  ownInfraFindingsCount: number | null
+  /** null for the same reason as ownInfraFindingsCount. */
+  ownInfraRegionCount: number | null
   entrypointCount: number
   engineVersion: string
   kbVersion: string
@@ -434,4 +438,57 @@ export interface AnalysisDiff {
   /** One deterministic sentence, e.g. "aws share rose 40% -> 62%; 3 vendors added". Describes what
    * changed, never a prediction of what it means. */
   verdict: string
+}
+
+// --- "Your infrastructure" — static IaC resilience linter (Well-Architected Reliability) --------
+// DISPLAY ONLY: never a vendor. Nothing here ever enters `vendors`, concentration, the correlated-
+// failure engine, a snapshot's vendor list, or the risk register — see src/engine/ownInfrastructure.ts.
+
+export type OwnInfraRuleId =
+  | 'SINGLE_REGION'
+  | 'RDS_SINGLE_AZ'
+  | 'DB_BACKUPS_DISABLED'
+  | 'DDB_NO_PITR'
+  | 'SINGLE_INSTANCE'
+  | 'CACHE_NO_FAILOVER'
+
+export type OwnInfraSeverity = 'high' | 'medium' | 'low'
+
+/** One resolvable AWS region this repo's IaC puts resources in, plus where that came from. */
+export interface OwnInfraRegion {
+  region: string
+  resourceCount: number
+  /** "file:line" strings — real receipts, never a bare count. */
+  evidence: string[]
+}
+
+export interface OwnInfraFinding {
+  rule: OwnInfraRuleId
+  severity: OwnInfraSeverity
+  pillar: 'Reliability'
+  /** The resource's type + logical name, e.g. "aws_db_instance.primary". */
+  resource: string
+  file: string
+  line: number
+  /** One sentence: what this finding is and, where relevant, when it can be intentional
+   * (e.g. a dev/staging environment). Never a command to fix it — that's the fix snippet. */
+  message: string
+  /** A 3-6 line static snippet showing the fix — illustrative, not a guaranteed-correct diff. */
+  fixSnippet: string
+}
+
+/** Something the linter looked at but could not statically resolve — a variable, a registry
+ * module, a value set outside the repo. Never a finding and never treated as a pass. */
+export interface OwnInfraUnresolved {
+  resource: string
+  file: string
+  line: number
+  reason: string
+}
+
+export interface OwnInfrastructure {
+  regions: OwnInfraRegion[]
+  findings: OwnInfraFinding[]
+  unresolved: OwnInfraUnresolved[]
+  filesScanned: number
 }

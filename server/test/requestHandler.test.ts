@@ -30,6 +30,7 @@ const fixtureResult: AnalyzeRepoResult = {
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
   unclassified: { packages: [], envVars: [], hosts: [], totalCount: 0 },
+  own: { regions: [], findings: [], unresolved: [], filesScanned: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',
@@ -118,6 +119,19 @@ describe('POST /analyze-repo', () => {
     const { json } = await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
     expect(json.meta.cached).toBe(true)
     expect(analyzeRepoMock).not.toHaveBeenCalled()
+  })
+
+  it('never caches a truncated/degraded scan — a repeat request re-analyzes instead of reusing it', async () => {
+    analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
+    const { json: first } = await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    expect(first.meta.truncated).toBe(true)
+    expect(first.meta.cached).toBe(false)
+
+    analyzeRepoMock.mockClear()
+    analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
+    const { json: second } = await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/hello' })
+    expect(analyzeRepoMock).toHaveBeenCalledTimes(1) // NOT served from cache
+    expect(second.meta.cached).toBe(false)
   })
 
   it('rejects a non-GitHub URL with a 400', async () => {
@@ -331,12 +345,21 @@ describe('POST /snapshot, GET /history, POST /compare', () => {
     expect(history.history[0].sk).toBe(saved.sk)
   })
 
-  it('POST /snapshot refuses a truncated/degraded scan', async () => {
+  it('POST /snapshot refuses a truncated/degraded scan — a truncated /analyze-repo result is never cached at all, so this fails at the "analyze first" check rather than ever reaching a stale/partial cache entry', async () => {
     analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: true })
-    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
+    const { json: analyzeJson } = await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
+    expect(analyzeJson.meta.truncated).toBe(true)
+
     const { status, json } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/truncated' })
     expect(status).toBe(400)
-    expect(json.error).toMatch(/truncated|rate-limited/i)
+    expect(json.error).toMatch(/analyze this repo/i)
+
+    // Confirms it really is a cache MISS, not a coincidentally-worded different error: a second,
+    // non-truncated /analyze-repo call now succeeds in populating the cache, and /snapshot then works.
+    analyzeRepoMock.mockResolvedValueOnce({ ...fixtureResult, truncated: false })
+    await post('/analyze-repo', { repoUrl: 'https://github.com/octocat/truncated' })
+    const { status: secondStatus } = await post('/snapshot', { repoUrl: 'https://github.com/octocat/truncated' })
+    expect(secondStatus).toBe(200)
   })
 
   it('GET /history uses strict repo parsing — rejects a malformed repo identifier', async () => {

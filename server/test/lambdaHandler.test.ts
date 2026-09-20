@@ -10,6 +10,7 @@ const fixtureResult: AnalyzeRepoResult = {
   entrypoints: [],
   importResolution: { total: 0, resolved: 0 },
   unclassified: { packages: [], envVars: [], hosts: [], totalCount: 0 },
+  own: { regions: [], findings: [], unresolved: [], filesScanned: 0 },
   owner: 'octocat',
   repo: 'hello',
   branch: 'main',

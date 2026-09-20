@@ -8,6 +8,7 @@ import type {
   ExactAvailabilityResult,
   FailureScenarioResult,
   GraphData,
+  OwnInfrastructure,
   Runbook,
   UnclassifiedSummary,
   Vendor,
@@ -68,6 +69,8 @@ export interface AnalyzeRepoResponse extends GraphData {
   /** External dependencies found but not in the curated vendor knowledge base — never merged into
    * vendors/concentration/availability math. */
   unclassified: UnclassifiedSummary
+  /** Static IaC resilience linter over the repo's OWN infrastructure — display only, never a vendor. */
+  own: OwnInfrastructure
   meta: {
     owner: string
     repo: string

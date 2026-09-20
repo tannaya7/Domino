@@ -165,6 +165,7 @@ function fixtureAnalyzed(overrides: Partial<AnalyzedRepo> = {}): AnalyzedRepo {
     repoUrl: 'https://github.com/octocat/hello',
     snapshot: null,
     unclassified: null,
+    own: null,
     substrateVerification: null,
     history: null,
     ...overrides,

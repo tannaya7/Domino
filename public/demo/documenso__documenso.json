@@ -3,7 +3,7 @@
   "repo": "documenso",
   "branch": "main",
   "commitSha": "e658cc581878f52c03b3e6a8f7ffd613aead4e69",
-  "generatedAt": "2026-09-19T03:43:37.001Z",
+  "generatedAt": "2026-09-20T00:18:44.863Z",
   "nodes": [
     {
       "id": "apps/remix/server/main.js",
@@ -1867,8 +1867,7 @@
       "sla": 0.9999,
       "statusUrl": "https://status.stripe.com/api/v2/status.json",
       "fallbacks": [
-        "Razorpay",
-        "Adyen"
+        "Razorpay"
       ],
       "key": "stripe",
       "detectedVia": [
@@ -1962,8 +1961,7 @@
         "sla": 0.9999,
         "statusUrl": "https://status.stripe.com/api/v2/status.json",
         "fallbacks": [
-          "Razorpay",
-          "Adyen"
+          "Razorpay"
         ],
         "key": "stripe",
         "detectedVia": [
@@ -3690,9 +3688,2557 @@
       }
     ]
   },
+  "unclassified": {
+    "packages": [
+      {
+        "name": "ts-pattern",
+        "files": [
+          "apps/remix/app/components/forms/password-setup-request-button.tsx",
+          "apps/remix/app/components/forms/password-setup-request.tsx",
+          "apps/remix/package.json",
+          "packages/api/package.json",
+          "packages/auth/package.json",
+          "packages/ee/package.json",
+          "packages/lib/package.json",
+          "packages/prisma/package.json",
+          "packages/signing/index.ts",
+          "packages/signing/package.json",
+          "packages/trpc/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@lingui/react",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-advanced-settings.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-recipients.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-upload.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-view.tsx",
+          "apps/remix/app/components/embed/authoring/configure-fields-view.tsx",
+          "apps/remix/app/components/forms/password-setup-request-button.tsx",
+          "apps/remix/app/components/forms/password-setup-request.tsx",
+          "apps/remix/app/components/general/direct-template/direct-template-configure-form.tsx",
+          "apps/remix/package.json",
+          "packages/lib/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@prisma/client",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-advanced-settings.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-recipients.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-view.tsx",
+          "apps/remix/app/components/embed/authoring/configure-fields-view.tsx",
+          "apps/remix/app/components/general/direct-template/direct-template-configure-form.tsx",
+          "packages/lib/server-only/2fa/setup-2fa.ts",
+          "packages/lib/server-only/ai/envelope/detect-fields/index.ts",
+          "packages/lib/server-only/ai/envelope/detect-recipients/index.ts",
+          "packages/prisma/index.ts",
+          "packages/prisma/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/prisma",
+        "files": [
+          "apps/openpage-api/package.json",
+          "apps/remix/app/components/embed/authoring/configure-document-view.types.ts",
+          "apps/remix/package.json",
+          "package.json",
+          "packages/api/package.json",
+          "packages/auth/package.json",
+          "packages/ee/package.json",
+          "packages/lib/package.json",
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "@lingui/core",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-advanced-settings.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-recipients.tsx",
+          "apps/remix/app/components/embed/authoring/configure-document-upload.tsx",
+          "apps/remix/app/components/embed/authoring/configure-fields-view.tsx",
+          "apps/remix/app/components/forms/password-setup-request-button.tsx",
+          "apps/remix/app/components/forms/password-setup-request.tsx",
+          "apps/remix/package.json",
+          "package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "fumadocs-ui",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/src/app/(home)/layout.tsx",
+          "apps/docs/src/app/docs/[[...slug]]/page.tsx",
+          "apps/docs/src/app/docs/layout.tsx",
+          "apps/docs/src/app/layout.tsx",
+          "apps/docs/src/components/ai/page-actions.tsx",
+          "apps/docs/src/components/mdx/envelope-warning.tsx",
+          "apps/docs/src/lib/layout.shared.tsx",
+          "apps/docs/src/mdx-components.tsx"
+        ]
+      },
+      {
+        "name": "luxon",
+        "files": [
+          "apps/openpage-api/package.json",
+          "apps/remix/package.json",
+          "package.json",
+          "packages/api/package.json",
+          "packages/auth/package.json",
+          "packages/ee/package.json",
+          "packages/lib/package.json",
+          "packages/trpc/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/lib",
+        "files": [
+          "apps/remix/package.json",
+          "packages/api/package.json",
+          "packages/auth/package.json",
+          "packages/ee/package.json",
+          "packages/trpc/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "ai",
+        "files": [
+          "package.json",
+          "packages/lib/package.json",
+          "packages/lib/server-only/ai/envelope/detect-fields/index.ts",
+          "packages/lib/server-only/ai/envelope/detect-recipients/index.ts",
+          "packages/lib/server-only/ai/index.ts"
+        ]
+      },
+      {
+        "name": "fumadocs-core",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/source.config.ts",
+          "apps/docs/src/app/api/search/route.ts",
+          "apps/docs/src/app/docs/layout.tsx",
+          "apps/docs/src/lib/source.ts"
+        ]
+      },
+      {
+        "name": "@hookform/resolvers",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-view.tsx",
+          "apps/remix/app/components/general/direct-template/direct-template-configure-form.tsx",
+          "apps/remix/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@simplewebauthn/server",
+        "files": [
+          "apps/remix/package.json",
+          "packages/auth/package.json",
+          "packages/lib/package.json",
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "@tanstack/react-query",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/client-only/hooks/use-password-setup-request.ts",
+          "packages/trpc/package.json",
+          "packages/trpc/react/index.tsx"
+        ]
+      },
+      {
+        "name": "remeda",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/package.json",
+          "packages/lib/server-only/ai/envelope/detect-recipients/index.ts",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@lingui/macro",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@scure/base",
+        "files": [
+          "packages/lib/package.json",
+          "packages/lib/server-only/2fa/setup-2fa.ts",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@trpc/client",
+        "files": [
+          "packages/trpc/client/index.ts",
+          "packages/trpc/package.json",
+          "packages/trpc/react/index.tsx"
+        ]
+      },
+      {
+        "name": "colord",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "kysely",
+        "files": [
+          "packages/lib/package.json",
+          "packages/prisma/index.ts",
+          "packages/prisma/package.json"
+        ]
+      },
+      {
+        "name": "posthog-node",
+        "files": [
+          "apps/remix/package.json",
+          "package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "superjson",
+        "files": [
+          "packages/api/package.json",
+          "packages/auth/client/index.ts",
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "tailwind-merge",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/src/lib/cn.ts",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@ai-sdk/google-vertex",
+        "files": [
+          "package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@aws-sdk/client-sesv2",
+        "files": [
+          "packages/ee/package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/assets",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/tailwind-config",
+        "files": [
+          "apps/remix/package.json",
+          "packages/email/package.json"
+        ]
+      },
+      {
+        "name": "@hello-pangea/dnd",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-recipients.tsx",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@hono/node-server",
+        "files": [
+          "apps/remix/package.json",
+          "apps/remix/server/main.js"
+        ]
+      },
+      {
+        "name": "@hono/standard-validator",
+        "files": [
+          "apps/remix/package.json",
+          "packages/auth/package.json"
+        ]
+      },
+      {
+        "name": "@libpdf/core",
+        "files": [
+          "package.json",
+          "packages/signing/index.ts"
+        ]
+      },
+      {
+        "name": "@lingui/conf",
+        "files": [
+          "lingui.config.ts",
+          "package.json"
+        ]
+      },
+      {
+        "name": "@napi-rs/canvas",
+        "files": [
+          "packages/lib/package.json",
+          "packages/lib/server-only/ai/envelope/detect-fields/index.ts"
+        ]
+      },
+      {
+        "name": "@oslojs/crypto",
+        "files": [
+          "apps/remix/package.json",
+          "packages/auth/package.json"
+        ]
+      },
+      {
+        "name": "@oslojs/encoding",
+        "files": [
+          "apps/remix/package.json",
+          "packages/auth/package.json"
+        ]
+      },
+      {
+        "name": "@prisma/extension-read-replicas",
+        "files": [
+          "package.json",
+          "packages/prisma/index.ts"
+        ]
+      },
+      {
+        "name": "@react-router/dev",
+        "files": [
+          "apps/remix/react-router.config.ts",
+          "packages/email/preview/react-router.config.ts"
+        ]
+      },
+      {
+        "name": "@trpc/react-query",
+        "files": [
+          "packages/trpc/package.json",
+          "packages/trpc/react/index.tsx"
+        ]
+      },
+      {
+        "name": "@trpc/server",
+        "files": [
+          "packages/trpc/package.json",
+          "packages/trpc/server/index.ts"
+        ]
+      },
+      {
+        "name": "@ts-rest/core",
+        "files": [
+          "packages/api/package.json",
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "arctic",
+        "files": [
+          "packages/auth/package.json",
+          "packages/ee/package.json"
+        ]
+      },
+      {
+        "name": "fumadocs-mdx",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/source.config.ts"
+        ]
+      },
+      {
+        "name": "hono-react-router-adapter",
+        "files": [
+          "apps/remix/package.json",
+          "apps/remix/server/main.js"
+        ]
+      },
+      {
+        "name": "konva",
+        "files": [
+          "apps/remix/package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "mermaid",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/src/components/mdx/mermaid.tsx"
+        ]
+      },
+      {
+        "name": "next-plausible",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/src/app/layout.tsx"
+        ]
+      },
+      {
+        "name": "next-themes",
+        "files": [
+          "apps/docs/package.json",
+          "apps/docs/src/components/mdx/mermaid.tsx"
+        ]
+      },
+      {
+        "name": "oslo",
+        "files": [
+          "packages/lib/package.json",
+          "packages/lib/server-only/2fa/setup-2fa.ts"
+        ]
+      },
+      {
+        "name": "p-map",
+        "files": [
+          "packages/lib/package.json",
+          "packages/lib/server-only/ai/envelope/detect-fields/index.ts"
+        ]
+      },
+      {
+        "name": "pino",
+        "files": [
+          "packages/lib/package.json",
+          "packages/lib/server-only/document-conversion/index.ts"
+        ]
+      },
+      {
+        "name": "prisma-extension-kysely",
+        "files": [
+          "packages/prisma/index.ts",
+          "packages/prisma/package.json"
+        ]
+      },
+      {
+        "name": "react-dropzone",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-document-upload.tsx",
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "react-hotkeys-hook",
+        "files": [
+          "apps/remix/app/components/embed/authoring/configure-fields-view.tsx",
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "react-rnd",
+        "files": [
+          "apps/remix/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "sharp",
+        "files": [
+          "package.json",
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "tailwindcss-animate",
+        "files": [
+          "packages/tailwind-config/package.json",
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@aws-sdk/cloudfront-signer",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@aws-sdk/s3-request-presigner",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@aws-sdk/signature-v4-crt",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@azure/storage-blob",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@bull-board/api",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@bull-board/hono",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@bull-board/ui",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@cantoo/pdf-lib",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/api",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/auth",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/ee",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/email",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/nodemailer-resend",
+        "files": [
+          "packages/email/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/signing",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/skia-canvas",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/trpc",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@documenso/ui",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@epic-web/remember",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@faker-js/faker",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@google-cloud/kms",
+        "files": [
+          "packages/signing/package.json"
+        ]
+      },
+      {
+        "name": "@google-cloud/secret-manager",
+        "files": [
+          "packages/signing/package.json"
+        ]
+      },
+      {
+        "name": "@hono/trpc-server",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@lingui/detect-locale",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@lingui/format-po",
+        "files": [
+          "lingui.config.ts"
+        ]
+      },
+      {
+        "name": "@marsidev/react-turnstile",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@noble/ciphers",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@noble/hashes",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@node-rs/bcrypt",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@pdf-lib/fontkit",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-accordion",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-alert-dialog",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-aspect-ratio",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-avatar",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-checkbox",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-collapsible",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-context-menu",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-dialog",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-dropdown-menu",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-hover-card",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-label",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-menubar",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-navigation-menu",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-popover",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-progress",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-radio-group",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-scroll-area",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-select",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-separator",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-slider",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-switch",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-tabs",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-toast",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-toggle",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-toggle-group",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@radix-ui/react-tooltip",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "@react-email/render",
+        "files": [
+          "packages/email/package.json"
+        ]
+      },
+      {
+        "name": "@react-router/node",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@react-router/serve",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@simplewebauthn/browser",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "@sindresorhus/slugify",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@tailwindcss/container-queries",
+        "files": [
+          "packages/tailwind-config/package.json"
+        ]
+      },
+      {
+        "name": "@tailwindcss/typography",
+        "files": [
+          "packages/tailwind-config/package.json"
+        ]
+      },
+      {
+        "name": "@tanstack/react-table",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "@team-plain/typescript-sdk",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "@ts-rest/open-api",
+        "files": [
+          "packages/api/package.json"
+        ]
+      },
+      {
+        "name": "@ts-rest/serverless",
+        "files": [
+          "packages/api/package.json"
+        ]
+      },
+      {
+        "name": "@types/swagger-ui-react",
+        "files": [
+          "packages/api/package.json"
+        ]
+      },
+      {
+        "name": "@vvo/tzdb",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "bullmq",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "class-variance-authority",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "cmdk",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "content-disposition",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "cron-parser",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "crypto",
+        "files": [
+          "packages/lib/server-only/2fa/setup-2fa.ts"
+        ]
+      },
+      {
+        "name": "csv-parse",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "fflate",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "formidable",
+        "files": [
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "fumadocs-mdx:collections",
+        "files": [
+          "apps/docs/src/lib/source.ts"
+        ]
+      },
+      {
+        "name": "inngest",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "input-otp",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "ioredis",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "isbot",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "jose",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "mailchecker",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "mdx",
+        "files": [
+          "apps/docs/src/mdx-components.tsx"
+        ]
+      },
+      {
+        "name": "node:fs",
+        "files": [
+          "apps/docs/src/app/og/docs/[...slug]/route.tsx"
+        ]
+      },
+      {
+        "name": "node:url",
+        "files": [
+          "apps/docs/src/app/og/docs/[...slug]/route.tsx"
+        ]
+      },
+      {
+        "name": "nodemailer",
+        "files": [
+          "packages/email/package.json"
+        ]
+      },
+      {
+        "name": "nuqs",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "os",
+        "files": [
+          "packages/app-tests/playwright.config.ts"
+        ]
+      },
+      {
+        "name": "papaparse",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "patch-package",
+        "files": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "path",
+        "files": [
+          "packages/app-tests/playwright.config.ts"
+        ]
+      },
+      {
+        "name": "pdfjs-dist",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "perfect-freehand",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "pg",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "pino-pretty",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "postcss-selector-parser",
+        "files": [
+          "packages/lib/package.json"
+        ]
+      },
+      {
+        "name": "prisma",
+        "files": [
+          "packages/prisma/package.json"
+        ]
+      },
+      {
+        "name": "react-call",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "react-colorful",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "react-day-picker",
+        "files": [
+          "packages/ui/package.json"
+        ]
+      },
+      {
+        "name": "react-email",
+        "files": [
+          "packages/email/package.json"
+        ]
+      },
+      {
+        "name": "recharts",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "remix-themes",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "satori",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "start-server-and-test",
+        "files": [
+          "packages/app-tests/package.json"
+        ]
+      },
+      {
+        "name": "trpc-to-openapi",
+        "files": [
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "ua-parser-js",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "uqr",
+        "files": [
+          "apps/remix/package.json"
+        ]
+      },
+      {
+        "name": "zod-form-data",
+        "files": [
+          "packages/trpc/package.json"
+        ]
+      },
+      {
+        "name": "zod-openapi",
+        "files": [
+          "packages/trpc/package.json"
+        ]
+      }
+    ],
+    "envVars": [
+      {
+        "name": "NEXT_PUBLIC_BASE_PATH",
+        "files": [
+          "apps/remix/react-router.config.ts",
+          "apps/remix/server/main.js"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_WEBAPP_URL",
+        "files": [
+          ".env.example",
+          "packages/app-tests/playwright.config.ts"
+        ]
+      },
+      {
+        "name": "PORT",
+        "files": [
+          ".env.example",
+          "apps/remix/server/main.js"
+        ]
+      },
+      {
+        "name": "CI",
+        "files": [
+          "packages/app-tests/playwright.config.ts"
+        ]
+      },
+      {
+        "name": "DANGEROUS_BYPASS_RATE_LIMITS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "DOCUMENSO_DISABLE_TELEMETRY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "E2E_TEST_AUTHENTICATE_USER_EMAIL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "E2E_TEST_AUTHENTICATE_USER_PASSWORD",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "E2E_TEST_AUTHENTICATE_USERNAME",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "GOOGLE_VERTEX_API_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "GOOGLE_VERTEX_LOCATION",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "GOOGLE_VERTEX_PROJECT_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_ALLOWED_SIGNUP_DOMAINS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_DATABASE_REPLICA_URLS",
+        "files": [
+          "packages/prisma/index.ts"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_DATABASE_URL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_DIRECT_DATABASE_URL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_DOCUMENSO_LICENSE_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_ENCRYPTION_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_GOOGLE_CLIENT_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_GOOGLE_CLIENT_SECRET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_INNGEST_EVENT_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_INTERNAL_WEBAPP_URL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_JOBS_PROVIDER",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_LOGGER_FILE_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MAILCHANNELS_API_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MAILCHANNELS_DKIM_DOMAIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MAILCHANNELS_DKIM_PRIVATE_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MAILCHANNELS_DKIM_SELECTOR",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MAILCHANNELS_ENDPOINT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MICROSOFT_CLIENT_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_MICROSOFT_CLIENT_SECRET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_CLIENT_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_CLIENT_SECRET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_PROMPT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_PROVIDER_LABEL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_SKIP_VERIFY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_OIDC_WELL_KNOWN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_PLAIN_API_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_REDIS_PREFIX",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_REDIS_URL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_RESEND_API_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SES_ACCESS_KEY_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SES_REGION",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SES_SECRET_ACCESS_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_CSC_OAUTH_CLIENT_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_CSC_OAUTH_CLIENT_SECRET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_CSC_PROVIDER_BASE_URL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_CSC_SIGNATURE_LEVEL",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_APPLICATION_CREDENTIALS_CONTENTS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_CERT_CHAIN_CONTENTS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_CERT_CHAIN_FILE_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_KEY_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_PUBLIC_CRT_FILE_CONTENTS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_PUBLIC_CRT_FILE_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_GCLOUD_HSM_SECRET_MANAGER_CERT_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_LOCAL_FILE_CONTENTS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_PASSPHRASE",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_REASON",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_TIMESTAMP_AUTHORITY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SIGNING_TRANSPORT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_APIKEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_APIKEY_USER",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_FROM_ADDRESS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_FROM_NAME",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_HOST",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_PASSWORD",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_PORT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_SECURE",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_SERVICE",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_TRANSPORT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_UNSAFE_IGNORE_TLS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_SMTP_USERNAME",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_STRIPE_API_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_STRIPE_WEBHOOK_SECRET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_TURNSTILE_SECRET_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_BUCKET",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_ENDPOINT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_REGION",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_USE_LEGACY_SIGNING_SUBFILTER",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PRIVATE_WEBHOOK_SSRF_BYPASS_HOSTS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_SIGNIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_EMAIL_PASSWORD_SIGNUP",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_GOOGLE_SIGNIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_GOOGLE_SIGNUP",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_MICROSOFT_SIGNUP",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_OIDC_AUTO_REDIRECT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_OIDC_SIGNIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_OIDC_SIGNUP",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_SIGNIN",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DISABLE_SIGNUP",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_DOCUMENT_SIZE_UPLOAD_LIMIT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_FEATURE_BILLING_ENABLED",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_POSTHOG_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_SIGNING_CONTACT_INFO",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_UPLOAD_TRANSPORT",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NEXT_PUBLIC_USE_INTERNAL_URL_BROWSERLESS",
+        "files": [
+          ".env.example"
+        ]
+      },
+      {
+        "name": "NODE_ENV",
+        "files": [
+          "packages/app-tests/playwright.config.ts"
+        ]
+      }
+    ],
+    "hosts": [
+      {
+        "name": "stargrazer-live.onrender.com",
+        "files": [
+          "apps/openpage-api/app/community/total-forks/route.ts",
+          "apps/openpage-api/app/community/total-issues/route.ts",
+          "apps/openpage-api/app/community/total-prs/route.ts",
+          "apps/openpage-api/app/community/total-stars/route.ts"
+        ]
+      },
+      {
+        "name": "documen.so",
+        "files": [
+          "apps/docs/src/app/(home)/page.tsx",
+          "packages/lib/constants/app.ts"
+        ]
+      },
+      {
+        "name": "fumadocs.dev",
+        "files": [
+          "apps/docs/source.config.ts",
+          "apps/docs/src/lib/source.ts"
+        ]
+      },
+      {
+        "name": "accounts.google.com",
+        "files": [
+          "packages/auth/server/config.ts"
+        ]
+      },
+      {
+        "name": "api.github.com",
+        "files": [
+          "apps/openpage-api/app/github/forks/route.ts"
+        ]
+      },
+      {
+        "name": "chatgpt.com",
+        "files": [
+          "apps/docs/src/components/ai/page-actions.tsx"
+        ]
+      },
+      {
+        "name": "claude.ai",
+        "files": [
+          "apps/docs/src/components/ai/page-actions.tsx"
+        ]
+      },
+      {
+        "name": "docs.orama.com",
+        "files": [
+          "apps/docs/src/app/api/search/route.ts"
+        ]
+      },
+      {
+        "name": "login.microsoftonline.com",
+        "files": [
+          "packages/auth/server/config.ts"
+        ]
+      },
+      {
+        "name": "playwright.dev",
+        "files": [
+          "packages/app-tests/playwright.config.ts"
+        ]
+      },
+      {
+        "name": "t3.chat",
+        "files": [
+          "apps/docs/src/components/ai/page-actions.tsx"
+        ]
+      }
+    ],
+    "totalCount": 282
+  },
+  "own": {
+    "regions": [],
+    "findings": [],
+    "unresolved": [],
+    "filesScanned": 11
+  },
   "riskSummary": {
     "subject": "vendor:Stripe",
     "text": "Stripe (payments) is Low-risk — 1 component would be affected by a change here. If it fails, packages/lib/server-only/stripe/index.ts would break. Standard review should be sufficient before merging changes here."
+  },
+  "substrateVerification": {
+    "generatedAt": "2026-09-19T13:21:55.851Z",
+    "asnLookupAvailable": true,
+    "results": [
+      {
+        "vendorKey": "stripe",
+        "vendor": "Stripe",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.stripe.com",
+            "cnameChain": [],
+            "addresses": [
+              "198.137.150.21",
+              "198.202.176.21"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "razorpay",
+        "vendor": "Razorpay",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.razorpay.com",
+            "cnameChain": [
+              "prod-api.razorpay.com",
+              "prod-api-weighted.razorpay.com",
+              "cde-blue-ext-v2.razorpay.com"
+            ],
+            "addresses": [
+              "3.108.150.134",
+              "3.7.172.96"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "3.108.150.134 is in aws's published range 3.108.0.0/14 (region: ap-south-1, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "ap-south-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "braintree",
+        "vendor": "Braintree",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.braintreegateway.com",
+            "cnameChain": [
+              "gateway-api.production.braintree-api.com",
+              "cdn-a.production.braintree-api.com"
+            ],
+            "addresses": [
+              "159.242.242.193",
+              "159.242.242.192"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS13335 (CLOUDFLARENET - Cloudflare, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "firebase",
+        "vendor": "Firebase",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "firestore.googleapis.com",
+            "cnameChain": [],
+            "addresses": [
+              "142.251.43.202",
+              "2404:6800:4007:821::200a"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS15169 (GOOGLE - Google LLC, US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "firebase-admin",
+        "vendor": "Firebase",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "firestore.googleapis.com",
+            "cnameChain": [],
+            "addresses": [
+              "142.251.43.202",
+              "2404:6800:4007:821::200a"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS15169 (GOOGLE - Google LLC, US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "resend",
+        "vendor": "Resend",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.resend.com",
+            "cnameChain": [
+              "api.resend.com.cdn.cloudflare.net"
+            ],
+            "addresses": [
+              "104.20.29.242",
+              "172.66.165.132",
+              "2606:4700:10::6814:1df2",
+              "2606:4700:10::ac42:a584"
+            ],
+            "observedProvider": "cloudflare",
+            "layer": "edge",
+            "source": "ip-range",
+            "detail": "104.20.29.242 is in cloudflare's published range 104.16.0.0/13 | ASN AS13335 (CLOUDFLARENET - Cloudflare, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@sendgrid/mail",
+        "vendor": "SendGrid",
+        "curatedSubstrate": [
+          "azure"
+        ],
+        "verdict": "conflict",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.sendgrid.com",
+            "cnameChain": [],
+            "addresses": [
+              "13.229.175.20",
+              "18.182.226.253",
+              "52.198.71.239",
+              "13.251.154.171",
+              "57.182.84.179",
+              "35.76.95.223",
+              "52.197.1.33",
+              "54.64.205.31",
+              "3.1.168.255"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "13.229.175.20 is in aws's published range 13.228.0.0/15 (region: ap-southeast-1, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "ap-southeast-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "postmark",
+        "vendor": "Postmark",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.postmarkapp.com",
+            "cnameChain": [],
+            "addresses": [
+              "3.136.210.2",
+              "3.148.70.16",
+              "3.21.31.251"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "3.136.210.2 is in aws's published range 3.136.0.0/13 (region: us-east-2, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "us-east-2"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@sentry/react",
+        "vendor": "Sentry",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "sentry.io",
+            "cnameChain": [],
+            "addresses": [
+              "34.111.148.117",
+              "34.8.226.60"
+            ],
+            "observedProvider": "gcp",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "34.111.148.117 is in gcp's published range 34.111.0.0/16 (region: global, observed, may be anycast) | ASN AS396982 (GOOGLE-CLOUD-PLATFORM - Google LLC, US)",
+            "region": "global"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@sentry/node",
+        "vendor": "Sentry",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "sentry.io",
+            "cnameChain": [],
+            "addresses": [
+              "34.8.226.60",
+              "34.111.148.117"
+            ],
+            "observedProvider": "gcp",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "34.8.226.60 is in gcp's published range 34.8.0.0/16 (region: global, observed, may be anycast) | ASN AS396982 (GOOGLE-CLOUD-PLATFORM - Google LLC, US)",
+            "region": "global"
+          }
+        ]
+      },
+      {
+        "vendorKey": "dd-trace",
+        "vendor": "Datadog",
+        "curatedSubstrate": [
+          "aws",
+          "gcp"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.datadoghq.com",
+            "cnameChain": [
+              "orchid.intake.datadoghq.com"
+            ],
+            "addresses": [
+              "3.233.158.19",
+              "3.233.158.18",
+              "3.233.158.20",
+              "2600:1f18:24e6:b901:a7b4:6061:b023:91c2",
+              "2600:1f18:24e6:b900:b016:b6d9:1d8d:9ce0",
+              "2600:1f18:24e6:b902:a4ed:885c:cf3e:789c"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "3.233.158.19 is in aws's published range 3.224.0.0/12 (region: us-east-1, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "newrelic",
+        "vendor": "New Relic",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.newrelic.com",
+            "cnameChain": [
+              "tls12-ui.newrelic.com.cdn.cloudflare.net"
+            ],
+            "addresses": [
+              "162.247.242.3"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS23467 (NEWRELIC-AS-1 - New Relic, US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "posthog-js",
+        "vendor": "PostHog",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "app.posthog.com",
+            "cnameChain": [
+              "posthog-ingress-prod-us-256455477.us-east-1.elb.amazonaws.com"
+            ],
+            "addresses": [
+              "3.41.202.158",
+              "3.41.202.170",
+              "3.41.202.160",
+              "3.41.202.145",
+              "3.41.202.144",
+              "3.41.202.165",
+              "3.41.202.171",
+              "3.41.202.159",
+              "2600:1f18:4c12:9a01:fae0:da9a:f190:b4d",
+              "2600:1f18:4c12:9a01:29f3:e4a8:7aef:cada",
+              "2600:1f18:4c12:9a02:1290:d3e4:3f98:2bbd",
+              "2600:1f18:4c12:9a02:d3b9:e131:cec1:a6f",
+              "2600:1f18:4c12:9a01:2008:4842:1fcb:7cdb",
+              "2600:1f18:4c12:9a02:8cd:27aa:2dd8:f520",
+              "2600:1f18:4c12:9a00:7db4:74fa:a1dc:3c3e",
+              "2600:1f18:4c12:9a00:5e82:6bed:2b3c:cf57"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "cname-suffix",
+            "detail": "CNAME chain includes \"posthog-ingress-prod-us-256455477.us-east-1.elb.amazonaws.com\" (matches *.amazonaws.com) | ASN AS14618 (AMAZON-AES - Amazon.com, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "openai",
+        "vendor": "OpenAI",
+        "curatedSubstrate": [
+          "azure"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.openai.com",
+            "cnameChain": [],
+            "addresses": [
+              "162.159.140.245",
+              "172.66.0.243",
+              "2a06:98c1:58::f3",
+              "2606:4700:7::f3"
+            ],
+            "observedProvider": "cloudflare",
+            "layer": "edge",
+            "source": "ip-range",
+            "detail": "162.159.140.245 is in cloudflare's published range 162.158.0.0/15 | ASN AS13335 (CLOUDFLARENET - Cloudflare, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@anthropic-ai/sdk",
+        "vendor": "Anthropic",
+        "curatedSubstrate": [
+          "aws",
+          "gcp"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.anthropic.com",
+            "cnameChain": [],
+            "addresses": [
+              "160.79.104.10",
+              "2607:6bc0::10"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS399358 (ANTHROPIC - Anthropic, PBC, US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@google/generative-ai",
+        "vendor": "Google AI",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "generativelanguage.googleapis.com",
+            "cnameChain": [],
+            "addresses": [
+              "172.217.119.4",
+              "172.217.116.4",
+              "172.217.112.4",
+              "172.217.113.4",
+              "172.217.118.4",
+              "172.217.114.4",
+              "172.217.117.4",
+              "172.217.115.4",
+              "2001:4860:4842:400::",
+              "2001:4860:4840:400::",
+              "2001:4860:4844:400::",
+              "2001:4860:4841:400::",
+              "2001:4860:4845:400::",
+              "2001:4860:4846:400::",
+              "2001:4860:4843:400::",
+              "2001:4860:4847:400::"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS15169 (GOOGLE - Google LLC, US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@aws-sdk/client-s3",
+        "vendor": "Amazon S3",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "s3.amazonaws.com",
+            "cnameChain": [],
+            "addresses": [
+              "16.15.236.113",
+              "52.217.65.30",
+              "52.216.208.160",
+              "16.15.199.89",
+              "52.217.48.246",
+              "16.15.212.67",
+              "16.182.67.120",
+              "16.15.214.181"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "16.15.236.113 is in aws's published range 16.15.192.0/18 (region: us-east-1, observed, may be anycast) | ASN AS14618 (AMAZON-AES - Amazon.com, Inc., US)",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@aws-sdk/client-dynamodb",
+        "vendor": "Amazon DynamoDB",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "dynamodb.us-east-1.amazonaws.com",
+            "cnameChain": [],
+            "addresses": [
+              "3.218.181.12"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "3.218.181.12 is in aws's published range 3.208.0.0/12 (region: us-east-1, observed, may be anycast) | ASN AS14618 (AMAZON-AES - Amazon.com, Inc., US)",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@aws-sdk/client-bedrock-runtime",
+        "vendor": "Amazon Bedrock",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "bedrock-runtime.us-east-1.amazonaws.com",
+            "cnameChain": [],
+            "addresses": [
+              "13.217.253.194",
+              "98.85.75.230",
+              "98.88.52.13",
+              "54.209.177.10",
+              "34.203.16.47",
+              "44.218.245.151",
+              "34.224.172.88",
+              "98.89.53.194"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "13.217.253.194 is in aws's published range 13.216.0.0/13 (region: us-east-1, observed, may be anycast) | ASN AS14618 (AMAZON-AES - Amazon.com, Inc., US)",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "cloudinary",
+        "vendor": "Cloudinary",
+        "curatedSubstrate": [
+          "aws",
+          "gcp"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.cloudinary.com",
+            "cnameChain": [],
+            "addresses": [
+              "34.193.31.77",
+              "100.57.18.238",
+              "54.204.2.116",
+              "54.146.87.59",
+              "100.26.65.200",
+              "44.194.225.187"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "34.193.31.77 is in aws's published range 34.192.0.0/12 (region: us-east-1, observed, may be anycast) | ASN AS14618 (AMAZON-AES - Amazon.com, Inc., US)",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "twilio",
+        "vendor": "Twilio",
+        "curatedSubstrate": [
+          "aws",
+          "gcp"
+        ],
+        "verdict": "agrees-edge",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.twilio.com",
+            "cnameChain": [
+              "api-intermediate.edge.prod.twilio.com",
+              "dt5wf3kt7zzil.cloudfront.net"
+            ],
+            "addresses": [
+              "108.159.0.89"
+            ],
+            "observedProvider": "aws",
+            "layer": "edge",
+            "source": "cname-suffix",
+            "detail": "CNAME chain includes \"dt5wf3kt7zzil.cloudfront.net\" (matches *.cloudfront.net) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@slack/web-api",
+        "vendor": "Slack",
+        "curatedSubstrate": [
+          "aws",
+          "gcp"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "slack.com",
+            "cnameChain": [],
+            "addresses": [
+              "65.2.117.88",
+              "13.126.138.201",
+              "13.127.99.68"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "65.2.117.88 is in aws's published range 65.0.0.0/14 (region: ap-south-1, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "ap-south-1"
+          }
+        ]
+      },
+      {
+        "vendorKey": "mixpanel",
+        "vendor": "Mixpanel",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "conflict",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api.mixpanel.com",
+            "cnameChain": [],
+            "addresses": [
+              "107.178.240.159",
+              "35.190.25.25",
+              "130.211.34.183",
+              "35.186.241.51"
+            ],
+            "observedProvider": "gcp",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "107.178.240.159 is in gcp's published range 107.178.240.0/20 (region: global, observed, may be anycast) | ASN AS396982 (GOOGLE-CLOUD-PLATFORM - Google LLC, US)",
+            "region": "global"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@amplitude/analytics-browser",
+        "vendor": "Amplitude",
+        "curatedSubstrate": [
+          "aws"
+        ],
+        "verdict": "agrees",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "api2.amplitude.com",
+            "cnameChain": [],
+            "addresses": [
+              "35.161.38.218",
+              "52.27.41.235",
+              "54.69.23.213",
+              "35.167.242.156",
+              "32.188.184.154",
+              "32.184.179.165",
+              "44.240.172.75",
+              "44.253.171.205"
+            ],
+            "observedProvider": "aws",
+            "layer": "hosting",
+            "source": "ip-range",
+            "detail": "35.161.38.218 is in aws's published range 35.160.0.0/13 (region: us-west-2, observed, may be anycast) | ASN AS16509 (AMAZON-02 - Amazon.com, Inc., US)",
+            "region": "us-west-2"
+          }
+        ]
+      },
+      {
+        "vendorKey": "@googlemaps/js-api-loader",
+        "vendor": "Google Maps",
+        "curatedSubstrate": [
+          "gcp"
+        ],
+        "verdict": "inconclusive",
+        "checkedAt": "2026-09-19T13:21:55.851Z",
+        "hosts": [
+          {
+            "host": "maps.googleapis.com",
+            "cnameChain": [],
+            "addresses": [
+              "172.217.117.4",
+              "172.217.113.4",
+              "172.217.112.4",
+              "172.217.116.4",
+              "172.217.119.4",
+              "172.217.115.4",
+              "172.217.114.4",
+              "172.217.118.4",
+              "2001:4860:4843:400::",
+              "2001:4860:4840:400::",
+              "2001:4860:4844:400::",
+              "2001:4860:4847:400::",
+              "2001:4860:4841:400::",
+              "2001:4860:4846:400::",
+              "2001:4860:4845:400::",
+              "2001:4860:4842:400::"
+            ],
+            "observedProvider": null,
+            "layer": null,
+            "source": null,
+            "detail": "No CNAME suffix or IP-range match against any known provider | ASN AS15169 (GOOGLE - Google LLC, US)"
+          }
+        ]
+      }
+    ]
   },
   "meta": {
     "owner": "documenso",
@@ -3700,7 +6246,7 @@
     "branch": "main",
     "filesScanned": 80,
     "truncated": true,
-    "elapsedMs": 7094,
+    "elapsedMs": 11830,
     "cached": false,
     "importResolution": {
       "total": 216,

@@ -2,7 +2,7 @@ import type { AnalyzeRepoResponse } from './api'
 import type { SubstrateVerificationData } from './substrateVerification'
 import type { AnalysisSnapshotSummary } from './types'
 
-export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> {
+export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified' | 'own'> {
   owner: string
   repo: string
   branch: string
@@ -24,6 +24,10 @@ export interface DemoSnapshot extends Omit<AnalyzeRepoResponse, 'unclassified'> 
    * in demo mode — see scripts/snapshot-repo.ts. Optional/absent for the same reason as the two
    * fields above: nothing here is ever fabricated just to fill the field. */
   history?: AnalysisSnapshotSummary[]
+  /** Static IaC resilience linter result, frozen at snapshot time — optional/absent for the same
+   * reason as the fields above: an older snapshot predates this field, and absence is never
+   * treated as "scanned, found nothing". */
+  own?: AnalyzeRepoResponse['own']
 }
 
 export class DemoSnapshotError extends Error {}

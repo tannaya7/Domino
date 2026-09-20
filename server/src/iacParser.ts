@@ -53,16 +53,35 @@ export function detectVercelConfig(sourcePath: string): IacSubstrateSignal[] {
   return [{ provider: 'vercel', source: sourcePath }]
 }
 
-/** Returns true for any file this module can parse for IaC substrate signals, by path/extension. */
+/**
+ * Returns true for any file worth fetching as a candidate IaC source — substrate-signal parsing
+ * (above) and the "Your infrastructure" resilience linter (src/engine/ownInfrastructure.ts) both
+ * consume this same discovery list, so a file only needs to be recognized here once. `.yml`/`.yaml`
+ * and CFN-ish `.json` are broad on purpose (a real CloudFormation/SAM template's actual shape is
+ * only confirmed by content-sniffing after fetch, in the linter's own parser) — a false positive
+ * here just contributes nothing, never a wrong finding. `package.json`/`tsconfig.json`-style noise
+ * is kept out of the `.json` case by requiring a template/cloudformation/cfn/sam-shaped basename.
+ */
 export function isIacFile(path: string): boolean {
   const basename = path.split('/').pop() ?? path
-  return (
+  if (
     path.endsWith('.tf') ||
+    path.endsWith('.tfvars') ||
     basename === 'terraform.tfstate' ||
     basename === 'serverless.yml' ||
     basename === 'serverless.yaml' ||
-    basename === 'vercel.json'
-  )
+    basename === 'vercel.json' ||
+    basename === 'samconfig.toml' ||
+    basename === 'cdk.json'
+  ) {
+    return true
+  }
+  // .github/workflows/*.yml|*.yaml — a region-detection source (`aws-region:`), not a resource
+  // template; matched by directory, not just extension.
+  if (/(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/.test(path)) return true
+  if (path.endsWith('.yml') || path.endsWith('.yaml')) return true
+  if (path.endsWith('.json') && /template|cloudformation|cfn|\bsam\b/i.test(basename)) return true
+  return false
 }
 
 /** Parses one IaC file's substrate signals by its path/extension. Returns [] for anything unrecognized or unparsable. */

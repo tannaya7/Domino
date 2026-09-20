@@ -33,6 +33,8 @@ function baseInput(overrides: Partial<BuildSnapshotSummaryInput> = {}): BuildSna
       expectedLossPerYear: 0,
     },
     unclassifiedCount: 0,
+    ownInfraFindingsCount: 0,
+    ownInfraRegionCount: 0,
     assumptionsHash: 'abc12345',
     ...overrides,
   }
@@ -154,6 +156,8 @@ describe('buildSnapshotSummary — compact shape', () => {
         'worstSingleEvent',
         'topCriticality',
         'unclassifiedCount',
+        'ownInfraFindingsCount',
+        'ownInfraRegionCount',
         'entrypointCount',
         'engineVersion',
         'kbVersion',

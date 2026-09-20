@@ -29,6 +29,8 @@ function snapshot(overrides: Partial<AnalysisSnapshotSummary> = {}): AnalysisSna
     worstSingleEvent: null,
     topCriticality: [],
     unclassifiedCount: 0,
+    ownInfraFindingsCount: 0,
+    ownInfraRegionCount: 0,
     entrypointCount: 2,
     engineVersion: '1.0.0',
     kbVersion: 'v1',

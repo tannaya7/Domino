@@ -96,7 +96,10 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
     const cacheKey = `${owner}/${repo}`
     const cached = await getCachedGraph(cacheKey)
     const result = cached ?? (await analyzeRepo(repoUrl))
-    if (!cached) await setCachedGraph(cacheKey, result)
+    // A truncated/rate-limited scan may have missed IaC files entirely — caching it would let a
+    // later /simulate, /snapshot, or repeat /analyze-repo silently treat "we didn't get to see it"
+    // as "we looked and found nothing" (own-infrastructure findings, vendor detection, everything).
+    if (!cached && !result.truncated) await setCachedGraph(cacheKey, result)
 
     const adjacency = buildAdjacencyMap(result.graph.nodes, result.graph.edges)
     const vendorGraph = buildVendorGraph(result.vendors, adjacency)
@@ -124,6 +127,9 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
         // Deliberately separate from `vendors` — never merged into vendor counts, substrates, or
         // availability math. See unclassifiedDependencies.ts.
         unclassified: result.unclassified,
+        // Static IaC resilience linter over the repo's OWN infrastructure — display only, never a
+        // vendor. See src/engine/ownInfrastructure.ts.
+        own: result.own,
         meta: {
           owner: result.owner,
           repo: result.repo,
@@ -307,6 +313,8 @@ export async function routeApi(path: string, body: Record<string, unknown>): Pro
       criticality,
       headline,
       unclassifiedCount: cached.unclassified?.totalCount ?? null,
+      ownInfraFindingsCount: cached.own?.findings.length ?? null,
+      ownInfraRegionCount: cached.own?.regions.length ?? null,
       assumptionsHash: computeAssumptionsHash({ costPerHourOfDowntime, vendorSlaOverrides, substrateOutageProbabilities }),
       note,
     })
