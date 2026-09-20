@@ -486,9 +486,43 @@ export interface OwnInfraUnresolved {
   reason: string
 }
 
+// --- Fix generator (server/src/ownInfraPatches.ts) — deterministic patches for R2/R3/R4/R6 -------
+// R1 (SINGLE_REGION) and R5 (SINGLE_INSTANCE) are architectural: 'advisory' only, never a patch.
+
+export type OwnInfraFixStatus =
+  /** A real, self-checked text patch — a unified diff is present. */
+  | 'patched'
+  /** A patch was attempted for this finding but blocked (dynamic block, module path, unresolved
+   * value, resource no longer found, or the self-check re-lint failed) — see `note`. */
+  | 'refused'
+  /** No patch is ever attempted for this finding by design (R1/R5's architectural nature, or R6
+   * with no static evidence of a second cache node to fail over to) — see `note`. */
+  | 'advisory'
+
+export interface OwnInfraFixSuggestion {
+  rule: OwnInfraRuleId
+  /** Same "type.name" address as the finding it addresses. */
+  resource: string
+  file: string
+  status: OwnInfraFixStatus
+  /** Refusal reason ('refused') or guidance text ('advisory'). Absent for 'patched'. */
+  note?: string
+  /** Unified diff text (`a/<file>` / `b/<file>`, git-apply compatible). Only set for 'patched'. */
+  diff?: string
+  /** This one fix's markdown section for the combined PR body. Only set for 'patched'. */
+  prText?: string
+}
+
 export interface OwnInfrastructure {
   regions: OwnInfraRegion[]
   findings: OwnInfraFinding[]
   unresolved: OwnInfraUnresolved[]
   filesScanned: number
+  /** One entry per finding in `findings`, same order — see OwnInfraFixSuggestion. Optional: the
+   * pure rule engine (evaluateOwnInfrastructure) never sets this — it has no file text to patch —
+   * only server/src/ownInfra.ts's real orchestrator does. Never fabricated as [] when absent. */
+  fixes?: OwnInfraFixSuggestion[]
+  /** Combined deterministic PR body covering every 'patched' entry in `fixes`, or null when there
+   * are none to combine. Absent for the same reason as `fixes`. */
+  fixesPrText?: string | null
 }

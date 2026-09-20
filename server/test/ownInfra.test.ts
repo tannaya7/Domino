@@ -60,7 +60,7 @@ resource "aws_db_instance" "primary" {
 
   it('returns an empty, honest result when there is no IaC at all', () => {
     const result = buildOwnInfrastructure([])
-    expect(result).toEqual({ regions: [], findings: [], unresolved: [], filesScanned: 0 })
+    expect(result).toEqual({ regions: [], findings: [], unresolved: [], filesScanned: 0, fixes: [], fixesPrText: null })
   })
 
   it('ignores non-Terraform, non-workflow IaC files (e.g. a CFN template) without crashing', () => {

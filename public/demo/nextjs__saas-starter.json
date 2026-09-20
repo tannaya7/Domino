@@ -3,7 +3,7 @@
   "repo": "saas-starter",
   "branch": "main",
   "commitSha": "6e33e58b1e553a41fe22e6b941a7229a002de361",
-  "generatedAt": "2026-09-20T00:19:15.757Z",
+  "generatedAt": "2026-09-20T00:44:47.852Z",
   "nodes": [
     {
       "id": "drizzle.config.ts",
@@ -1351,7 +1351,9 @@
     "regions": [],
     "findings": [],
     "unresolved": [],
-    "filesScanned": 0
+    "filesScanned": 0,
+    "fixes": [],
+    "fixesPrText": null
   },
   "riskSummary": {
     "subject": "vendor:Stripe",
@@ -2060,7 +2062,7 @@
     "branch": "main",
     "filesScanned": 41,
     "truncated": false,
-    "elapsedMs": 4789,
+    "elapsedMs": 4143,
     "cached": false,
     "importResolution": {
       "total": 81,

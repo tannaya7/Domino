@@ -1,4 +1,5 @@
-import type { OwnInfraFinding, OwnInfraSeverity, OwnInfrastructure } from '../lib/types'
+import { useState } from 'react'
+import type { OwnInfraFinding, OwnInfraFixStatus, OwnInfraFixSuggestion, OwnInfraSeverity, OwnInfrastructure } from '../lib/types'
 import Panel from './ui/Panel'
 
 interface OwnInfraPanelProps {
@@ -28,7 +29,104 @@ function regionColor(index: number): string {
   return REGION_BAR_COLORS[index % REGION_BAR_COLORS.length]
 }
 
-function FindingRow({ finding }: { finding: OwnInfraFinding }) {
+function fixKey(rule: string, resource: string, file: string): string {
+  return `${rule}::${resource}::${file}`
+}
+
+const FIX_STATUS_LABEL: Record<OwnInfraFixStatus, string> = {
+  patched: 'Suggested fix ready',
+  refused: 'No patch generated',
+  advisory: 'Advisory only',
+}
+
+/** Bare-bones diff coloring: the +/- prefix is the real signal (as in any unified diff); color is
+ * a secondary reinforcement only, never the sole indicator. */
+function DiffView({ diff }: { diff: string }) {
+  return (
+    <pre className="max-h-64 overflow-auto rounded-md bg-[var(--bg-base)] p-2 text-[11px] leading-relaxed">
+      <code>
+        {diff.split('\n').map((line, i) => {
+          let color = 'var(--text-secondary)'
+          if (line.startsWith('+') && !line.startsWith('+++')) color = '#3fb97a'
+          else if (line.startsWith('-') && !line.startsWith('---')) color = '#d03b3b'
+          else if (line.startsWith('@@')) color = 'var(--accent-strong)'
+          return (
+            <div key={i} style={{ color }}>
+              {line || ' '}
+            </div>
+          )
+        })}
+      </code>
+    </pre>
+  )
+}
+
+function useCopyFeedback(): [boolean, (text: string) => void] {
+  const [copied, setCopied] = useState(false)
+  function copy(text: string) {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      })
+      .catch(() => {})
+  }
+  return [copied, copy]
+}
+
+function downloadPatch(fix: OwnInfraFixSuggestion) {
+  if (!fix.diff) return
+  const blob = new Blob([fix.diff], { type: 'text/x-diff' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const safeResource = fix.resource.replace(/[^a-zA-Z0-9_.-]/g, '_')
+  a.href = url
+  a.download = `${fix.rule}-${safeResource}.patch`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+function gitApplyCommand(fix: OwnInfraFixSuggestion): string {
+  return `git apply <<'BRM_PATCH_EOF'\n${fix.diff}\nBRM_PATCH_EOF`
+}
+
+function SuggestedFix({ fix }: { fix: OwnInfraFixSuggestion }) {
+  const [copiedApply, copyApply] = useCopyFeedback()
+
+  return (
+    <div className="mt-1.5 rounded-md border border-[var(--border-subtle)] p-2">
+      <p className="text-[11px] font-semibold tracking-wide text-[var(--text-muted)] uppercase">{FIX_STATUS_LABEL[fix.status]}</p>
+      {fix.status !== 'patched' ? (
+        <p className="mt-1 text-xs text-[var(--text-secondary)]">{fix.note}</p>
+      ) : (
+        <>
+          {fix.diff && <DiffView diff={fix.diff} />}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => downloadPatch(fix)}
+              className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            >
+              Download .patch
+            </button>
+            <button
+              type="button"
+              onClick={() => copyApply(gitApplyCommand(fix))}
+              className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            >
+              {copiedApply ? 'Copied' : 'Copy git apply command'}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function FindingRow({ finding, fix }: { finding: OwnInfraFinding; fix: OwnInfraFixSuggestion | undefined }) {
   return (
     <li className="rounded-lg border border-[var(--border-subtle)] p-2.5">
       <div className="flex items-start justify-between gap-2">
@@ -52,18 +150,27 @@ function FindingRow({ finding }: { finding: OwnInfraFinding }) {
           <code>{finding.fixSnippet}</code>
         </pre>
       </details>
+      {fix && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer text-xs font-medium text-[var(--accent-strong)] select-none">Suggested fixes</summary>
+          <SuggestedFix fix={fix} />
+        </details>
+      )}
     </li>
   )
 }
 
 function OwnInfraPanel({ own }: OwnInfraPanelProps) {
+  const [copiedPr, copyPr] = useCopyFeedback()
   if (!own) return null
-  const { regions, findings, unresolved, filesScanned } = own
+  const { regions, findings, unresolved, filesScanned, fixes, fixesPrText } = own
   const totalResourceCount = regions.reduce((sum, r) => sum + r.resourceCount, 0)
   const bySeverity = SEVERITY_ORDER.map((severity) => ({
     severity,
     findings: findings.filter((f) => f.severity === severity),
   })).filter((group) => group.findings.length > 0)
+  const fixesByKey = new Map((fixes ?? []).map((f) => [fixKey(f.rule, f.resource, f.file), f]))
+  const patchedCount = (fixes ?? []).filter((f) => f.status === 'patched').length
 
   return (
     <Panel
@@ -109,6 +216,25 @@ function OwnInfraPanel({ own }: OwnInfraPanelProps) {
           file{filesScanned === 1 ? '' : 's'} scanned)
         </p>
 
+        {patchedCount > 0 && fixesPrText && (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-[var(--border-subtle)] p-2">
+            <p className="text-xs text-[var(--text-secondary)]">
+              {patchedCount} suggested fix{patchedCount === 1 ? '' : 'es'} ready — expand a finding below for its diff, or draft one PR for all of them.
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                copyPr(
+                  `gh pr create --draft --title "Reliability fixes from Blast Radius Mapper" --body "$(cat <<'BRM_PR_EOF'\n${fixesPrText}\nBRM_PR_EOF\n)"`,
+                )
+              }
+              className="shrink-0 rounded-md border border-[var(--border-subtle)] px-2 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+            >
+              {copiedPr ? 'Copied' : 'Copy gh pr create --draft'}
+            </button>
+          </div>
+        )}
+
         {bySeverity.length === 0 ? (
           <p className="text-sm text-[var(--text-secondary)]">No findings from the 6 Reliability rules this scan checks.</p>
         ) : (
@@ -123,7 +249,11 @@ function OwnInfraPanel({ own }: OwnInfraPanelProps) {
                 </p>
                 <ul className="space-y-1.5">
                   {group.findings.map((f, i) => (
-                    <FindingRow key={`${f.rule}-${f.file}-${f.line}-${i}`} finding={f} />
+                    <FindingRow
+                      key={`${f.rule}-${f.file}-${f.line}-${i}`}
+                      finding={f}
+                      fix={fixesByKey.get(fixKey(f.rule, f.resource, f.file))}
+                    />
                   ))}
                 </ul>
               </div>

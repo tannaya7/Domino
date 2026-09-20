@@ -3,7 +3,7 @@
   "repo": "formbricks",
   "branch": "main",
   "commitSha": "357c7a25cf98a70d16d1042633deaad8831804ce",
-  "generatedAt": "2026-09-20T00:19:10.563Z",
+  "generatedAt": "2026-09-20T00:44:43.314Z",
   "nodes": [
     {
       "id": "apps/storybook/.storybook/main.ts",
@@ -5804,7 +5804,9 @@
     "regions": [],
     "findings": [],
     "unresolved": [],
-    "filesScanned": 9
+    "filesScanned": 9,
+    "fixes": [],
+    "fixesPrText": null
   },
   "riskSummary": {
     "subject": "vendor:PostHog",
@@ -6513,7 +6515,7 @@
     "branch": "main",
     "filesScanned": 80,
     "truncated": true,
-    "elapsedMs": 12826,
+    "elapsedMs": 11830,
     "cached": false,
     "importResolution": {
       "total": 291,

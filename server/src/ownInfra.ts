@@ -8,6 +8,7 @@
 import type { AttrValue, MultiRegionEvidence, ParsedResource, RegionEvidence } from '../../src/engine/ownInfrastructure'
 import { evaluateOwnInfrastructure } from '../../src/engine/ownInfrastructure'
 import type { OwnInfrastructure } from '../../src/lib/types'
+import { buildFixesPrText, generatePatches } from './ownInfraPatches'
 import { parseTerraformForOwnInfra, parseTfvars } from './ownInfraTerraform'
 
 export interface OwnInfraDiscoveryFile {
@@ -70,5 +71,10 @@ export function buildOwnInfrastructure(iacFiles: OwnInfraDiscoveryFile[]): OwnIn
   for (const f of workflowFiles) regionEvidence.push(...scanWorkflowForRegion(f))
 
   const filesScanned = tfFiles.length + tfvarFiles.length + workflowFiles.length
-  return evaluateOwnInfrastructure(resources, regionEvidence, multiRegionEvidence, filesScanned)
+  const result = evaluateOwnInfrastructure(resources, regionEvidence, multiRegionEvidence, filesScanned)
+
+  // Fix generator (Prompt 15's findings -> deterministic patches, steps 1-3 only: no PR creation,
+  // no tokens, no GitHub calls here) — reuses the same already-fetched IaC files, no extra fetches.
+  const fixes = generatePatches(iacFiles, result.findings)
+  return { ...result, fixes, fixesPrText: buildFixesPrText(fixes) }
 }

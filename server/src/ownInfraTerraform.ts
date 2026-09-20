@@ -95,8 +95,10 @@ function lineOf(source: string, offset: number): number {
 }
 
 /** Brace-matches from `openIndex` (the `{` itself) to its closer, using the neutralized text so a
- * brace inside a string/comment never miscounts nesting. Offsets are shared with the original text. */
-function findMatchingBrace(neutralized: string, openIndex: number): number {
+ * brace inside a string/comment never miscounts nesting. Offsets are shared with the original text.
+ * Exported for the fix generator (server/src/ownInfraPatches.ts) to locate NESTED blocks (e.g.
+ * DynamoDB's `point_in_time_recovery { ... }`) inside an already-located resource block. */
+export function findMatchingBrace(neutralized: string, openIndex: number): number {
   let depth = 0
   for (let i = openIndex; i < neutralized.length; i++) {
     if (neutralized[i] === '{') depth++
@@ -233,7 +235,10 @@ export function parseTerraformForOwnInfra(
       autoscaling_group: ['minSize', 'maxSize'],
       ecs_service: ['desiredCount'],
       ec2_instance: [],
-      elasticache_replication_group: ['automaticFailoverEnabled'],
+      // numCacheClusters/replicasPerNodeGroup aren't read by any R1-R6 rule — the fix generator
+      // (server/src/ownInfraPatches.ts) uses them to gate the R6 patch on real static evidence of a
+      // replica (failover has nothing to fail over to otherwise).
+      elasticache_replication_group: ['automaticFailoverEnabled', 'numCacheClusters', 'replicasPerNodeGroup'],
       other: [],
     }
     const nativeAttrName: Record<string, string> = {
@@ -243,6 +248,8 @@ export function parseTerraformForOwnInfra(
       maxSize: 'max_size',
       desiredCount: 'desired_count',
       automaticFailoverEnabled: 'automatic_failover_enabled',
+      numCacheClusters: 'num_cache_clusters',
+      replicasPerNodeGroup: 'replicas_per_node_group',
     }
     for (const canonicalKey of attrKeys[kind]) {
       const raw = readAttr(neutralizedBlock, originalBlock, nativeAttrName[canonicalKey])
@@ -285,4 +292,67 @@ export function parseTerraformForOwnInfra(
   }
 
   return { resources, regionEvidence, multiRegionEvidence }
+}
+
+export interface ResourceBlockLocation {
+  /** Offset of the `resource` keyword itself. */
+  headerStart: number
+  /** Offset of the block's opening `{`. */
+  openIndex: number
+  /** Offset of the matching closing `}`. */
+  closeIndex: number
+  /** 1-indexed line of the `resource` keyword — matches the `line` a ParsedResource carries. */
+  line: number
+  /** ORIGINAL text of the block (quotes/comments intact) — the only thing a patch may edit. */
+  originalBlock: string
+  /** Same span with comments AND string contents (including their quote characters) blanked to
+   * spaces — safe for attribute-NAME scans (e.g. `count =`, `for_each =`) without ever matching
+   * fake text inside a string value. NOT safe for matching syntax that requires a real quoted
+   * string, like `dynamic "block_name" {` — use `commentsBlankedBlock` for that. */
+  neutralizedBlock: string
+  /** Same span with only comments blanked — real string literals (including their quotes) are
+   * intact. Safe for detecting `dynamic "..." {` headers without a comment falsely triggering it. */
+  commentsBlankedBlock: string
+}
+
+/** Re-locates a resource block's exact text span by (type, name) — used by the fix generator
+ * (server/src/ownInfraPatches.ts) to make a surgical, brace-matched text edit without re-parsing
+ * and re-serializing the file (which would destroy comments and any preserved syntax). */
+export function locateResourceBlock(source: string, type: string, name: string): ResourceBlockLocation | null {
+  const headerNeutralized = neutralize(source, false)
+  const bodyNeutralized = neutralize(source, true)
+  const escapedType = type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp(`resource\\s+"${escapedType}"\\s+"${escapedName}"\\s*\\{`)
+  const match = re.exec(headerNeutralized)
+  if (!match) return null
+  const openIndex = match.index + match[0].length - 1
+  const closeIndex = findMatchingBrace(bodyNeutralized, openIndex)
+  return {
+    headerStart: match.index,
+    openIndex,
+    closeIndex,
+    line: lineOf(source, match.index),
+    originalBlock: source.slice(openIndex, closeIndex + 1),
+    neutralizedBlock: bodyNeutralized.slice(openIndex, closeIndex + 1),
+    commentsBlankedBlock: headerNeutralized.slice(openIndex, closeIndex + 1),
+  }
+}
+
+/** Locates `key\s*=` inside a block and returns the VALUE token's exact span in the block's
+ * ORIGINAL text (offsets relative to the block, i.e. `originalBlock`/`neutralizedBlock` above) —
+ * the minimal span a patch may overwrite, so an inline comment or trailing content on the same
+ * line survives untouched. Mirrors `readValueAt`'s literal/bool/number/expression matching. */
+export function locateAttrValueSpan(neutralizedBlock: string, originalBlock: string, key: string): { start: number; end: number } | null {
+  const re = new RegExp(`\\b${key}\\s*=`, '')
+  const match = re.exec(neutralizedBlock)
+  if (!match) return null
+  const start = match.index + match[0].length
+  const rest = originalBlock.slice(start)
+  const leadingWs = rest.match(/^\s*/)?.[0].length ?? 0
+  const at = rest.slice(leadingWs)
+  const valueMatch =
+    at.match(/^"(?:[^"\\]|\\.)*"/) ?? at.match(/^(true|false)\b/) ?? at.match(/^-?\d+(\.\d+)?\b/) ?? at.match(/^[a-zA-Z0-9_.[\]]+/)
+  if (!valueMatch) return null
+  return { start: start + leadingWs, end: start + leadingWs + valueMatch[0].length }
 }

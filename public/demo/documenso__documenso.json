@@ -3,7 +3,7 @@
   "repo": "documenso",
   "branch": "main",
   "commitSha": "e658cc581878f52c03b3e6a8f7ffd613aead4e69",
-  "generatedAt": "2026-09-20T00:18:44.863Z",
+  "generatedAt": "2026-09-20T00:44:23.717Z",
   "nodes": [
     {
       "id": "apps/remix/server/main.js",
@@ -5537,7 +5537,9 @@
     "regions": [],
     "findings": [],
     "unresolved": [],
-    "filesScanned": 11
+    "filesScanned": 11,
+    "fixes": [],
+    "fixesPrText": null
   },
   "riskSummary": {
     "subject": "vendor:Stripe",
@@ -6246,7 +6248,7 @@
     "branch": "main",
     "filesScanned": 80,
     "truncated": true,
-    "elapsedMs": 11830,
+    "elapsedMs": 11365,
     "cached": false,
     "importResolution": {
       "total": 216,
