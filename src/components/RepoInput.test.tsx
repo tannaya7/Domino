@@ -29,19 +29,19 @@ beforeEach(() => {
 describe('RepoInput', () => {
   it('shows the built-in example cards with their precomputed vendor/substrate counts', () => {
     render(<RepoInput onAnalyzed={vi.fn()} onLoadSample={vi.fn()} onSnapshotLoaded={vi.fn()} />)
-    expect(screen.getByText('documenso/documenso')).toBeInTheDocument()
-    expect(screen.getByText(/5 vendors → 2 substrates/)).toBeInTheDocument()
+    expect(screen.getByText('langfuse/langfuse')).toBeInTheDocument()
+    expect(screen.getByText(/10 vendors → 4 substrates/)).toBeInTheDocument()
   })
 
   it('loads a snapshot on card click, with zero calls to the live analyze-repo endpoint', async () => {
     const onSnapshotLoaded = vi.fn()
-    loadDemoSnapshotMock.mockResolvedValue({ owner: 'documenso', repo: 'documenso' })
+    loadDemoSnapshotMock.mockResolvedValue({ owner: 'langfuse', repo: 'langfuse' })
     const user = userEvent.setup()
     render(<RepoInput onAnalyzed={vi.fn()} onLoadSample={vi.fn()} onSnapshotLoaded={onSnapshotLoaded} />)
 
-    await user.click(screen.getByText('documenso/documenso'))
-    expect(loadDemoSnapshotMock).toHaveBeenCalledWith('/demo/documenso__documenso.json')
-    expect(onSnapshotLoaded).toHaveBeenCalledWith({ owner: 'documenso', repo: 'documenso' })
+    await user.click(screen.getByText('langfuse/langfuse'))
+    expect(loadDemoSnapshotMock).toHaveBeenCalledWith('/demo/langfuse__langfuse.json')
+    expect(onSnapshotLoaded).toHaveBeenCalledWith({ owner: 'langfuse', repo: 'langfuse' })
     expect(analyzeRepoMock).not.toHaveBeenCalled()
   })
 
@@ -55,7 +55,7 @@ describe('RepoInput', () => {
     await user.click(screen.getByRole('button', { name: /^analyze$/i }))
 
     expect(await screen.findByText(/rate limit exceeded/i)).toBeInTheDocument()
-    expect(screen.getByText('documenso/documenso')).toBeInTheDocument() // examples still offered
+    expect(screen.getByText('langfuse/langfuse')).toBeInTheDocument() // examples still offered
   })
 
   it('requires a non-empty URL before analyzing', async () => {
