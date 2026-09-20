@@ -1,5 +1,5 @@
 {
-  "$comment": "DRAFT — NOT independently confirmed via a live 'aws fis list-actions'/'get-action' call. This session's sandbox has no AWS CLI and no AWS credentials configured, so scripts/verify-fis-actions.ts could not be run. Every field below is transcribed from general knowledge of AWS FIS's public documentation, not fetched live. Run `npm run verify:fis` with real AWS credentials to regenerate this file for real — it will overwrite every entry and flip verified/fileVerified to true. src/engine/fisTemplate.ts refuses to use any action where verified !== true, so the generator is safe even with this draft in place (it will error, not silently proceed) unless you explicitly acknowledge the draft — see fisTemplate.ts's ALLOW_UNVERIFIED_DRAFT export.",
+  "$comment": "DRAFT — not confirmed via a live `aws fis list-actions/get-action` call (this generation run had no AWS credentials). By default, templates should only use actions where `verified: true`; however the current UI opts into draft actions by passing `{ allowUnverifiedDraft: true }` to `generateFisTemplate`. Run `npm run verify:fis` with real AWS credentials to regenerate this file and set `verified`/`fileVerified` to true.",
   "generatedAt": "2026-09-19T00:00:00.000Z",
   "region": "unknown — not queried live",
   "fileVerified": false,
